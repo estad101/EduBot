@@ -7,6 +7,7 @@ from starlette.responses import RedirectResponse
 from config.settings import settings
 from utils.logger import get_logger
 import time
+import os
 from datetime import datetime, timedelta
 
 logger = get_logger("admin_auth")
@@ -16,7 +17,8 @@ class AdminAuth:
     """Admin authentication manager with rate limiting and security features."""
     
     ADMIN_USERNAME = "admin"
-    ADMIN_PASSWORD = settings.secret_key  # Use secret key as password
+    # Allow admin password to be set via environment variable, fallback to secret_key
+    ADMIN_PASSWORD = os.getenv("ADMIN_PASSWORD", settings.secret_key)
     ADMIN_SESSION_KEY = "admin_session"
     FAILED_ATTEMPTS = {}  # Track failed login attempts by IP
     MAX_FAILED_ATTEMPTS = 5
