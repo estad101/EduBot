@@ -140,7 +140,8 @@ class WhatsAppService:
             text=message_with_link,
         )
 
-
+    @staticmethod
+    async def send_message(
         phone_number: str,
         message_type: str = "text",
         text: Optional[str] = None,
