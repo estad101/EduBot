@@ -252,14 +252,13 @@ class MessageRouter:
         # Handle help command
         if intent == "help":
             return (
-                "📚 **Welcome to Study Bot!**\n\n"
-                "Commands:\n"
-                "• **register** - Create your student account\n"
-                "• **homework** - Submit homework\n"
-                "• **pay** - Buy a monthly subscription\n"
-                "• **status** - Check your subscription\n"
-                "• **cancel** - Reset conversation\n\n"
-                "Type any command to get started!",
+                "� Hi! Type 'help' for available commands, or:\n\n"
+                "📝 **register** - Create account\n"
+                "📚 **homework** - Submit homework\n"
+                "💳 **pay** - Get subscription\n"
+                "✅ **status** - Check subscription\n"
+                "❌ **cancel** - Reset conversation\n\n"
+                "What would you like to do?",
                 ConversationState.IDLE,
             )
 
@@ -304,11 +303,11 @@ class MessageRouter:
                 )
             else:
                 return (
-                    "👋 Hi! Type 'help' for available commands, or:\n"
-                    "• **register** - Create account\n"
-                    "• **homework** - Submit homework\n"
-                    "• **pay** - Get subscription\n"
-                    "• **status** - Check subscription",
+                    "👋 Hi! Type 'help' for available commands, or:\n\n"
+                    "📝 **register** - Create your account\n"
+                    "📚 **homework** - Submit homework\n"
+                    "💳 **pay** - Get subscription\n"
+                    "✅ **status** - Check subscription",
                     ConversationState.IDLE,
                 )
 
@@ -316,25 +315,26 @@ class MessageRouter:
         elif current_state == ConversationState.REGISTERING_NAME:
             ConversationService.set_data(phone_number, "full_name", message_text)
             return (
-                "Great! What is your email address?",
+                "😊 Nice to meet you! What is your email address?",
                 ConversationState.REGISTERING_EMAIL,
             )
 
         elif current_state == ConversationState.REGISTERING_EMAIL:
             ConversationService.set_data(phone_number, "email", message_text)
             return (
-                "Perfect! What is your class/grade? (e.g., 10A, SS2, Form 4)",
+                "📚 Perfect! What is your class/grade?\n(e.g., 10A, SS2, Form 4)",
                 ConversationState.REGISTERING_CLASS,
             )
 
         elif current_state == ConversationState.REGISTERING_CLASS:
             ConversationService.set_data(phone_number, "class_grade", message_text)
             return (
-                "✅ Registration complete! You are now registered as REGISTERED_FREE.\n\n"
+                "✅ Registration Complete!\n\n"
+                "You're now registered as a FREE student.\n\n"
                 "You can now:\n"
-                "• Submit homework (with payment per submission)\n"
-                "• Buy monthly subscription for unlimited access\n\n"
-                "Type 'homework' or 'pay' to continue!",
+                "📝 Submit homework (with payment per submission)\n"
+                "⭐ Buy monthly subscription for unlimited access\n\n"
+                "Type 📝 'homework' or 💳 'pay' to get started!",
                 ConversationState.REGISTERED,
             )
 
@@ -342,7 +342,7 @@ class MessageRouter:
         elif current_state == ConversationState.HOMEWORK_SUBJECT:
             ConversationService.set_data(phone_number, "homework_subject", message_text)
             return (
-                "Is this a **text** or **image** submission?",
+                "📝 Is this a **text** or **image** submission?",
                 ConversationState.HOMEWORK_TYPE,
             )
 
@@ -350,14 +350,14 @@ class MessageRouter:
             submission_type = "IMAGE" if "image" in message_text.lower() else "TEXT"
             ConversationService.set_data(phone_number, "homework_type", submission_type)
             return (
-                f"Got it, {submission_type} submission. Please send your homework now:",
+                f"✍️ {submission_type} submission it is!\n\nPlease send your homework now:",
                 ConversationState.HOMEWORK_CONTENT,
             )
 
         elif current_state == ConversationState.HOMEWORK_CONTENT:
             ConversationService.set_data(phone_number, "homework_content", message_text)
             return (
-                "📤 Processing your homework submission...",
+                "📤 Processing your homework submission...\n⏳ A tutor will review it shortly!",
                 ConversationState.HOMEWORK_SUBMITTED,
             )
 
@@ -365,8 +365,12 @@ class MessageRouter:
         elif current_state == ConversationState.PAYMENT_PENDING:
             if "confirm" in message_text.lower():
                 return (
-                    "🔗 Here's your payment link: [Payment Link]\n\n"
-                    "Click to complete payment. We'll confirm once received!",
+                    "💳 Opening payment page...\n\n"
+                    "🔗 Complete payment and we'll send you a confirmation!\n\n"
+                    "After payment:\n"
+                    "✅ Unlock unlimited homework submissions\n"
+                    "🎓 Get expert tutor feedback\n"
+                    "⭐ Priority support",
                     ConversationState.PAYMENT_CONFIRMED,
                 )
             else:
@@ -377,6 +381,6 @@ class MessageRouter:
 
         else:
             return (
-                "Sorry, I didn't understand. Type 'help' for available commands.",
+                "Sorry, I didn't understand that. 🤔\n\nType 'help' for available commands.",
                 ConversationState.IDLE,
             )
