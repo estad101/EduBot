@@ -51,19 +51,36 @@ def get_db():
 def init_db():
     """Initialize database (create all tables)."""
     try:
+        logger.info("Initializing database - importing models...")
+        
         # Import models to register them with Base.metadata
         from models.student import Student
-        from models.lead import Lead
-        from models.homework import Homework
-        from models.payment import Payment
-        from models.subscription import Subscription
-        from models.tutor import Tutor
-        from models.tutor_assignment import TutorAssignment
+        logger.info("✓ Imported Student model")
         
+        from models.lead import Lead
+        logger.info("✓ Imported Lead model")
+        
+        from models.homework import Homework
+        logger.info("✓ Imported Homework model")
+        
+        from models.payment import Payment
+        logger.info("✓ Imported Payment model")
+        
+        from models.subscription import Subscription
+        logger.info("✓ Imported Subscription model")
+        
+        from models.tutor import Tutor
+        logger.info("✓ Imported Tutor model")
+        
+        from models.tutor_assignment import TutorAssignment
+        logger.info("✓ Imported TutorAssignment model")
+        
+        logger.info(f"Creating tables with Base.metadata (tables: {list(Base.metadata.tables.keys())})")
         Base.metadata.create_all(bind=engine)
-        logger.info("✓ Database tables initialized")
+        logger.info("✓✓✓ DATABASE TABLES INITIALIZED SUCCESSFULLY ✓✓✓")
+        
     except Exception as e:
-        logger.warning(f"⚠ Could not initialize database tables: {str(e)[:100]}")
+        logger.error(f"❌ ERROR initializing database: {str(e)}", exc_info=True)
         # Don't raise - just log and continue
         # Tables will be created when first query succeeds
 
