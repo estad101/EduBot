@@ -68,25 +68,11 @@ async def whatsapp_webhook(request: Request, db: Session = Depends(get_db)):
             f"WhatsApp message from {phone_number} ({sender_name}): {message_type}"
         )
 
-        # Get or create student - create a placeholder if doesn't exist
+        # Check if user is registered
         student = StudentService.get_student_by_phone(db, phone_number)
-        if not student:
-            try:
-                # Create a temporary student record for unregistered users
-                student = StudentService.create_student(
-                    db,
-                    phone_number=phone_number,
-                    full_name=sender_name or phone_number,
-                    email=f"temp+{phone_number}@edubot.local",
-                    class_grade="Pending",
-                )
-                logger.info(f"Created temporary student record for {phone_number}")
-            except Exception as e:
-                logger.warning(f"Could not create student record: {str(e)}")
-                # Continue without creating student
         
-        # Also save as a lead if not registered (for lead tracking)
-        if not student or student.status.value == "registered_free":
+        # If not registered, save as a lead (DO NOT create a student record)
+        if not student:
             try:
                 LeadService.get_or_create_lead(
                     db,
@@ -94,7 +80,7 @@ async def whatsapp_webhook(request: Request, db: Session = Depends(get_db)):
                     sender_name=sender_name,
                     first_message=message_text
                 )
-                logger.info(f"Saved/updated lead for {phone_number}")
+                logger.info(f"Saved/updated lead for {phone_number} (not yet registered)")
             except Exception as e:
                 logger.warning(f"Could not save lead: {str(e)}")
                 # Continue without saving lead

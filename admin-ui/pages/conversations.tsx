@@ -12,6 +12,7 @@ interface Conversation {
   last_message_time: string;
   message_count: number;
   is_active: boolean;
+  type?: 'student' | 'lead' | 'memory';
 }
 
 interface Message {
@@ -122,9 +123,21 @@ export default function ConversationsPage() {
                 >
                   <div className="flex justify-between items-start">
                     <div className="flex-1">
-                      <p className="font-bold text-gray-800">
-                        {conv.student_name || conv.phone_number}
-                      </p>
+                      <div className="flex items-center gap-2">
+                        <p className="font-bold text-gray-800">
+                          {conv.student_name || conv.phone_number}
+                        </p>
+                        {conv.type === 'student' && (
+                          <span className="inline-block px-2 py-1 bg-green-100 text-green-800 text-xs rounded font-semibold">
+                            Student
+                          </span>
+                        )}
+                        {conv.type === 'lead' && (
+                          <span className="inline-block px-2 py-1 bg-yellow-100 text-yellow-800 text-xs rounded font-semibold">
+                            Lead
+                          </span>
+                        )}
+                      </div>
                       <p className="text-sm text-gray-600 truncate">{conv.last_message}</p>
                     </div>
                     {conv.is_active && (

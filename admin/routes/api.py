@@ -404,8 +404,26 @@ async def list_students(
     limit: int = Query(50, ge=1, le=100),
     db: Session = Depends(get_db)
 ):
-    """List all students with pagination."""
-    students = db.query(Student).offset(skip).limit(limit).all()
+    """List all registered students with pagination.
+    
+    Only returns students who have completed registration:
+    - Must have non-empty full_name
+    - Must have phone_number
+    - Must have non-empty/non-pending class_grade
+    """
+    students = (
+        db.query(Student)
+        .filter(
+            Student.full_name != "",
+            Student.full_name.isnot(None),
+            Student.class_grade != "",
+            Student.class_grade != "Pending",
+            Student.class_grade.isnot(None),
+        )
+        .offset(skip)
+        .limit(limit)
+        .all()
+    )
     
     return {
         "status": "success",
@@ -886,12 +904,28 @@ async def get_overview_stats(db: Session = Depends(get_db)):
 
 @router.get("/dashboard/stats")
 async def get_dashboard_stats(db: Session = Depends(get_db)):
-    """Get dashboard statistics (alias for /stats/overview)."""
+    """Get dashboard statistics (alias for /stats/overview).
+    
+    Only counts registered students (those with name, phone, and class_grade).
+    """
     from sqlalchemy import func
     
-    total_students = db.query(Student).count()
-    active_subscribers = db.query(Student).filter_by(
-        status=UserStatus.ACTIVE_SUBSCRIBER
+    # Only count registered students (with name and non-pending class)
+    total_students = db.query(Student).filter(
+        Student.full_name != "",
+        Student.full_name.isnot(None),
+        Student.class_grade != "",
+        Student.class_grade != "Pending",
+        Student.class_grade.isnot(None),
+    ).count()
+    
+    active_subscribers = db.query(Student).filter(
+        Student.status == UserStatus.ACTIVE_SUBSCRIBER,
+        Student.full_name != "",
+        Student.full_name.isnot(None),
+        Student.class_grade != "",
+        Student.class_grade != "Pending",
+        Student.class_grade.isnot(None),
     ).count()
     
     total_payments = db.query(Payment).filter_by(
@@ -1337,24 +1371,38 @@ async def delete_lead(lead_id: int, db: Session = Depends(get_db)):
 async def get_conversations(limit: int = Query(20, ge=1, le=100), db: Session = Depends(get_db)):
     """
     Get list of recent conversations with WhatsApp users.
+    Includes both registered students AND unregistered leads.
     Returns phone numbers, last message, timestamp, and activity status.
     """
     try:
         from models.student import Student
+        from models.lead import Lead
         from services.conversation_service import ConversationService
-        
-        # Get all students sorted by last update
-        students = db.query(Student).order_by(Student.updated_at.desc()).limit(limit).all()
         
         conversations = []
         conversation_phones = set()
         
-        for student in students:
+        # Get registered students (those with name and class_grade filled)
+        registered_students = (
+            db.query(Student)
+            .filter(
+                Student.full_name != "",
+                Student.full_name.isnot(None),
+                Student.class_grade != "",
+                Student.class_grade != "Pending",
+                Student.class_grade.isnot(None),
+            )
+            .order_by(Student.updated_at.desc())
+            .limit(limit)
+            .all()
+        )
+        
+        for student in registered_students:
             # Get conversation state to find last message
             conv_state = ConversationService.get_state(student.phone_number)
             
             # Get the actual last message and time from conversation service
-            last_message = conv_state.get("data", {}).get("last_message") or f"{student.full_name} is registered" if student.full_name else "No messages"
+            last_message = conv_state.get("data", {}).get("last_message") or f"{student.full_name} is registered"
             
             # Get actual message timestamp from messages list if available
             messages = conv_state.get("data", {}).get("messages", [])
@@ -1371,22 +1419,48 @@ async def get_conversations(limit: int = Query(20, ge=1, le=100), db: Session = 
             
             conversations.append({
                 "phone_number": student.phone_number,
-                "student_name": student.full_name if student.full_name else None,
+                "student_name": student.full_name,
                 "last_message": last_message,
                 "last_message_time": last_message_time,
-                "message_count": len(messages) if messages else 1,
+                "message_count": len(messages) if messages else 0,
                 "is_active": True,
+                "type": "student"  # Mark as registered student
             })
             
             conversation_phones.add(student.phone_number)
         
-        # Also include conversations that have messages but no student record yet
-        # This can happen if messages arrived but student creation failed
+        # Get unregistered leads
+        unregistered_leads = (
+            db.query(Lead)
+            .filter(Lead.is_active == True, Lead.converted_to_student == False)
+            .order_by(Lead.last_message_time.desc())
+            .all()
+        )
+        
+        for lead in unregistered_leads:
+            if lead.phone_number not in conversation_phones:
+                # Get conversation state for this lead
+                conv_state = ConversationService.get_state(lead.phone_number)
+                messages = conv_state.get("data", {}).get("messages", [])
+                
+                conversations.append({
+                    "phone_number": lead.phone_number,
+                    "student_name": lead.sender_name or lead.phone_number,
+                    "last_message": lead.last_message or "Awaiting registration",
+                    "last_message_time": lead.last_message_time.isoformat(),
+                    "message_count": lead.message_count,
+                    "is_active": True,
+                    "type": "lead"  # Mark as unregistered lead
+                })
+                
+                conversation_phones.add(lead.phone_number)
+        
+        # Also include any conversations in memory that aren't in the database
         for phone_number, state in ConversationService._conversation_states.items():
             if phone_number not in conversation_phones:
                 messages = state.get("data", {}).get("messages", [])
                 if messages:
-                    last_message = state.get("data", {}).get("last_message", "New message")
+                    last_message = state.get("data", {}).get("last_message", "No message")
                     last_message_time = state.get("data", {}).get("created_at", datetime.utcnow().isoformat())
                     
                     if messages:
@@ -1394,15 +1468,16 @@ async def get_conversations(limit: int = Query(20, ge=1, le=100), db: Session = 
                         if last_msg.get("timestamp"):
                             last_message_time = last_msg["timestamp"]
                         if not last_message:
-                            last_message = last_msg.get("text", "No messages")
+                            last_message = last_msg.get("text", "No message")
                     
                     conversations.append({
                         "phone_number": phone_number,
-                        "student_name": state.get("data", {}).get("full_name"),
+                        "student_name": state.get("data", {}).get("full_name") or phone_number,
                         "last_message": last_message,
                         "last_message_time": last_message_time,
                         "message_count": len(messages),
                         "is_active": True,
+                        "type": "memory"  # Mark as in-memory only
                     })
         
         # Sort by last message time
