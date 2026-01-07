@@ -13,6 +13,7 @@ from config.database import get_db
 from services.whatsapp_service import WhatsAppService
 from services.conversation_service import ConversationService, MessageRouter
 from services.student_service import StudentService
+from services.lead_service import LeadService
 from services.payment_service import PaymentService
 from schemas.response import StandardResponse
 
@@ -83,6 +84,20 @@ async def whatsapp_webhook(request: Request, db: Session = Depends(get_db)):
             except Exception as e:
                 logger.warning(f"Could not create student record: {str(e)}")
                 # Continue without creating student
+        
+        # Also save as a lead if not registered (for lead tracking)
+        if not student or student.status.value == "registered_free":
+            try:
+                LeadService.get_or_create_lead(
+                    db,
+                    phone_number=phone_number,
+                    sender_name=sender_name,
+                    first_message=message_text
+                )
+                logger.info(f"Saved/updated lead for {phone_number}")
+            except Exception as e:
+                logger.warning(f"Could not save lead: {str(e)}")
+                # Continue without saving lead
 
         # Get conversation state and next response
         response_text, next_state = MessageRouter.get_next_response(

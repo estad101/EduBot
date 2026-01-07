@@ -12,10 +12,12 @@ from config.database import get_db, engine
 from config.settings import settings
 from admin.auth import AdminAuth, admin_session_required
 from models.student import Student, UserStatus
+from models.lead import Lead
 from models.payment import Payment, PaymentStatus
 from models.homework import Homework, SubmissionType
 from models.subscription import Subscription
 from models.settings import AdminSetting
+from services.lead_service import LeadService
 from schemas.response import StandardResponse
 from utils.logger import get_logger
 from utils.security import (
@@ -1134,6 +1136,200 @@ async def logout(request: Request, session_id: str = None):
         "status": "success",
         "message": "Logged out successfully"
     }
+
+# ==================== LEADS ENDPOINTS ====================
+
+@router.get("/leads")
+async def list_leads(
+    skip: int = Query(0, ge=0),
+    limit: int = Query(50, ge=1, le=100),
+    converted: bool = Query(None),
+    db: Session = Depends(get_db)
+):
+    """
+    Get list of leads (unregistered users who have messaged the bot).
+    
+    Args:
+        skip: Number of records to skip
+        limit: Number of records to return
+        converted: Filter by conversion status (True/False/None for all)
+    """
+    try:
+        query = db.query(Lead)
+        
+        if converted is not None:
+            query = query.filter(Lead.converted_to_student == converted)
+        else:
+            # By default, show unconverted active leads
+            query = query.filter(Lead.converted_to_student == False, Lead.is_active == True)
+        
+        leads = query.order_by(Lead.last_message_time.desc()).offset(skip).limit(limit).all()
+        
+        return {
+            "status": "success",
+            "data": [
+                {
+                    "id": lead.id,
+                    "phone_number": lead.phone_number,
+                    "sender_name": lead.sender_name,
+                    "first_message": lead.first_message,
+                    "last_message": lead.last_message,
+                    "message_count": lead.message_count,
+                    "converted_to_student": lead.converted_to_student,
+                    "student_id": lead.student_id,
+                    "created_at": lead.created_at.isoformat(),
+                    "updated_at": lead.updated_at.isoformat(),
+                    "last_message_time": lead.last_message_time.isoformat()
+                }
+                for lead in leads
+            ]
+        }
+    except Exception as e:
+        logger.error(f"Error fetching leads: {str(e)}")
+        return {
+            "status": "error",
+            "message": str(e),
+            "data": []
+        }
+
+
+@router.get("/leads/stats")
+async def get_leads_stats(db: Session = Depends(get_db)):
+    """Get leads statistics."""
+    try:
+        total_leads = db.query(Lead).count()
+        active_leads = db.query(Lead).filter(Lead.is_active == True).count()
+        converted_leads = db.query(Lead).filter(Lead.converted_to_student == True).count()
+        unconverted_leads = db.query(Lead).filter(Lead.converted_to_student == False, Lead.is_active == True).count()
+        
+        return {
+            "status": "success",
+            "data": {
+                "total_leads": total_leads,
+                "active_leads": active_leads,
+                "converted_leads": converted_leads,
+                "unconverted_leads": unconverted_leads,
+                "conversion_rate": f"{(converted_leads/total_leads*100):.1f}%" if total_leads > 0 else "0%"
+            }
+        }
+    except Exception as e:
+        logger.error(f"Error fetching leads stats: {str(e)}")
+        return {
+            "status": "error",
+            "message": str(e),
+            "data": {}
+        }
+
+
+@router.get("/leads/{lead_id}")
+async def get_lead_detail(lead_id: int, db: Session = Depends(get_db)):
+    """Get detailed information about a specific lead."""
+    try:
+        lead = db.query(Lead).filter(Lead.id == lead_id).first()
+        
+        if not lead:
+            raise HTTPException(status_code=404, detail="Lead not found")
+        
+        # Get conversation messages for this lead
+        from services.conversation_service import ConversationService
+        conv_state = ConversationService.get_state(lead.phone_number)
+        messages = conv_state.get("data", {}).get("messages", [])
+        
+        return {
+            "status": "success",
+            "data": {
+                "id": lead.id,
+                "phone_number": lead.phone_number,
+                "sender_name": lead.sender_name,
+                "first_message": lead.first_message,
+                "last_message": lead.last_message,
+                "message_count": lead.message_count,
+                "converted_to_student": lead.converted_to_student,
+                "student_id": lead.student_id,
+                "created_at": lead.created_at.isoformat(),
+                "updated_at": lead.updated_at.isoformat(),
+                "last_message_time": lead.last_message_time.isoformat(),
+                "messages": messages
+            }
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error fetching lead detail: {str(e)}")
+        return {
+            "status": "error",
+            "message": str(e),
+            "data": {}
+        }
+
+
+@router.post("/leads/{lead_id}/convert")
+async def convert_lead_to_student(
+    lead_id: int,
+    student_id: int = Body(...),
+    db: Session = Depends(get_db)
+):
+    """Convert a lead to a student."""
+    try:
+        lead = db.query(Lead).filter(Lead.id == lead_id).first()
+        
+        if not lead:
+            raise HTTPException(status_code=404, detail="Lead not found")
+        
+        # Verify student exists
+        student = db.query(Student).filter(Student.id == student_id).first()
+        if not student:
+            raise HTTPException(status_code=404, detail="Student not found")
+        
+        # Convert lead
+        LeadService.convert_lead_to_student(db, lead.phone_number, student_id)
+        
+        logger.info(f"Converted lead {lead_id} ({lead.phone_number}) to student {student_id}")
+        
+        return {
+            "status": "success",
+            "message": f"Lead converted to student",
+            "data": {
+                "lead_id": lead_id,
+                "student_id": student_id
+            }
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error converting lead: {str(e)}")
+        return {
+            "status": "error",
+            "message": str(e)
+        }
+
+
+@router.delete("/leads/{lead_id}")
+async def delete_lead(lead_id: int, db: Session = Depends(get_db)):
+    """Delete or deactivate a lead."""
+    try:
+        lead = db.query(Lead).filter(Lead.id == lead_id).first()
+        
+        if not lead:
+            raise HTTPException(status_code=404, detail="Lead not found")
+        
+        # Soft delete - mark as inactive
+        LeadService.deactivate_lead(db, lead.phone_number)
+        
+        logger.info(f"Deactivated lead {lead_id} ({lead.phone_number})")
+        
+        return {
+            "status": "success",
+            "message": "Lead deactivated"
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error deleting lead: {str(e)}")
+        return {
+            "status": "error",
+            "message": str(e)
+        }
 
 # ==================== CONVERSATIONS ENDPOINTS ====================
 
