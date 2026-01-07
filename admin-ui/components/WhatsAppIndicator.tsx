@@ -2,6 +2,8 @@
 
 import React, { useEffect, useState } from 'react';
 
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+
 export default function WhatsAppIndicator() {
   const [waStatus, setWaStatus] = useState<'connected' | 'configured' | 'disconnected' | 'checking'>('checking');
   const [lastChecked, setLastChecked] = useState<Date | null>(null);
@@ -10,7 +12,7 @@ export default function WhatsAppIndicator() {
   const checkWhatsAppStatus = async () => {
     try {
       setWaStatus('checking');
-      const response = await fetch('http://localhost:8000/api/admin/status/whatsapp', {
+      const response = await fetch(`${API_URL}/api/admin/status/whatsapp`, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
