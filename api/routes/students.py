@@ -89,3 +89,75 @@ async def register_student(
     except Exception as e:
         logger.error(f"Unexpected error during registration: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
+
+@router.get("/list", response_model=StandardResponse)
+async def get_all_students(db: Session = Depends(get_db)):
+    """
+    Get all registered students.
+    
+    Returns a list of all students registered in the system with their details.
+    """
+    try:
+        from models.student import Student
+        
+        students = db.query(Student).all()
+        
+        students_data = []
+        for student in students:
+            students_data.append({
+                "student_id": student.id,
+                "phone_number": student.phone_number,
+                "full_name": student.full_name,
+                "email": student.email,
+                "class_grade": student.class_grade,
+                "status": student.status.value if student.status else "UNKNOWN",
+                "has_active_subscription": student.has_active_subscription,
+                "created_at": student.created_at.isoformat() if student.created_at else None,
+                "last_message_at": student.last_activity_at.isoformat() if hasattr(student, 'last_activity_at') and student.last_activity_at else None,
+            })
+        
+        logger.info(f"Retrieved {len(students)} students")
+        
+        return StandardResponse(
+            status="success",
+            message=f"Found {len(students)} registered students",
+            data={"students": students_data, "total": len(students)}
+        )
+    except Exception as e:
+        logger.error(f"Error fetching students: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/stats", response_model=StandardResponse)
+async def get_students_stats(db: Session = Depends(get_db)):
+    """
+    Get student statistics for the dashboard.
+    
+    Returns counts of registered, active, and subscribed students.
+    """
+    try:
+        from models.student import Student
+        from models.subscription import Subscription
+        
+        total_students = db.query(Student).count()
+        active_subscriptions = db.query(Subscription).filter(
+            Subscription.is_active == True
+        ).count()
+        
+        # Get unique students with active subscriptions
+        unique_students_with_subs = db.query(Student).filter(
+            Student.has_active_subscription == True
+        ).count()
+        
+        return StandardResponse(
+            status="success",
+            message="Student statistics retrieved",
+            data={
+                "total_registered": total_students,
+                "with_active_subscription": unique_students_with_subs,
+                "total_subscriptions": active_subscriptions,
+            }
+        )
+    except Exception as e:
+        logger.error(f"Error fetching stats: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))

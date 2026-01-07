@@ -38,6 +38,13 @@ export default function Layout({ children }: LayoutProps) {
             <span>Students</span>
           </a>
           <a
+            href="/whatsapp-registrations"
+            className="flex items-center px-6 py-3 hover:bg-blue-800 transition"
+          >
+            <i className="fab fa-whatsapp mr-3 w-5"></i>
+            <span>WhatsApp Registrations</span>
+          </a>
+          <a
             href="/payments"
             className="flex items-center px-6 py-3 hover:bg-blue-800 transition"
           >
