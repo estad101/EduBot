@@ -14,6 +14,14 @@ interface DashboardStats {
   system_status: string;
 }
 
+interface LeadsStats {
+  total_leads: number;
+  active_leads: number;
+  converted_leads: number;
+  unconverted_leads: number;
+  conversion_rate: string;
+}
+
 interface RecentConversation {
   phone_number: string;
   student_name?: string;
@@ -25,6 +33,7 @@ interface RecentConversation {
 export default function DashboardPage() {
   const router = useRouter();
   const [stats, setStats] = useState<DashboardStats | null>(null);
+  const [leadsStats, setLeadsStats] = useState<LeadsStats | null>(null);
   const [conversations, setConversations] = useState<RecentConversation[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -48,6 +57,12 @@ export default function DashboardPage() {
             activeSubscribers: response.data.active_subscribers,
             totalRevenue: response.data.total_revenue,
           });
+        }
+
+        // Fetch leads stats
+        const leadsResponse = await apiClient.get('/api/admin/leads/stats');
+        if (leadsResponse.status === 'success') {
+          setLeadsStats(leadsResponse.data);
         }
 
         // Fetch recent conversations
@@ -145,6 +160,66 @@ export default function DashboardPage() {
           <p className="text-green-600 text-sm mt-4">All systems operational</p>
         </div>
       </div>
+
+      {/* Leads Statistics Row */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+        {/* Total Leads Card */}
+        <div className="bg-white rounded-lg shadow p-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-gray-600 text-sm font-medium">Total Leads</p>
+              <p className="text-3xl font-bold text-gray-800 mt-2">{leadsStats?.total_leads || 0}</p>
+            </div>
+            <div className="text-4xl text-purple-600 opacity-20">
+              <i className="fas fa-list"></i>
+            </div>
+          </div>
+          <p className="text-sm text-gray-600 mt-4">
+            <Link href="/leads">View all leads →</Link>
+          </p>
+        </div>
+
+        {/* Active Leads Card */}
+        <div className="bg-white rounded-lg shadow p-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-gray-600 text-sm font-medium">Active Leads</p>
+              <p className="text-3xl font-bold text-gray-800 mt-2">{leadsStats?.active_leads || 0}</p>
+            </div>
+            <div className="text-4xl text-blue-600 opacity-20">
+              <i className="fas fa-phone"></i>
+            </div>
+          </div>
+          <p className="text-sm text-gray-600 mt-4">Currently active</p>
+        </div>
+
+        {/* Unconverted Leads Card */}
+        <div className="bg-white rounded-lg shadow p-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-gray-600 text-sm font-medium">Pending Conversion</p>
+              <p className="text-3xl font-bold text-gray-800 mt-2">{leadsStats?.unconverted_leads || 0}</p>
+            </div>
+            <div className="text-4xl text-yellow-600 opacity-20">
+              <i className="fas fa-hourglass"></i>
+            </div>
+          </div>
+          <p className="text-sm text-gray-600 mt-4">Awaiting registration</p>
+        </div>
+
+        {/* Conversion Rate Card */}
+        <div className="bg-white rounded-lg shadow p-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-gray-600 text-sm font-medium">Conversion Rate</p>
+              <p className="text-3xl font-bold text-gray-800 mt-2">{leadsStats?.conversion_rate || '0%'}</p>
+            </div>
+            <div className="text-4xl text-green-600 opacity-20">
+              <i className="fas fa-check-circle"></i>
+            </div>
+          </div>
+          <p className="text-sm text-gray-600 mt-4">Lead to student ratio</p>
+        </div>
 
       {error && (
         <div className="bg-red-50 border-l-4 border-red-500 rounded-lg p-4 mb-6">
