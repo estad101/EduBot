@@ -67,8 +67,22 @@ async def whatsapp_webhook(request: Request, db: Session = Depends(get_db)):
             f"WhatsApp message from {phone_number} ({sender_name}): {message_type}"
         )
 
-        # Get or create student
+        # Get or create student - create a placeholder if doesn't exist
         student = StudentService.get_by_phone(db, phone_number)
+        if not student:
+            try:
+                # Create a temporary student record for unregistered users
+                student = StudentService.create_student(
+                    db,
+                    phone_number=phone_number,
+                    full_name=sender_name or phone_number,
+                    email=f"temp+{phone_number}@edubot.local",
+                    class_grade="Pending",
+                )
+                logger.info(f"Created temporary student record for {phone_number}")
+            except Exception as e:
+                logger.warning(f"Could not create student record: {str(e)}")
+                # Continue without creating student
 
         # Get conversation state and next response
         response_text, next_state = MessageRouter.get_next_response(
@@ -206,6 +220,28 @@ async def whatsapp_webhook(request: Request, db: Session = Depends(get_db)):
                     "After payment, we'll send you a confirmation message."
                 )
 
+        # Store messages in conversation service
+        import uuid
+        from datetime import datetime
+        
+        # Initialize messages list if not exists
+        conv_state = ConversationService.get_state(phone_number)
+        if "messages" not in conv_state["data"]:
+            conv_state["data"]["messages"] = []
+        
+        # Add user message
+        conv_state["data"]["messages"].append({
+            "id": f"msg_{uuid.uuid4().hex[:12]}",
+            "phone_number": phone_number,
+            "text": message_text,
+            "timestamp": datetime.now().isoformat(),
+            "sender_type": "user",
+            "message_type": message_type
+        })
+        
+        # Store last message for preview
+        ConversationService.set_data(phone_number, "last_message", message_text)
+
         # Send response message
         try:
             await WhatsAppService.send_message(
@@ -213,6 +249,16 @@ async def whatsapp_webhook(request: Request, db: Session = Depends(get_db)):
                 message_type="text",
                 text=response_text,
             )
+            
+            # Add bot message to conversation
+            conv_state["data"]["messages"].append({
+                "id": f"msg_{uuid.uuid4().hex[:12]}",
+                "phone_number": phone_number,
+                "text": response_text,
+                "timestamp": datetime.now().isoformat(),
+                "sender_type": "bot",
+                "message_type": "text"
+            })
         except Exception as e:
             logger.error(f"Error sending WhatsApp message: {str(e)}")
 

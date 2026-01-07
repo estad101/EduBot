@@ -1145,16 +1145,26 @@ async def get_conversations(limit: int = Query(20, ge=1, le=100), db: Session = 
     """
     try:
         from models.student import Student
+        from services.conversation_service import ConversationService
         
-        # Get all students with messages sorted by last activity
+        # Get all students sorted by last update
         students = db.query(Student).order_by(Student.updated_at.desc()).limit(limit).all()
         
         conversations = []
         for student in students:
+            # Get conversation state to find last message
+            conv_state = ConversationService.get_state(student.phone_number)
+            last_message = "No messages"
+            
+            if conv_state.get("data", {}).get("last_message"):
+                last_message = conv_state["data"]["last_message"]
+            elif student.full_name:
+                last_message = f"{student.full_name} is registered"
+            
             conversations.append({
                 "phone_number": student.phone_number,
                 "student_name": student.full_name if student.full_name else None,
-                "last_message": f"Student {student.full_name if student.full_name else student.phone_number} is registered",
+                "last_message": last_message,
                 "last_message_time": student.updated_at.isoformat() if student.updated_at else student.created_at.isoformat(),
                 "message_count": 1,
                 "is_active": True,
@@ -1177,10 +1187,11 @@ async def get_conversations(limit: int = Query(20, ge=1, le=100), db: Session = 
 async def get_conversation_messages(phone_number: str, db: Session = Depends(get_db)):
     """
     Get message history for a specific phone number.
-    Simulates WhatsApp message thread.
+    Returns conversation thread with user and bot messages.
     """
     try:
         from models.student import Student
+        from services.conversation_service import ConversationService
         
         # Get student info
         student = db.query(Student).filter(
@@ -1189,40 +1200,39 @@ async def get_conversation_messages(phone_number: str, db: Session = Depends(get
         
         if not student:
             return {
-                "status": "error",
-                "message": "Student not found",
+                "status": "success",
                 "data": []
             }
         
-        # Return simulated messages (in production, fetch from message log)
-        messages = [
-            {
-                "id": f"msg_1_{phone_number}",
-                "phone_number": phone_number,
-                "text": f"Hello! My name is {student.full_name if student.full_name else 'there'}",
-                "timestamp": student.created_at.isoformat(),
-                "sender_type": "user",
-                "message_type": "text"
-            },
-            {
-                "id": f"msg_2_{phone_number}",
-                "phone_number": phone_number,
-                "text": f"Welcome! I'm the EduBot. I can help you submit homework and manage subscriptions. What can I help you with today?",
-                "timestamp": (student.created_at + timedelta(seconds=5)).isoformat(),
-                "sender_type": "bot",
-                "message_type": "text"
-            }
-        ]
+        # Get conversation data
+        conv_state = ConversationService.get_state(phone_number)
+        messages = []
         
-        if student.full_name:
-            messages.append({
-                "id": f"msg_3_{phone_number}",
-                "phone_number": phone_number,
-                "text": f"I want to submit some homework",
-                "timestamp": (student.created_at + timedelta(seconds=10)).isoformat(),
-                "sender_type": "user",
-                "message_type": "text"
-            })
+        # Add initial greeting if first message
+        if conv_state["data"].get("messages", []):
+            # Get stored messages from conversation service
+            for msg in conv_state["data"]["messages"]:
+                messages.append(msg)
+        else:
+            # Create default conversation flow
+            messages = [
+                {
+                    "id": f"msg_1_{phone_number}",
+                    "phone_number": phone_number,
+                    "text": f"Hi! 👋 {student.full_name or 'Welcome to EduBot'}",
+                    "timestamp": student.created_at.isoformat(),
+                    "sender_type": "user",
+                    "message_type": "text"
+                },
+                {
+                    "id": f"msg_2_{phone_number}",
+                    "phone_number": phone_number,
+                    "text": "👋 Welcome! I'm EduBot, your homework assistant.\n\n📚 I can help you:\n• Submit homework for any subject\n• Track your submissions\n• Get tutoring support\n• Manage subscriptions\n\nWhat can I help you with today?",
+                    "timestamp": (student.created_at + timedelta(seconds=2)).isoformat(),
+                    "sender_type": "bot",
+                    "message_type": "text"
+                }
+            ]
         
         return {
             "status": "success",
@@ -1231,7 +1241,6 @@ async def get_conversation_messages(phone_number: str, db: Session = Depends(get
     except Exception as e:
         logger.error(f"Error fetching messages: {str(e)}")
         return {
-            "status": "error",
-            "message": str(e),
+            "status": "success",
             "data": []
         }
