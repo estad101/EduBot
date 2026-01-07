@@ -82,6 +82,7 @@ app.add_middleware(
         "http://localhost:8000",    # FastAPI server
         "http://localhost:8080",    # Alternative dev port
         "http://127.0.0.1:3000",    # IPv4 loopback Next.js
+        "https://proactive-insight-production-6462.up.railway.app",  # Railway frontend
         os.getenv("ADMIN_ORIGIN", ""),  # Production domain from env
     ],
     allow_credentials=True,
