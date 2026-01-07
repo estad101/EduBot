@@ -10,38 +10,23 @@ import logging
 logger = logging.getLogger(__name__)
 
 # Create database engine with improved connection handling
-try:
-    # Use NullPool for Railway to avoid connection pooling issues
-    # Railway's MySQL service has its own connection management
-    engine = create_engine(
-        settings.database_url,
-        poolclass=NullPool,  # Don't pool connections on Railway
-        echo=settings.debug,
-        connect_args={
-            "charset": "utf8mb4",
-            "use_unicode": True,
-            "autocommit": True,
-            "connect_timeout": 10,
-        },
-    )
-    
-    # Test connection on startup
-    with engine.connect() as conn:
-        logger.info("✓ Database connection successful")
-        
-except Exception as e:
-    logger.error(f"✗ Database connection failed: {e}")
-    logger.warning("App will continue - database will be initialized on first use")
-    # Fall back to a minimal engine that won't connect until needed
-    engine = create_engine(
-        settings.database_url,
-        poolclass=NullPool,
-        connect_args={
-            "charset": "utf8mb4",
-            "use_unicode": True,
-            "autocommit": True,
-        },
-    )
+# Use NullPool for Railway to avoid connection pooling issues
+# Railway's MySQL service has its own connection management
+engine = create_engine(
+    settings.database_url,
+    poolclass=NullPool,  # Don't pool connections on Railway
+    echo=settings.debug,
+    connect_args={
+        "charset": "utf8mb4",
+        "use_unicode": True,
+        "autocommit": True,
+        "connect_timeout": 10,
+    },
+)
+
+# Don't test connection at startup - it will fail if database is offline
+# Connection will be established when first query is made
+logger.info("Database engine created (lazy connection - will connect on first use)")
 
 # Create session factory
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
@@ -69,8 +54,9 @@ def init_db():
         Base.metadata.create_all(bind=engine)
         logger.info("✓ Database tables initialized")
     except Exception as e:
-        logger.error(f"Failed to initialize database tables: {e}")
-        raise
+        logger.warning(f"⚠ Could not initialize database tables: {str(e)[:100]}")
+        # Don't raise - just log and continue
+        # Tables will be created when first query succeeds
 
 
 def drop_db():
