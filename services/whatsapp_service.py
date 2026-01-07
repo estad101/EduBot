@@ -110,7 +110,7 @@ class WhatsAppService:
                 if response.status_code in [200, 201]:
                     result = response.json()
                     logger.info(
-                        f"Message sent to {phone_number}: {result.get('messages', [{}])[0].get('id', 'unknown')}"
+                        f"✓ Message sent to {phone_number}: {result.get('messages', [{}])[0].get('id', 'unknown')}"
                     )
                     return {
                         "status": "success",
@@ -120,8 +120,11 @@ class WhatsAppService:
                 else:
                     error_text = response.text
                     logger.error(
-                        f"WhatsApp API error ({response.status_code}): {error_text}"
+                        f"❌ WhatsApp API error ({response.status_code}) sending to {phone_number}"
                     )
+                    logger.error(f"   Status: {response.status_code}")
+                    logger.error(f"   Phone ID: {settings.whatsapp_phone_number_id}")
+                    logger.error(f"   Response: {error_text}")
                     return {
                         "status": "error",
                         "message": f"Failed to send message: {response.status_code}",
