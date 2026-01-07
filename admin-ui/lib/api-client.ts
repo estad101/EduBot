@@ -54,6 +54,17 @@ class APIClient {
     );
   }
 
+  // Generic request methods
+  async get(endpoint: string, params?: Record<string, any>) {
+    const response = await this.client.get(endpoint, { params });
+    return response.data;
+  }
+
+  async post(endpoint: string, data?: Record<string, any>) {
+    const response = await this.client.post(endpoint, data);
+    return response.data;
+  }
+
   // Auth endpoints
   async login(username: string, password: string) {
     try {

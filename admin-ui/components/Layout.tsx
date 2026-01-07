@@ -31,6 +31,13 @@ export default function Layout({ children }: LayoutProps) {
             <span>Dashboard</span>
           </a>
           <a
+            href="/conversations"
+            className="flex items-center px-6 py-3 hover:bg-blue-800 transition"
+          >
+            <i className="fab fa-whatsapp mr-3 w-5"></i>
+            <span>Conversations</span>
+          </a>
+          <a
             href="/students"
             className="flex items-center px-6 py-3 hover:bg-blue-800 transition"
           >
@@ -41,8 +48,8 @@ export default function Layout({ children }: LayoutProps) {
             href="/whatsapp-registrations"
             className="flex items-center px-6 py-3 hover:bg-blue-800 transition"
           >
-            <i className="fab fa-whatsapp mr-3 w-5"></i>
-            <span>WhatsApp Registrations</span>
+            <i className="fas fa-phone mr-3 w-5"></i>
+            <span>Phone Registrations</span>
           </a>
           <a
             href="/payments"

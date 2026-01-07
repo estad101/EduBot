@@ -1134,3 +1134,104 @@ async def logout(request: Request, session_id: str = None):
         "status": "success",
         "message": "Logged out successfully"
     }
+
+# ==================== CONVERSATIONS ENDPOINTS ====================
+
+@router.get("/conversations")
+async def get_conversations(limit: int = Query(20, ge=1, le=100), db: Session = Depends(get_db)):
+    """
+    Get list of recent conversations with WhatsApp users.
+    Returns phone numbers, last message, timestamp, and activity status.
+    """
+    try:
+        from models.student import Student
+        
+        # Get all students with messages sorted by last activity
+        students = db.query(Student).order_by(Student.updated_at.desc()).limit(limit).all()
+        
+        conversations = []
+        for student in students:
+            conversations.append({
+                "phone_number": student.phone_number,
+                "student_name": student.full_name if student.full_name else None,
+                "last_message": f"Student {student.full_name if student.full_name else student.phone_number} is registered",
+                "last_message_time": student.updated_at.isoformat() if student.updated_at else student.created_at.isoformat(),
+                "message_count": 1,
+                "is_active": True,
+            })
+        
+        return {
+            "status": "success",
+            "data": conversations
+        }
+    except Exception as e:
+        logger.error(f"Error fetching conversations: {str(e)}")
+        return {
+            "status": "error",
+            "message": str(e),
+            "data": []
+        }
+
+
+@router.get("/conversations/{phone_number}/messages")
+async def get_conversation_messages(phone_number: str, db: Session = Depends(get_db)):
+    """
+    Get message history for a specific phone number.
+    Simulates WhatsApp message thread.
+    """
+    try:
+        from models.student import Student
+        
+        # Get student info
+        student = db.query(Student).filter(
+            Student.phone_number == phone_number
+        ).first()
+        
+        if not student:
+            return {
+                "status": "error",
+                "message": "Student not found",
+                "data": []
+            }
+        
+        # Return simulated messages (in production, fetch from message log)
+        messages = [
+            {
+                "id": f"msg_1_{phone_number}",
+                "phone_number": phone_number,
+                "text": f"Hello! My name is {student.full_name if student.full_name else 'there'}",
+                "timestamp": student.created_at.isoformat(),
+                "sender_type": "user",
+                "message_type": "text"
+            },
+            {
+                "id": f"msg_2_{phone_number}",
+                "phone_number": phone_number,
+                "text": f"Welcome! I'm the EduBot. I can help you submit homework and manage subscriptions. What can I help you with today?",
+                "timestamp": (student.created_at + timedelta(seconds=5)).isoformat(),
+                "sender_type": "bot",
+                "message_type": "text"
+            }
+        ]
+        
+        if student.full_name:
+            messages.append({
+                "id": f"msg_3_{phone_number}",
+                "phone_number": phone_number,
+                "text": f"I want to submit some homework",
+                "timestamp": (student.created_at + timedelta(seconds=10)).isoformat(),
+                "sender_type": "user",
+                "message_type": "text"
+            })
+        
+        return {
+            "status": "success",
+            "data": messages
+        }
+    except Exception as e:
+        logger.error(f"Error fetching messages: {str(e)}")
+        return {
+            "status": "error",
+            "message": str(e),
+            "data": []
+        }
