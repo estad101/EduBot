@@ -49,9 +49,8 @@ class Settings(BaseSettings):
     log_file: str = "logs/chatbot.log"
 
     # Environment
-    environment: str = "development"    # Monitoring & Error Tracking
-    sentry_dsn: Optional[str] = None  # Sentry error tracking DSN
-    environment: str = "development"  # production, staging, development
+    environment: str = "development"
+    sentry_dsn: Optional[str] = None
 
     class Config:
         env_file = ".env"
