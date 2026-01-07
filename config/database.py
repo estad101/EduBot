@@ -51,6 +51,15 @@ def get_db():
 def init_db():
     """Initialize database (create all tables)."""
     try:
+        # Import models to register them with Base.metadata
+        from models.student import Student
+        from models.lead import Lead
+        from models.homework import Homework
+        from models.payment import Payment
+        from models.subscription import Subscription
+        from models.tutor import Tutor
+        from models.tutor_assignment import TutorAssignment
+        
         Base.metadata.create_all(bind=engine)
         logger.info("✓ Database tables initialized")
     except Exception as e:
