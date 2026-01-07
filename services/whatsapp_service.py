@@ -2,12 +2,14 @@
 WhatsApp Cloud API Integration Service.
 
 Handles sending messages, receiving webhooks, and managing WhatsApp communication.
+Uses configuration from database via SettingsService with fallback to environment variables.
 """
 import httpx
 import json
 import logging
 from typing import Optional, List, Dict, Any
 from config.settings import settings
+from services.settings_service import get_setting, get_whatsapp_config
 
 logger = logging.getLogger(__name__)
 
@@ -17,6 +19,18 @@ WHATSAPP_API_URL = "https://graph.facebook.com/v22.0"
 
 class WhatsAppService:
     """Service for WhatsApp Cloud API integration."""
+
+    @staticmethod
+    def get_api_credentials() -> tuple:
+        """
+        Get WhatsApp API credentials from database (or env fallback).
+        
+        Returns:
+            Tuple of (api_key, phone_number_id)
+        """
+        api_key = get_setting("whatsapp_api_key", settings.whatsapp_api_key)
+        phone_number_id = get_setting("whatsapp_phone_number_id", settings.whatsapp_phone_number_id)
+        return api_key, phone_number_id
 
     @staticmethod
     async def send_interactive_buttons(
@@ -40,7 +54,9 @@ class WhatsAppService:
         Returns:
             Response from WhatsApp API
         """
-        if not settings.whatsapp_api_key or not settings.whatsapp_phone_number_id:
+        api_key, phone_number_id = WhatsAppService.get_api_credentials()
+        
+        if not api_key or not phone_number_id:
             logger.error("WhatsApp API credentials not configured")
             return {"status": "error", "message": "WhatsApp not configured"}
 
@@ -72,9 +88,9 @@ class WhatsAppService:
                     }
                 }
 
-                url = f"https://graph.facebook.com/v22.0/{settings.whatsapp_phone_number_id}/messages"
+                url = f"{WHATSAPP_API_URL}/{phone_number_id}/messages"
                 headers = {
-                    "Authorization": f"Bearer {settings.whatsapp_api_key}",
+                    "Authorization": f"Bearer {api_key}",
                     "Content-Type": "application/json",
                 }
 
@@ -165,7 +181,9 @@ class WhatsAppService:
         Returns:
             Dict with response from WhatsApp API
         """
-        if not settings.whatsapp_api_key or not settings.whatsapp_phone_number_id:
+        api_key, phone_number_id = WhatsAppService.get_api_credentials()
+        
+        if not api_key or not phone_number_id:
             logger.error("WhatsApp API credentials not configured")
             return {"status": "error", "message": "WhatsApp not configured"}
 
@@ -221,9 +239,9 @@ class WhatsAppService:
                     }
 
                 # Make API request
-                url = f"{WHATSAPP_API_URL}/{settings.whatsapp_phone_number_id}/messages"
+                url = f"{WHATSAPP_API_URL}/{phone_number_id}/messages"
                 headers = {
-                    "Authorization": f"Bearer {settings.whatsapp_api_key}",
+                    "Authorization": f"Bearer {api_key}",
                     "Content-Type": "application/json",
                 }
 
@@ -280,13 +298,15 @@ class WhatsAppService:
         import hmac
         import hashlib
 
-        if not settings.whatsapp_webhook_token:
+        webhook_token = get_setting("whatsapp_webhook_token", settings.whatsapp_webhook_token)
+        
+        if not webhook_token:
             logger.warning("WhatsApp webhook token not configured")
             return False
 
         # Create signature: SHA256 hash of body with token
         expected_signature = hmac.new(
-            settings.whatsapp_webhook_token.encode(),
+            webhook_token.encode(),
             request_body.encode(),
             hashlib.sha256,
         ).hexdigest()
@@ -376,7 +396,9 @@ class WhatsAppService:
         Returns:
             Media bytes or None if failed
         """
-        if not settings.whatsapp_api_key or not settings.whatsapp_phone_number_id:
+        api_key, phone_number_id = WhatsAppService.get_api_credentials()
+        
+        if not api_key or not phone_number_id:
             logger.error("WhatsApp API credentials not configured")
             return None
 
@@ -385,7 +407,7 @@ class WhatsAppService:
                 # Get media URL
                 url = f"{WHATSAPP_API_URL}/{media_id}"
                 headers = {
-                    "Authorization": f"Bearer {settings.whatsapp_api_key}",
+                    "Authorization": f"Bearer {api_key}",
                 }
 
                 response = await client.get(url, headers=headers)
@@ -403,7 +425,7 @@ class WhatsAppService:
                     return None
 
                 media_response = await client.get(
-                    media_url, headers={"Authorization": f"Bearer {settings.whatsapp_api_key}"}
+                    media_url, headers={"Authorization": f"Bearer {api_key}"}
                 )
 
                 if media_response.status_code == 200:

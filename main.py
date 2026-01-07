@@ -14,11 +14,12 @@ import logging
 import os
 
 from config.settings import settings
-from config.database import init_db, drop_db
+from config.database import init_db, drop_db, SessionLocal
 from api.routes import users, students, homework, payments, subscriptions, whatsapp, tutors, health
 from admin.routes import api as admin_api
 from utils.logger import get_logger
 from services.monitoring_service import init_sentry
+from services.settings_service import init_settings_from_db
 from middleware.monitoring import MonitoringMiddleware
 
 logger = get_logger("main")
@@ -34,6 +35,19 @@ async def lifespan(app: FastAPI):
     try:
         init_db()
         logger.info("Database initialized successfully")
+        
+        # Initialize settings from database
+        db = SessionLocal()
+        try:
+            if init_settings_from_db(db):
+                logger.info("✓ WhatsApp settings loaded from database")
+            else:
+                logger.warning("⚠ Using environment variables as fallback for settings")
+        except Exception as e:
+            logger.error(f"Error loading settings from database: {e}")
+            logger.warning("⚠ Using environment variables as fallback for settings")
+        finally:
+            db.close()
     except Exception as e:
         logger.error(f"Database initialization failed: {e}")
         logger.warning("Continuing startup - database will be initialized on first use")

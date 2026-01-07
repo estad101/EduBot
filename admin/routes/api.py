@@ -1041,6 +1041,8 @@ async def debug_settings(db: Session = Depends(get_db)):
 @router.post("/settings/update")
 async def update_settings(data: dict, db: Session = Depends(get_db)):
     """Update admin settings in database."""
+    from services.settings_service import refresh_cache
+    
     logger.info(f"=== SETTINGS UPDATE: Received {len(data)} keys ===")
     
     try:
@@ -1072,7 +1074,12 @@ async def update_settings(data: dict, db: Session = Depends(get_db)):
             updated_count += 1
         
         db.commit()
-        logger.info(f"SUCCESS: Updated {updated_count} settings")
+        
+        # Refresh settings cache so new values are immediately available
+        if refresh_cache(db):
+            logger.info(f"SUCCESS: Updated {updated_count} settings and refreshed cache")
+        else:
+            logger.warning(f"Updated {updated_count} settings but failed to refresh cache")
         
         return {
             "status": "success",
