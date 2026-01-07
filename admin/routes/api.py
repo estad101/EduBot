@@ -1382,50 +1382,50 @@ async def get_conversations(limit: int = Query(20, ge=1, le=100), db: Session = 
         conversations = []
         conversation_phones = set()
         
-        # Get registered students (those with name and class_grade filled)
-        registered_students = (
+        # Get ALL students, not just fully registered ones, to show activity
+        all_students = (
             db.query(Student)
-            .filter(
-                Student.full_name != "",
-                Student.full_name.isnot(None),
-                Student.class_grade != "",
-                Student.class_grade != "Pending",
-                Student.class_grade.isnot(None),
-            )
             .order_by(Student.updated_at.desc())
-            .limit(limit)
+            .limit(limit * 2)  # Get more to account for filtering
             .all()
         )
         
-        for student in registered_students:
+        # Separate fully registered from partially registered
+        for student in all_students:
             try:
                 # Get conversation state to find last message
                 conv_state = ConversationService.get_state(student.phone_number)
-                
-                # Get the actual last message and time from conversation service
-                last_message = conv_state.get("data", {}).get("last_message") or f"{student.full_name} is registered"
-                
-                # Get actual message timestamp from messages list if available
                 messages = conv_state.get("data", {}).get("messages", [])
+                
+                # Determine if fully registered
+                is_fully_registered = (
+                    student.full_name and student.full_name.strip() != "" and
+                    student.class_grade and student.class_grade.strip() != "" and
+                    student.class_grade != "Pending"
+                )
+                
+                last_message = conv_state.get("data", {}).get("last_message")
+                if not last_message:
+                    if messages and len(messages) > 0:
+                        last_message = messages[-1].get("text", "No message")
+                    else:
+                        last_message = "No messages yet" if not is_fully_registered else f"{student.full_name} is registered"
+                
                 last_message_time = student.updated_at.isoformat() if student.updated_at else student.created_at.isoformat()
                 
                 if messages and len(messages) > 0:
-                    # Get the timestamp of the last message
                     last_msg = messages[-1]
                     if last_msg.get("timestamp"):
                         last_message_time = last_msg["timestamp"]
-                    # Update last_message from actual message content if empty
-                    if not last_message or last_message == "No messages":
-                        last_message = last_msg.get("text", "No messages")
                 
                 conversations.append({
                     "phone_number": student.phone_number,
-                    "student_name": student.full_name,
+                    "student_name": student.full_name or student.phone_number,
                     "last_message": last_message,
                     "last_message_time": last_message_time,
-                    "message_count": len(messages) if messages else 0,
+                    "message_count": len(messages),
                     "is_active": True,
-                    "type": "student"  # Mark as registered student
+                    "type": "student" if is_fully_registered else "lead"
                 })
                 
                 conversation_phones.add(student.phone_number)
@@ -1433,7 +1433,7 @@ async def get_conversations(limit: int = Query(20, ge=1, le=100), db: Session = 
                 logger.warning(f"Error processing student {student.phone_number}: {student_err}")
                 continue
         
-        # Get unregistered leads
+        # Get unregistered leads (not in student table)
         unregistered_leads = (
             db.query(Lead)
             .filter(Lead.is_active == True, Lead.converted_to_student == False)
@@ -1445,7 +1445,6 @@ async def get_conversations(limit: int = Query(20, ge=1, le=100), db: Session = 
         for lead in unregistered_leads:
             if lead.phone_number not in conversation_phones:
                 try:
-                    # Get conversation state for this lead
                     conv_state = ConversationService.get_state(lead.phone_number)
                     messages = conv_state.get("data", {}).get("messages", [])
                     
@@ -1456,7 +1455,7 @@ async def get_conversations(limit: int = Query(20, ge=1, le=100), db: Session = 
                         "last_message_time": lead.last_message_time.isoformat(),
                         "message_count": lead.message_count,
                         "is_active": True,
-                        "type": "lead"  # Mark as unregistered lead
+                        "type": "lead"
                     })
                     
                     conversation_phones.add(lead.phone_number)
@@ -1464,23 +1463,21 @@ async def get_conversations(limit: int = Query(20, ge=1, le=100), db: Session = 
                     logger.warning(f"Error processing lead {lead.phone_number}: {lead_err}")
                     continue
         
-        # Sort by last message time (safe sorting)
+        # Sort by last message time
         def get_sort_key(conv):
             try:
                 time_str = conv.get("last_message_time", "")
                 if isinstance(time_str, str):
-                    # Parse ISO format
                     return datetime.fromisoformat(time_str.replace('Z', '+00:00'))
                 return datetime.utcnow()
-            except:
+            except Exception as e:
+                logger.warning(f"Error parsing time {time_str}: {e}")
                 return datetime.utcnow()
         
         conversations.sort(key=get_sort_key, reverse=True)
-        
-        # Limit to requested number
         conversations = conversations[:limit]
         
-        logger.info(f"Returning {len(conversations)} conversations")
+        logger.info(f"Returning {len(conversations)} conversations ({sum(1 for c in conversations if c['type']=='student')} students, {sum(1 for c in conversations if c['type']=='lead')} leads)")
         
         return {
             "status": "success",
@@ -1500,58 +1497,62 @@ async def get_conversation_messages(phone_number: str, db: Session = Depends(get
     """
     Get message history for a specific phone number.
     Returns conversation thread with user and bot messages.
+    Handles both registered students and unregistered leads.
     """
     try:
         from models.student import Student
+        from models.lead import Lead
         from services.conversation_service import ConversationService
         
-        # Get student info
-        student = db.query(Student).filter(
-            Student.phone_number == phone_number
-        ).first()
-        
-        if not student:
-            return {
-                "status": "success",
-                "data": []
-            }
-        
-        # Get conversation data
-        conv_state = ConversationService.get_state(phone_number)
         messages = []
         
-        # Add initial greeting if first message
-        if conv_state["data"].get("messages", []):
-            # Get stored messages from conversation service
-            for msg in conv_state["data"]["messages"]:
-                messages.append(msg)
+        # Get conversation state (works for both students and leads)
+        conv_state = ConversationService.get_state(phone_number)
+        
+        # Try to get stored messages from conversation service
+        stored_messages = conv_state.get("data", {}).get("messages", [])
+        
+        if stored_messages and len(stored_messages) > 0:
+            # Use stored messages if available
+            messages = stored_messages
         else:
-            # Create default conversation flow
-            messages = [
-                {
-                    "id": f"msg_1_{phone_number}",
-                    "phone_number": phone_number,
-                    "text": f"Hi! 👋 {student.full_name or 'Welcome to EduBot'}",
-                    "timestamp": student.created_at.isoformat(),
-                    "sender_type": "user",
-                    "message_type": "text"
-                },
-                {
-                    "id": f"msg_2_{phone_number}",
-                    "phone_number": phone_number,
-                    "text": "👋 Welcome! I'm EduBot, your homework assistant.\n\n📚 I can help you:\n• Submit homework for any subject\n• Track your submissions\n• Get tutoring support\n• Manage subscriptions\n\nWhat can I help you with today?",
-                    "timestamp": (student.created_at + timedelta(seconds=2)).isoformat(),
-                    "sender_type": "bot",
-                    "message_type": "text"
-                }
-            ]
+            # Check if it's a student or lead and create default conversation
+            student = db.query(Student).filter(Student.phone_number == phone_number).first()
+            lead = db.query(Lead).filter(Lead.phone_number == phone_number).first()
+            
+            if student or lead:
+                # Create initial greeting message
+                name = student.full_name if student else (lead.sender_name if lead else "User")
+                timestamp = student.created_at if student else (lead.created_at if lead else datetime.utcnow())
+                
+                messages = [
+                    {
+                        "id": f"msg_welcome_{phone_number}",
+                        "phone_number": phone_number,
+                        "text": f"👋 {name}, welcome to EduBot!",
+                        "timestamp": timestamp.isoformat() if hasattr(timestamp, 'isoformat') else timestamp,
+                        "sender_type": "bot",
+                        "message_type": "text"
+                    }
+                ]
+                
+                # Add status message for unregistered leads
+                if lead and not student:
+                    messages.append({
+                        "id": f"msg_status_{phone_number}",
+                        "phone_number": phone_number,
+                        "text": f"📋 Status: Awaiting registration\n\nPlease provide:\n1. Your full name\n2. Your class/grade\n3. Email address",
+                        "timestamp": (timestamp + timedelta(seconds=1)).isoformat() if hasattr(timestamp, 'isoformat') else timestamp,
+                        "sender_type": "bot",
+                        "message_type": "text"
+                    })
         
         return {
             "status": "success",
             "data": messages
         }
     except Exception as e:
-        logger.error(f"Error fetching messages: {str(e)}")
+        logger.error(f"Error fetching messages for {phone_number}: {str(e)}")
         return {
             "status": "success",
             "data": []
