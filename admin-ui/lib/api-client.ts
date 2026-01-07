@@ -65,6 +65,16 @@ class APIClient {
     return response.data;
   }
 
+  async put(endpoint: string, data?: Record<string, any>) {
+    const response = await this.client.put(endpoint, data);
+    return response.data;
+  }
+
+  async delete(endpoint: string) {
+    const response = await this.client.delete(endpoint);
+    return response.data;
+  }
+
   // Auth endpoints
   async login(username: string, password: string) {
     try {
