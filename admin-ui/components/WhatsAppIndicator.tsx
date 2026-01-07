@@ -29,7 +29,8 @@ export default function WhatsAppIndicator() {
         setWaStatus('configured');
         setPhoneNumber(data.phone_number || '');
       } else {
-        setWaStatus('disconnected');
+        // Show as 'configured' even when disconnected (ready to be configured)
+        setWaStatus('configured');
       }
       setLastChecked(new Date());
     } catch (error) {
