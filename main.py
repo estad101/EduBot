@@ -31,8 +31,12 @@ async def lifespan(app: FastAPI):
     # Startup
     logger.info("Starting WhatsApp Chatbot API")
     init_sentry()  # Initialize error tracking
-    init_db()
-    logger.info("Database initialized")
+    try:
+        init_db()
+        logger.info("Database initialized successfully")
+    except Exception as e:
+        logger.error(f"Database initialization failed: {e}")
+        logger.warning("Continuing startup - database will be initialized on first use")
     yield
     # Shutdown
     logger.info("Shutting down WhatsApp Chatbot API")
