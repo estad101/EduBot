@@ -41,7 +41,7 @@ export default function ConversationsPage() {
           return;
         }
 
-        const response = await apiClient.get('/admin/conversations');
+        const response = await apiClient.get('/api/admin/conversations');
         if (response.status === 'success') {
           setConversations(response.data);
           if (response.data.length > 0) {
@@ -65,7 +65,7 @@ export default function ConversationsPage() {
       if (!selectedPhone) return;
 
       try {
-        const response = await apiClient.get(`/admin/conversations/${selectedPhone}/messages`);
+        const response = await apiClient.get(`/api/admin/conversations/${selectedPhone}/messages`);
         if (response.status === 'success') {
           setMessages(response.data);
         }

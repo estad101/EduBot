@@ -51,7 +51,7 @@ export default function DashboardPage() {
         }
 
         // Fetch recent conversations
-        const convResponse = await apiClient.get('/admin/conversations?limit=5');
+        const convResponse = await apiClient.get('/api/admin/conversations?limit=5');
         if (convResponse.status === 'success') {
           setConversations(convResponse.data);
         }
