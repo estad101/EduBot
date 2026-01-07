@@ -167,40 +167,34 @@ async def whatsapp_status():
     Returns connection status for the UI indicator.
     """
     try:
-        import httpx
-        
         # Check if WhatsApp credentials are configured
-        if not settings.whatsapp_api_key or settings.whatsapp_api_key == "your_whatsapp_api_key_here":
-            logger.warning("WhatsApp API key not configured")
-            return {
-                "status": "error",
-                "whatsapp": "not_configured",
-                "timestamp": datetime.utcnow().isoformat(),
-                "message": "WhatsApp API key not configured"
-            }
+        has_api_key = settings.whatsapp_api_key and settings.whatsapp_api_key not in ["placeholder_api_key", "pk_test_placeholder", ""]
+        has_phone_id = settings.whatsapp_phone_number_id and settings.whatsapp_phone_number_id not in ["placeholder_phone_id", ""]
         
-        if not settings.whatsapp_phone_number_id or settings.whatsapp_phone_number_id == "your_phone_number_id_here":
-            logger.warning("WhatsApp phone number ID not configured")
+        if not has_api_key or not has_phone_id:
+            logger.info("WhatsApp API key or phone number ID not configured")
             return {
-                "status": "error",
-                "whatsapp": "not_configured",
+                "status": "success",
+                "whatsapp": "disconnected",
                 "timestamp": datetime.utcnow().isoformat(),
-                "message": "WhatsApp phone number ID not configured"
+                "message": "WhatsApp not configured - Set WHATSAPP_API_KEY and WHATSAPP_PHONE_NUMBER_ID",
+                "phone_number": ""
             }
         
         # Check if token looks valid (basic format check)
-        if len(settings.whatsapp_api_key) < 100:
+        if len(settings.whatsapp_api_key) < 50:
             logger.warning("WhatsApp API key appears to be invalid format")
             return {
-                "status": "error",
-                "whatsapp": "invalid_token",
+                "status": "success",
+                "whatsapp": "disconnected",
                 "timestamp": datetime.utcnow().isoformat(),
-                "message": "WhatsApp API key format invalid"
+                "message": "WhatsApp API key format invalid - Update your credentials",
+                "phone_number": ""
             }
         
         # Try to verify connection with WhatsApp Cloud API
-        # Use the correct endpoint: GET /{phone_number_id}
         try:
+            import httpx
             async with httpx.AsyncClient(timeout=5, follow_redirects=True) as client:
                 response = await client.get(
                     f"https://graph.instagram.com/v18.0/{settings.whatsapp_phone_number_id}",
@@ -214,10 +208,46 @@ async def whatsapp_status():
                         "whatsapp": "connected",
                         "timestamp": datetime.utcnow().isoformat(),
                         "message": "WhatsApp Cloud API connection is active",
-                        "phone_number": settings.whatsapp_phone_number
+                        "phone_number": settings.whatsapp_phone_number or ""
                     }
-                elif response.status_code == 400:
-                    # 400 could mean invalid token format but credentials are loaded
+                elif response.status_code in [400, 401, 403]:
+                    logger.warning(f"WhatsApp API returned {response.status_code} - Invalid credentials")
+                    return {
+                        "status": "success",
+                        "whatsapp": "disconnected",
+                        "timestamp": datetime.utcnow().isoformat(),
+                        "message": "WhatsApp credentials are invalid or expired",
+                        "phone_number": ""
+                    }
+                else:
+                    logger.warning(f"WhatsApp API returned {response.status_code}")
+                    return {
+                        "status": "success",
+                        "whatsapp": "configured",
+                        "timestamp": datetime.utcnow().isoformat(),
+                        "message": f"WhatsApp configured but verification returned status {response.status_code}",
+                        "phone_number": settings.whatsapp_phone_number or ""
+                    }
+        except Exception as api_error:
+            logger.warning(f"WhatsApp API verification timeout or network error: {str(api_error)}")
+            # If we can't verify but credentials exist, show as configured
+            return {
+                "status": "success",
+                "whatsapp": "configured",
+                "timestamp": datetime.utcnow().isoformat(),
+                "message": "WhatsApp configured - Could not verify connection (network/timeout)",
+                "phone_number": settings.whatsapp_phone_number or ""
+            }
+            
+    except Exception as e:
+        logger.error(f"WhatsApp status check error: {str(e)}")
+        return {
+            "status": "success",
+            "whatsapp": "disconnected",
+            "timestamp": datetime.utcnow().isoformat(),
+            "message": f"WhatsApp status check failed: {str(e)}",
+            "phone_number": ""
+        }
                     logger.warning(f"WhatsApp API returned 400 - possibly invalid token")
                     return {
                         "status": "warning",

@@ -41,16 +41,13 @@ export default function StatusIndicator() {
   }, []);
 
   const statusColor = dbStatus === 'connected' ? 'bg-green-100 border-green-300' : 
-                      dbStatus === 'disconnected' ? 'bg-red-100 border-red-300' : 
-                      'bg-yellow-100 border-yellow-300';
+                      'bg-red-100 border-red-300';
   
   const statusDotColor = dbStatus === 'connected' ? 'bg-green-500' : 
-                         dbStatus === 'disconnected' ? 'bg-red-500' : 
-                         'bg-yellow-500';
+                         'bg-red-500';
   
   const statusText = dbStatus === 'connected' ? 'Database Connected' : 
-                     dbStatus === 'disconnected' ? 'Database Disconnected' : 
-                     'Checking...';
+                     'Database Disconnected';
 
   return (
     <div className={`flex items-center space-x-2 px-4 py-2 rounded-lg border ${statusColor} cursor-pointer hover:opacity-80 transition-opacity`}
