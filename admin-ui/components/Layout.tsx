@@ -2,6 +2,7 @@ import React from "react";
 import StatusIndicator from "./StatusIndicator";
 import WhatsAppIndicator from "./WhatsAppIndicator";
 
+// Updated layout with removed phone registrations page and leads menu item
 interface LayoutProps {
   children: React.ReactNode;
 }
