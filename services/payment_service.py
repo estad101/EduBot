@@ -1,6 +1,7 @@
 """
 Payment service - handles payment transactions.
 """
+from typing import Optional
 from sqlalchemy.orm import Session
 from sqlalchemy import and_
 from models.payment import Payment, PaymentStatus

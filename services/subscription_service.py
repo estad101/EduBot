@@ -1,6 +1,7 @@
 """
 Subscription service - handles student subscriptions.
 """
+from typing import Optional
 from sqlalchemy.orm import Session
 from datetime import datetime, timedelta
 from models.subscription import Subscription

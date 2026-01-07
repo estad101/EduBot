@@ -3,6 +3,7 @@ Paystack service - integration with Paystack payment gateway.
 """
 import requests
 import json
+from typing import Optional
 from decimal import Decimal
 from utils.logger import get_logger
 from utils.security import verify_paystack_webhook_signature, generate_idempotency_key
