@@ -5,6 +5,7 @@ Optimized for Railway deployment.
 """
 import os
 from pydantic_settings import BaseSettings
+from pydantic import field_validator
 from typing import Optional
 
 
@@ -12,25 +13,7 @@ class Settings(BaseSettings):
     """Application configuration with Railway support."""
 
     # Database - Railway provides MYSQL_URL automatically
-    @property
-    def database_url(self) -> str:
-        """Get database URL, converting Railway's MYSQL_URL format if needed."""
-        # Check for DATABASE_URL first (takes precedence)
-        db_url = os.getenv("DATABASE_URL")
-        if db_url:
-            return db_url
-        
-        # Check for MYSQL_URL from Railway
-        mysql_url = os.getenv("MYSQL_URL")
-        if mysql_url:
-            # Railway provides MYSQL_URL in format: mysql://user:pass@host:port/database
-            # Convert to SQLAlchemy format: mysql+pymysql://user:pass@host:port/database
-            if mysql_url.startswith("mysql://"):
-                return mysql_url.replace("mysql://", "mysql+pymysql://", 1)
-            return mysql_url
-        
-        # Fallback for local development
-        return "mysql+pymysql://root:password@localhost:3306/edubot"
+    database_url: str = ""
 
     # FastAPI
     debug: bool = os.getenv("DEBUG", "False").lower() == "true"
@@ -88,6 +71,29 @@ class Settings(BaseSettings):
     def allowed_mime_types(self) -> list[str]:
         """Get allowed MIME types as list."""
         return [mime.strip() for mime in self.allowed_image_types.split(",")]
+
+    def __init__(self, **data):
+        """Initialize settings with database URL conversion."""
+        super().__init__(**data)
+        
+        # Convert Railway MYSQL_URL to SQLAlchemy format if needed
+        if not self.database_url:
+            # Check DATABASE_URL first
+            db_url = os.getenv("DATABASE_URL")
+            if db_url:
+                self.database_url = db_url
+            else:
+                # Check MYSQL_URL from Railway
+                mysql_url = os.getenv("MYSQL_URL")
+                if mysql_url:
+                    # Railway: mysql://user:pass@host:port/database -> mysql+pymysql://
+                    if mysql_url.startswith("mysql://"):
+                        self.database_url = mysql_url.replace("mysql://", "mysql+pymysql://", 1)
+                    else:
+                        self.database_url = mysql_url
+                else:
+                    # Fallback for local development
+                    self.database_url = "mysql+pymysql://root:password@localhost:3306/edubot"
 
 
 # Load settings
