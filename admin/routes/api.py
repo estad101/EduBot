@@ -1398,96 +1398,89 @@ async def get_conversations(limit: int = Query(20, ge=1, le=100), db: Session = 
         )
         
         for student in registered_students:
-            # Get conversation state to find last message
-            conv_state = ConversationService.get_state(student.phone_number)
-            
-            # Get the actual last message and time from conversation service
-            last_message = conv_state.get("data", {}).get("last_message") or f"{student.full_name} is registered"
-            
-            # Get actual message timestamp from messages list if available
-            messages = conv_state.get("data", {}).get("messages", [])
-            last_message_time = student.updated_at.isoformat() if student.updated_at else student.created_at.isoformat()
-            
-            if messages:
-                # Get the timestamp of the last message
-                last_msg = messages[-1]
-                if last_msg.get("timestamp"):
-                    last_message_time = last_msg["timestamp"]
-                # Update last_message from actual message content if empty
-                if not last_message or last_message == "No messages":
-                    last_message = last_msg.get("text", "No messages")
-            
-            conversations.append({
-                "phone_number": student.phone_number,
-                "student_name": student.full_name,
-                "last_message": last_message,
-                "last_message_time": last_message_time,
-                "message_count": len(messages) if messages else 0,
-                "is_active": True,
-                "type": "student"  # Mark as registered student
-            })
-            
-            conversation_phones.add(student.phone_number)
+            try:
+                # Get conversation state to find last message
+                conv_state = ConversationService.get_state(student.phone_number)
+                
+                # Get the actual last message and time from conversation service
+                last_message = conv_state.get("data", {}).get("last_message") or f"{student.full_name} is registered"
+                
+                # Get actual message timestamp from messages list if available
+                messages = conv_state.get("data", {}).get("messages", [])
+                last_message_time = student.updated_at.isoformat() if student.updated_at else student.created_at.isoformat()
+                
+                if messages and len(messages) > 0:
+                    # Get the timestamp of the last message
+                    last_msg = messages[-1]
+                    if last_msg.get("timestamp"):
+                        last_message_time = last_msg["timestamp"]
+                    # Update last_message from actual message content if empty
+                    if not last_message or last_message == "No messages":
+                        last_message = last_msg.get("text", "No messages")
+                
+                conversations.append({
+                    "phone_number": student.phone_number,
+                    "student_name": student.full_name,
+                    "last_message": last_message,
+                    "last_message_time": last_message_time,
+                    "message_count": len(messages) if messages else 0,
+                    "is_active": True,
+                    "type": "student"  # Mark as registered student
+                })
+                
+                conversation_phones.add(student.phone_number)
+            except Exception as student_err:
+                logger.warning(f"Error processing student {student.phone_number}: {student_err}")
+                continue
         
         # Get unregistered leads
         unregistered_leads = (
             db.query(Lead)
             .filter(Lead.is_active == True, Lead.converted_to_student == False)
             .order_by(Lead.last_message_time.desc())
+            .limit(limit)
             .all()
         )
         
         for lead in unregistered_leads:
             if lead.phone_number not in conversation_phones:
-                # Get conversation state for this lead
-                conv_state = ConversationService.get_state(lead.phone_number)
-                messages = conv_state.get("data", {}).get("messages", [])
-                
-                conversations.append({
-                    "phone_number": lead.phone_number,
-                    "student_name": lead.sender_name or lead.phone_number,
-                    "last_message": lead.last_message or "Awaiting registration",
-                    "last_message_time": lead.last_message_time.isoformat(),
-                    "message_count": lead.message_count,
-                    "is_active": True,
-                    "type": "lead"  # Mark as unregistered lead
-                })
-                
-                conversation_phones.add(lead.phone_number)
-        
-        # Also include any conversations in memory that aren't in the database
-        for phone_number, state in ConversationService._conversation_states.items():
-            if phone_number not in conversation_phones:
-                messages = state.get("data", {}).get("messages", [])
-                if messages:
-                    last_message = state.get("data", {}).get("last_message", "No message")
-                    last_message_time = state.get("data", {}).get("created_at", datetime.utcnow().isoformat())
-                    
-                    if messages:
-                        last_msg = messages[-1]
-                        if last_msg.get("timestamp"):
-                            last_message_time = last_msg["timestamp"]
-                        if not last_message:
-                            last_message = last_msg.get("text", "No message")
+                try:
+                    # Get conversation state for this lead
+                    conv_state = ConversationService.get_state(lead.phone_number)
+                    messages = conv_state.get("data", {}).get("messages", [])
                     
                     conversations.append({
-                        "phone_number": phone_number,
-                        "student_name": state.get("data", {}).get("full_name") or phone_number,
-                        "last_message": last_message,
-                        "last_message_time": last_message_time,
-                        "message_count": len(messages),
+                        "phone_number": lead.phone_number,
+                        "student_name": lead.sender_name or lead.phone_number,
+                        "last_message": lead.last_message or "Awaiting registration",
+                        "last_message_time": lead.last_message_time.isoformat(),
+                        "message_count": lead.message_count,
                         "is_active": True,
-                        "type": "memory"  # Mark as in-memory only
+                        "type": "lead"  # Mark as unregistered lead
                     })
+                    
+                    conversation_phones.add(lead.phone_number)
+                except Exception as lead_err:
+                    logger.warning(f"Error processing lead {lead.phone_number}: {lead_err}")
+                    continue
         
-        # Sort by last message time
-        conversations.sort(
-            key=lambda x: x["last_message_time"], 
-            reverse=True
-        )
+        # Sort by last message time (safe sorting)
+        def get_sort_key(conv):
+            try:
+                time_str = conv.get("last_message_time", "")
+                if isinstance(time_str, str):
+                    # Parse ISO format
+                    return datetime.fromisoformat(time_str.replace('Z', '+00:00'))
+                return datetime.utcnow()
+            except:
+                return datetime.utcnow()
+        
+        conversations.sort(key=get_sort_key, reverse=True)
         
         # Limit to requested number
         conversations = conversations[:limit]
+        
+        logger.info(f"Returning {len(conversations)} conversations")
         
         return {
             "status": "success",
