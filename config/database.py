@@ -57,27 +57,9 @@ def init_db():
         
         logger.info("Step 1: Importing models...")
         
-        # Import models to register them with Base.metadata
-        from models.student import Student
-        logger.info("✓ Imported Student model")
-        
-        from models.lead import Lead
-        logger.info("✓ Imported Lead model")
-        
-        from models.homework import Homework
-        logger.info("✓ Imported Homework model")
-        
-        from models.payment import Payment
-        logger.info("✓ Imported Payment model")
-        
-        from models.subscription import Subscription
-        logger.info("✓ Imported Subscription model")
-        
-        from models.tutor import Tutor
-        logger.info("✓ Imported Tutor model")
-        
-        from models.tutor_assignment import TutorAssignment
-        logger.info("✓ Imported TutorAssignment model")
+        # Import all models from models package to register them with Base.metadata
+        import models
+        logger.info(f"✓ Imported models package with {len(Base.metadata.tables)} tables registered")
         
         logger.info(f"\nStep 2: Creating tables...")
         logger.info(f"Tables to create: {list(Base.metadata.tables.keys())}")
