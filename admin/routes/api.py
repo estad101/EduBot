@@ -251,7 +251,6 @@ async def whatsapp_status():
 
 
 @router.post("/whatsapp/test")
-@admin_session_required
 async def send_whatsapp_test_message(request: Request, request_body: dict = Body(...), db: Session = Depends(get_db)):
     """
     Send a test WhatsApp message to verify credentials.
@@ -263,6 +262,12 @@ async def send_whatsapp_test_message(request: Request, request_body: dict = Body
     }
     """
     try:
+        # Check authorization header for Bearer token
+        auth_header = request.headers.get("Authorization", "")
+        if not auth_header.startswith("Bearer "):
+            logger.warning("WhatsApp test request missing Bearer token")
+            raise HTTPException(status_code=401, detail="Unauthorized - missing or invalid token")
+        
         phone_number = request_body.get("phone_number")
         message_text = request_body.get("message", "Test message from WhatsApp chatbot")
         
@@ -975,10 +980,15 @@ async def get_settings(db: Session = Depends(get_db)):
 
 
 @router.get("/settings/debug")
-@admin_session_required
-async def debug_settings(db: Session = Depends(get_db)):
+async def debug_settings(request: Request, db: Session = Depends(get_db)):
     """Debug endpoint to verify token storage (admin only)."""
     try:
+        # Check authorization header for Bearer token
+        auth_header = request.headers.get("Authorization", "")
+        if not auth_header.startswith("Bearer "):
+            logger.warning("Debug settings request missing Bearer token")
+            raise HTTPException(status_code=401, detail="Unauthorized - missing or invalid token")
+        
         db_settings = db.query(AdminSetting).all()
         
         debug_info = {}
