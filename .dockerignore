@@ -1,0 +1,72 @@
+# Git
+.git
+.gitignore
+.gitattributes
+
+# Python
+__pycache__
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+ENV/
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Node/Frontend
+admin-ui/node_modules/
+admin-ui/.next/
+admin-ui/out/
+npm-debug.log*
+
+# Environment
+.env
+.env.local
+.env.production.local
+
+# Keys
+*.ppk
+*.pem
+*.key
+
+# Logs
+logs/
+*.log
+
+# Cache
+.cache/
+cache/
+
+# Database
+*.sqlite
+*.db
+
+# Documentation
+docs/
+*.md
