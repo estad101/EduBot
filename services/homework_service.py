@@ -1,6 +1,7 @@
 """
 Homework service - handles homework submissions.
 """
+from typing import Optional
 from sqlalchemy.orm import Session
 from models.homework import Homework, SubmissionType, PaymentType
 from models.student import Student
