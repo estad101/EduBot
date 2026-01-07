@@ -252,14 +252,18 @@ class MessageRouter:
         # Handle help command
         if intent == "help":
             return (
-                "� Hi! Type 'help' for available commands, or:\n\n"
-                "📝 **register** - Create account\n"
-                "📚 **homework** - Submit homework\n"
-                "💳 **pay** - Get subscription\n"
-                "✅ **status** - Check subscription\n"
-                "❌ **cancel** - Reset conversation\n\n"
-                "What would you like to do?",
+                "👋 Hi! What would you like to do?",
                 ConversationState.IDLE,
+                {
+                    "message_type": "interactive_buttons",
+                    "buttons": [
+                        {"id": "btn_register", "title": "📝 Register"},
+                        {"id": "btn_homework", "title": "📚 Homework"},
+                        {"id": "btn_pay", "title": "💳 Subscribe"},
+                        {"id": "btn_status", "title": "✅ Status"},
+                        {"id": "btn_cancel", "title": "❌ Reset"}
+                    ]
+                }
             )
 
         # Initial state - user hasn't chosen action
@@ -303,18 +307,16 @@ class MessageRouter:
                 )
             else:
                 return (
-                    "👋 Hi! Select an option:\n\n"
-                    "📝 **register** - Create account\n"
-                    "📚 **homework** - Submit homework\n"
-                    "💳 **pay** - Get subscription\n"
-                    "✅ **status** - Check subscription",
+                    "👋 Hi! What would you like to do?",
                     ConversationState.IDLE,
                     {
                         "message_type": "interactive_buttons",
                         "buttons": [
                             {"id": "btn_register", "title": "📝 Register"},
                             {"id": "btn_homework", "title": "📚 Homework"},
-                            {"id": "btn_pay", "title": "💳 Pay"}
+                            {"id": "btn_pay", "title": "💳 Subscribe"},
+                            {"id": "btn_status", "title": "✅ Status"},
+                            {"id": "btn_cancel", "title": "❌ Reset"}
                         ]
                     }
                 )
@@ -337,13 +339,15 @@ class MessageRouter:
         elif current_state == ConversationState.REGISTERING_CLASS:
             ConversationService.set_data(phone_number, "class_grade", message_text)
             return (
-                "✅ Registration Complete!\n\n"
-                "You're now registered as a FREE student.\n\n"
-                "You can now:\n"
-                "📝 Submit homework (with payment per submission)\n"
-                "⭐ Buy monthly subscription for unlimited access\n\n"
-                "Type 📝 'homework' or 💳 'pay' to get started!",
+                "✅ Registration Complete!\n\nYou're now registered as a FREE student.\n\nSubmit homework or buy a monthly subscription for unlimited access.",
                 ConversationState.REGISTERED,
+                {
+                    "message_type": "interactive_buttons",
+                    "buttons": [
+                        {"id": "btn_homework", "title": "📝 Submit Homework"},
+                        {"id": "btn_pay", "title": "💳 Buy Subscription"}
+                    ]
+                }
             )
 
         # Homework flow
@@ -378,20 +382,22 @@ class MessageRouter:
 
         # Payment flow
         elif current_state == ConversationState.PAYMENT_PENDING:
-            if "confirm" in message_text.lower():
+            if "confirm" in message_text.lower() or "btn_confirm" in message_text.lower():
                 return (
-                    "💳 Opening payment page...\n\n"
-                    "🔗 Complete payment and we'll send you a confirmation!\n\n"
-                    "After payment:\n"
-                    "✅ Unlock unlimited homework submissions\n"
-                    "🎓 Get expert tutor feedback\n"
-                    "⭐ Priority support",
+                    "💳 Opening payment page...\n\nComplete payment and we'll send you a confirmation!\n\nAfter payment you'll unlock unlimited homework submissions and get expert tutor feedback.",
                     ConversationState.PAYMENT_CONFIRMED,
                 )
             else:
                 return (
-                    "Type 'confirm' to proceed with payment, or 'cancel' to exit.",
+                    "💳 Subscription: ₦5,000/month\n\nUnlimited homework submissions and expert feedback included.",
                     ConversationState.PAYMENT_PENDING,
+                    {
+                        "message_type": "interactive_buttons",
+                        "buttons": [
+                            {"id": "btn_confirm", "title": "✅ Confirm Payment"},
+                            {"id": "btn_cancel", "title": "❌ Cancel"}
+                        ]
+                    }
                 )
 
         else:
