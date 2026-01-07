@@ -220,6 +220,7 @@ export default function DashboardPage() {
           </div>
           <p className="text-sm text-gray-600 mt-4">Lead to student ratio</p>
         </div>
+      </div>
 
       {error && (
         <div className="bg-red-50 border-l-4 border-red-500 rounded-lg p-4 mb-6">
