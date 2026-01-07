@@ -2,9 +2,9 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/router';
-import Layout from '@/components/Layout';
-import { apiClient } from '@/lib/api-client';
-import { useDashboardStore } from '@/store/dashboard';
+import Layout from '../components/Layout';
+import { apiClient } from '../lib/api-client';
+import { useDashboardStore } from '../store/dashboard';
 
 interface DashboardStats {
   total_students: number;

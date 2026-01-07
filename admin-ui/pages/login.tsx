@@ -2,8 +2,8 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/router';
-import { apiClient } from '@/lib/api-client';
-import { useAuthStore } from '@/store/auth';
+import { apiClient } from '../lib/api-client';
+import { useAuthStore } from '../store/auth';
 
 export default function LoginPage() {
   const router = useRouter();

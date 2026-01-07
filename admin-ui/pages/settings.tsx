@@ -2,8 +2,8 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/router';
-import Layout from '@/components/Layout';
-import { apiClient } from '@/lib/api-client';
+import Layout from '../components/Layout';
+import { apiClient } from '../lib/api-client';
 
 interface SettingsData {
   whatsapp_api_key?: string;

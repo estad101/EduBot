@@ -2,7 +2,7 @@
 
 import { useRouter } from 'next/router';
 import { useEffect } from 'react';
-import { apiClient } from '@/lib/api-client';
+import { apiClient } from '../lib/api-client';
 
 export default function LogoutPage() {
   const router = useRouter();
