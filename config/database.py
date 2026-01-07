@@ -51,7 +51,11 @@ def get_db():
 def init_db():
     """Initialize database (create all tables)."""
     try:
-        logger.info("Initializing database - importing models...")
+        logger.info("=" * 80)
+        logger.info("STARTING DATABASE INITIALIZATION")
+        logger.info("=" * 80)
+        
+        logger.info("Step 1: Importing models...")
         
         # Import models to register them with Base.metadata
         from models.student import Student
@@ -75,14 +79,35 @@ def init_db():
         from models.tutor_assignment import TutorAssignment
         logger.info("✓ Imported TutorAssignment model")
         
-        logger.info(f"Creating tables with Base.metadata (tables: {list(Base.metadata.tables.keys())})")
+        logger.info(f"\nStep 2: Creating tables...")
+        logger.info(f"Tables to create: {list(Base.metadata.tables.keys())}")
+        
+        # Create all tables
         Base.metadata.create_all(bind=engine)
-        logger.info("✓✓✓ DATABASE TABLES INITIALIZED SUCCESSFULLY ✓✓✓")
+        
+        # Verify leads table exists
+        logger.info("\nStep 3: Verifying table creation...")
+        from sqlalchemy import inspect, text
+        
+        inspector = inspect(engine)
+        tables = inspector.get_table_names()
+        
+        if 'leads' in tables:
+            logger.info("✓✓✓ LEADS TABLE CREATED SUCCESSFULLY ✓✓✓")
+            leads_columns = [col['name'] for col in inspector.get_columns('leads')]
+            logger.info(f"Leads table columns: {leads_columns}")
+        else:
+            logger.warning(f"⚠ Leads table NOT FOUND. Available tables: {tables}")
+        
+        logger.info("=" * 80)
+        logger.info("✓✓✓ DATABASE INITIALIZATION COMPLETE ✓✓✓")
+        logger.info("=" * 80)
         
     except Exception as e:
-        logger.error(f"❌ ERROR initializing database: {str(e)}", exc_info=True)
-        # Don't raise - just log and continue
-        # Tables will be created when first query succeeds
+        logger.error("=" * 80)
+        logger.error(f"❌ ERROR DURING DATABASE INITIALIZATION")
+        logger.error(f"❌ {str(e)}")
+        logger.error("=" * 80, exc_info=True)
 
 
 def drop_db():
