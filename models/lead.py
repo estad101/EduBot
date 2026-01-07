@@ -2,10 +2,8 @@
 Lead model for tracking potential students who have messaged the bot but not registered.
 """
 from sqlalchemy import Column, Integer, String, DateTime, Text, Boolean
-from sqlalchemy.ext.declarative import declarative_base
 from datetime import datetime
-
-Base = declarative_base()
+from config.database import Base
 
 
 class Lead(Base):
