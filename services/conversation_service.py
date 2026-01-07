@@ -303,12 +303,20 @@ class MessageRouter:
                 )
             else:
                 return (
-                    "👋 Hi! Type 'help' for available commands, or:\n\n"
-                    "📝 **register** - Create your account\n"
+                    "👋 Hi! Select an option:\n\n"
+                    "📝 **register** - Create account\n"
                     "📚 **homework** - Submit homework\n"
                     "💳 **pay** - Get subscription\n"
                     "✅ **status** - Check subscription",
                     ConversationState.IDLE,
+                    {
+                        "message_type": "interactive_buttons",
+                        "buttons": [
+                            {"id": "btn_register", "title": "📝 Register"},
+                            {"id": "btn_homework", "title": "📚 Homework"},
+                            {"id": "btn_pay", "title": "💳 Pay"}
+                        ]
+                    }
                 )
 
         # Registration flow
@@ -342,12 +350,19 @@ class MessageRouter:
         elif current_state == ConversationState.HOMEWORK_SUBJECT:
             ConversationService.set_data(phone_number, "homework_subject", message_text)
             return (
-                "📝 Is this a **text** or **image** submission?",
+                "📝 Is this a text or image submission?",
                 ConversationState.HOMEWORK_TYPE,
+                {
+                    "message_type": "interactive_buttons",
+                    "buttons": [
+                        {"id": "btn_text", "title": "📝 Text"},
+                        {"id": "btn_image", "title": "🖼️ Image"}
+                    ]
+                }
             )
 
         elif current_state == ConversationState.HOMEWORK_TYPE:
-            submission_type = "IMAGE" if "image" in message_text.lower() else "TEXT"
+            submission_type = "IMAGE" if "image" in message_text.lower() or "btn_image" in message_text.lower() else "TEXT"
             ConversationService.set_data(phone_number, "homework_type", submission_type)
             return (
                 f"✍️ {submission_type} submission it is!\n\nPlease send your homework now:",

@@ -19,7 +19,128 @@ class WhatsAppService:
     """Service for WhatsApp Cloud API integration."""
 
     @staticmethod
-    async def send_message(
+    async def send_interactive_buttons(
+        phone_number: str,
+        text: str,
+        buttons: List[Dict[str, str]],
+    ) -> Dict[str, Any]:
+        """
+        Send an interactive button message via WhatsApp.
+
+        Args:
+            phone_number: Recipient phone number
+            text: Message body text
+            buttons: List of button dicts with format:
+                [
+                    {"id": "btn_1", "title": "Button 1"},
+                    {"id": "btn_2", "title": "Button 2"},
+                    ...
+                ]
+
+        Returns:
+            Response from WhatsApp API
+        """
+        if not settings.whatsapp_api_key or not settings.whatsapp_phone_number_id:
+            logger.error("WhatsApp API credentials not configured")
+            return {"status": "error", "message": "WhatsApp not configured"}
+
+        clean_phone = phone_number.replace("+", "")
+
+        try:
+            async with httpx.AsyncClient(timeout=30.0) as client:
+                # Build interactive buttons payload
+                payload = {
+                    "messaging_product": "whatsapp",
+                    "recipient_type": "individual",
+                    "to": clean_phone,
+                    "type": "interactive",
+                    "interactive": {
+                        "type": "button",
+                        "body": {"text": text},
+                        "action": {
+                            "buttons": [
+                                {
+                                    "type": "reply",
+                                    "reply": {
+                                        "id": btn["id"],
+                                        "title": btn["title"]
+                                    }
+                                }
+                                for btn in buttons[:3]  # WhatsApp allows max 3 buttons
+                            ]
+                        }
+                    }
+                }
+
+                url = f"https://graph.facebook.com/v22.0/{settings.whatsapp_phone_number_id}/messages"
+                headers = {
+                    "Authorization": f"Bearer {settings.whatsapp_api_key}",
+                    "Content-Type": "application/json",
+                }
+
+                response = await client.post(url, json=payload, headers=headers)
+
+                if response.status_code in [200, 201]:
+                    result = response.json()
+                    logger.info(
+                        f"✓ Interactive button message sent to {phone_number}: {result.get('messages', [{}])[0].get('id', 'unknown')}"
+                    )
+                    return {
+                        "status": "success",
+                        "message": "Button message sent successfully",
+                        "data": result,
+                    }
+                else:
+                    error_text = response.text
+                    logger.error(
+                        f"❌ WhatsApp API error ({response.status_code}) sending button message to {phone_number}"
+                    )
+                    logger.error(f"   Response: {error_text}")
+                    return {
+                        "status": "error",
+                        "message": f"Failed to send button message: {response.status_code}",
+                        "error": error_text,
+                    }
+
+        except httpx.TimeoutException:
+            logger.error(f"WhatsApp API timeout for {phone_number}")
+            return {"status": "error", "message": "Request timeout"}
+        except httpx.RequestError as e:
+            logger.error(f"WhatsApp API error: {str(e)}")
+            return {"status": "error", "message": str(e)}
+        except Exception as e:
+            logger.error(f"Unexpected error sending button message: {str(e)}")
+            return {"status": "error", "message": "Internal server error"}
+
+    @staticmethod
+    async def send_message_with_link(
+        phone_number: str,
+        text: str,
+        link_url: str,
+        link_text: str = "Click here",
+    ) -> Dict[str, Any]:
+        """
+        Send a text message with a clickable link.
+
+        Args:
+            phone_number: Recipient phone number
+            text: Message body
+            link_url: URL to link to
+            link_text: Text for the link
+
+        Returns:
+            Response from WhatsApp API
+        """
+        # For now, just send as regular text with URL embedded
+        # WhatsApp will auto-detect and make URLs clickable
+        message_with_link = f"{text}\n\n🔗 {link_text}: {link_url}"
+        return await WhatsAppService.send_message(
+            phone_number=phone_number,
+            message_type="text",
+            text=message_with_link,
+        )
+
+
         phone_number: str,
         message_type: str = "text",
         text: Optional[str] = None,
