@@ -8,6 +8,11 @@ class APIClient {
   private sessionId: string | null = null;
 
   constructor() {
+    // Log the API URL for debugging
+    if (typeof window !== 'undefined') {
+      console.log("[APIClient] Initialized with API_URL:", API_URL);
+    }
+
     this.client = axios.create({
       baseURL: API_URL,
       timeout: 10000,
@@ -50,20 +55,27 @@ class APIClient {
 
   // Auth endpoints
   async login(username: string, password: string) {
-    const response = await this.client.post("/api/admin/login", { username, password });
-    
-    // Store session info and CSRF token
-    if (response.data.session_id) {
-      this.sessionId = response.data.session_id;
-      localStorage.setItem("session_id", response.data.session_id);
+    try {
+      console.log("[APIClient] Attempting login for:", username);
+      const response = await this.client.post("/api/admin/login", { username, password });
+      console.log("[APIClient] Login response status:", response.data.status);
+      
+      // Store session info and CSRF token
+      if (response.data.session_id) {
+        this.sessionId = response.data.session_id;
+        localStorage.setItem("session_id", response.data.session_id);
+      }
+      
+      if (response.data.csrf_token) {
+        this.csrfToken = response.data.csrf_token;
+        localStorage.setItem("csrf_token", response.data.csrf_token);
+      }
+      
+      return response.data;
+    } catch (error) {
+      console.error("[APIClient] Login error:", error);
+      throw error;
     }
-    
-    if (response.data.csrf_token) {
-      this.csrfToken = response.data.csrf_token;
-      localStorage.setItem("csrf_token", response.data.csrf_token);
-    }
-    
-    return response.data;
   }
   
   // Get new CSRF token
