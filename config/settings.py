@@ -12,20 +12,20 @@ class Settings(BaseSettings):
     database_url: str = "mysql+mysqlconnector://payroll_user:password@localhost:3306/whatsapp_chatbot"
 
     # FastAPI
-    debug: bool = True
-    api_title: str = "WhatsApp Chatbot API"
+    debug: bool = False
+    api_title: str = "EduBot API"
     api_version: str = "1.0.0"
     api_port: int = 8000
 
-    # Paystack
-    paystack_public_key: str
-    paystack_secret_key: str
-    paystack_webhook_secret: str
+    # Paystack (with defaults to prevent startup errors)
+    paystack_public_key: str = "pk_test_placeholder"
+    paystack_secret_key: str = "sk_test_placeholder"
+    paystack_webhook_secret: str = "webhook_secret_placeholder"
     paystack_webhook_url: Optional[str] = "http://localhost:8000/api/payments/webhook/paystack"
 
-    # WhatsApp
-    whatsapp_api_key: str
-    whatsapp_phone_number_id: str
+    # WhatsApp (with defaults)
+    whatsapp_api_key: str = "placeholder_api_key"
+    whatsapp_phone_number_id: str = "placeholder_phone_id"
     whatsapp_business_account_id: Optional[str] = None
     whatsapp_phone_number: Optional[str] = None
     whatsapp_webhook_token: Optional[str] = None  # For webhook verification
@@ -36,7 +36,7 @@ class Settings(BaseSettings):
     uploads_dir: str = "uploads"
 
     # Security
-    secret_key: str
+    secret_key: str = "dev-secret-key-change-in-production"
     algorithm: str = "HS256"
     admin_origin: str = "http://localhost:3000"
     allow_origins: str = "http://localhost:3000,http://localhost:8000,http://127.0.0.1:3000"
@@ -48,7 +48,8 @@ class Settings(BaseSettings):
     log_level: str = "INFO"
     log_file: str = "logs/chatbot.log"
 
-    # Monitoring & Error Tracking
+    # Environment
+    environment: str = "development"    # Monitoring & Error Tracking
     sentry_dsn: Optional[str] = None  # Sentry error tracking DSN
     environment: str = "development"  # production, staging, development
 
