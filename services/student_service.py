@@ -1,6 +1,7 @@
 """
 Student service - handles student registration and identification.
 """
+from typing import Optional
 from sqlalchemy.orm import Session
 from models.student import Student, UserStatus
 from utils.logger import get_logger
@@ -94,12 +95,12 @@ class StudentService:
         return student
 
     @staticmethod
-    def get_student_by_id(db: Session, student_id: int) -> Student | None:
+    def get_student_by_id(db: Session, student_id: int) -> Optional[Student]:
         """Get student by ID."""
         return db.query(Student).filter(Student.id == student_id).first()
 
     @staticmethod
-    def get_student_by_phone(db: Session, phone_number: str) -> Student | None:
+    def get_student_by_phone(db: Session, phone_number: str) -> Optional[Student]:
         """Get student by phone number."""
         return db.query(Student).filter(Student.phone_number == phone_number).first()
 

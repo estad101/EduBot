@@ -18,10 +18,10 @@ class HomeworkService:
         student_id: int,
         subject: str,
         submission_type: str,
-        content: str | None = None,
-        file_path: str | None = None,
+        content: Optional[str] = None,
+        file_path: Optional[str] = None,
         payment_type: str = "ONE_TIME",
-        payment_id: int | None = None,
+        payment_id: Optional[int] = None,
     ) -> Homework:
         """
         Submit homework.
@@ -82,7 +82,7 @@ class HomeworkService:
         return homework
 
     @staticmethod
-    def get_homework_by_id(db: Session, homework_id: int) -> Homework | None:
+    def get_homework_by_id(db: Session, homework_id: int) -> Optional[Homework]:
         """Get homework by ID."""
         return db.query(Homework).filter(Homework.id == homework_id).first()
 

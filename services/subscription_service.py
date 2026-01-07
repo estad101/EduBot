@@ -90,7 +90,7 @@ class SubscriptionService:
         return subscription
 
     @staticmethod
-    def get_active_subscription(db: Session, student_id: int) -> Subscription | None:
+    def get_active_subscription(db: Session, student_id: int) -> Optional[Subscription]:
         """
         Get active subscription for student.
         

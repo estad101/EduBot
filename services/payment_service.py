@@ -22,7 +22,7 @@ class PaymentService:
         authorization_url: str,
         access_code: str,
         is_subscription: bool = False,
-        idempotency_key: str | None = None,
+        idempotency_key: Optional[str] = None,
     ) -> Payment:
         """
         Create a payment record.
@@ -78,12 +78,12 @@ class PaymentService:
         return payment
 
     @staticmethod
-    def get_payment_by_id(db: Session, payment_id: int) -> Payment | None:
+    def get_payment_by_id(db: Session, payment_id: int) -> Optional[Payment]:
         """Get payment by ID."""
         return db.query(Payment).filter(Payment.id == payment_id).first()
 
     @staticmethod
-    def get_payment_by_reference(db: Session, reference: str) -> Payment | None:
+    def get_payment_by_reference(db: Session, reference: str) -> Optional[Payment]:
         """Get payment by reference."""
         return db.query(Payment).filter(Payment.payment_reference == reference).first()
 
@@ -143,7 +143,7 @@ class PaymentService:
     def get_student_payments(
         db: Session,
         student_id: int,
-        status: PaymentStatus | None = None,
+        status: Optional[PaymentStatus] = None,
         limit: int = 50,
         offset: int = 0,
     ) -> list[Payment]:

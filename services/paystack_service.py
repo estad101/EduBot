@@ -22,7 +22,7 @@ class PaystackService:
 
     @staticmethod
     def initialize_payment(
-        email: str, amount_naira: float, metadata: dict | None = None
+        email: str, amount_naira: float, metadata: Optional[dict] = None
     ) -> dict:
         """
         Initialize payment with Paystack.
