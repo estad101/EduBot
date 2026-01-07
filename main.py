@@ -75,16 +75,29 @@ app.add_middleware(SecurityHeadersMiddleware)
 
 # CORS middleware - restrict origins in production
 # Includes Next.js dev server (localhost:3000) and production domains
+# Build allowed origins list dynamically
+cors_allowed_origins = [
+    "http://localhost:3000",    # Next.js dev server
+    "http://localhost:8000",    # FastAPI server
+    "http://localhost:8080",    # Alternative dev port
+    "http://127.0.0.1:3000",    # IPv4 loopback Next.js
+    "https://nurturing-exploration-production.up.railway.app",  # Current Railway frontend
+    "https://proactive-insight-production-6462.up.railway.app",  # Old Railway frontend (legacy)
+]
+
+# Add environment-configured origins
+if settings.allow_origins:
+    extra_origins = [o.strip() for o in settings.allow_origins.split(",") if o.strip()]
+    cors_allowed_origins.extend(extra_origins)
+
+# Remove duplicates and empty strings
+cors_allowed_origins = list(set(o for o in cors_allowed_origins if o))
+
+logger.info(f"CORS allowed origins: {cors_allowed_origins}")
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "http://localhost:3000",    # Next.js dev server
-        "http://localhost:8000",    # FastAPI server
-        "http://localhost:8080",    # Alternative dev port
-        "http://127.0.0.1:3000",    # IPv4 loopback Next.js
-        "https://proactive-insight-production-6462.up.railway.app",  # Railway frontend
-        os.getenv("ADMIN_ORIGIN", ""),  # Production domain from env
-    ],
+    allow_origins=cors_allowed_origins,
     allow_credentials=True,
     allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allow_headers=["Content-Type", "Authorization", "X-CSRF-Token"],

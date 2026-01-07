@@ -12,7 +12,9 @@ RUN npm ci
 # Copy application code
 COPY . .
 
-# Build Next.js app
+# Build Next.js app with environment variables
+ARG NEXT_PUBLIC_API_URL=http://localhost:8000
+ENV NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}
 RUN npm run build
 
 # Production stage
@@ -33,6 +35,8 @@ COPY --from=builder /app/next.config.js ./next.config.js
 # Set environment variables
 ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
+ARG NEXT_PUBLIC_API_URL=http://localhost:8000
+ENV NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}
 
 # Expose port
 EXPOSE 3000

@@ -23,13 +23,17 @@ export default function LoginPage() {
       if (response.status === 'success') {
         localStorage.setItem('admin_token', response.token || 'authenticated');
         setAuthenticated(true);
-        router.push('/dashboard');
+        // Small delay to ensure state is updated before navigation
+        setTimeout(() => {
+          router.push('/dashboard');
+        }, 100);
       } else {
         setError(response.message || 'Login failed');
       }
     } catch (err: any) {
-      setError(err.response?.data?.message || 'Login failed. Please try again.');
-      setAuthError(error);
+      const errorMsg = err.response?.data?.message || err.message || 'Login failed. Please try again.';
+      setError(errorMsg);
+      setAuthError(errorMsg);
     } finally {
       setIsLoading(false);
     }

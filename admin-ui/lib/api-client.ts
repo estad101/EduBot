@@ -1,6 +1,8 @@
-import axios, { AxiosInstance, AxiosError } from "axios";
+import axios, { AxiosInstance, AxiosError, AxiosResponse } from "axios";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+
+console.log("API_URL configured as:", API_URL);
 
 class APIClient {
   private client: AxiosInstance;
@@ -8,14 +10,9 @@ class APIClient {
   private sessionId: string | null = null;
 
   constructor() {
-    // Log the API URL for debugging
-    if (typeof window !== 'undefined') {
-      console.log("[APIClient] Initialized with API_URL:", API_URL);
-    }
-
     this.client = axios.create({
       baseURL: API_URL,
-      timeout: 10000,
+      timeout: 15000,
       withCredentials: true,
       headers: {
         "Content-Type": "application/json",
@@ -39,13 +36,17 @@ class APIClient {
 
     // Response interceptor for error handling
     this.client.interceptors.response.use(
-      (response) => response,
+      (response: AxiosResponse) => response,
       (error: AxiosError) => {
         if (error.response?.status === 401) {
           if (typeof window !== "undefined") {
             localStorage.removeItem("admin_token");
             localStorage.removeItem("session_id");
-            window.location.href = "/login";
+            localStorage.removeItem("csrf_token");
+            // Only redirect if not already on login page
+            if (!window.location.pathname.includes("/login")) {
+              window.location.href = "/login";
+            }
           }
         }
         return Promise.reject(error);
@@ -56,9 +57,7 @@ class APIClient {
   // Auth endpoints
   async login(username: string, password: string) {
     try {
-      console.log("[APIClient] Attempting login for:", username);
       const response = await this.client.post("/api/admin/login", { username, password });
-      console.log("[APIClient] Login response status:", response.data.status);
       
       // Store session info and CSRF token
       if (response.data.session_id) {
@@ -72,8 +71,12 @@ class APIClient {
       }
       
       return response.data;
-    } catch (error) {
-      console.error("[APIClient] Login error:", error);
+    } catch (error: any) {
+      // Re-throw with better error info
+      console.error("Login error:", error);
+      if (error.response?.data) {
+        return error.response.data;
+      }
       throw error;
     }
   }
