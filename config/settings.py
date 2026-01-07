@@ -12,13 +12,25 @@ class Settings(BaseSettings):
     """Application configuration with Railway support."""
 
     # Database - Railway provides MYSQL_URL automatically
-    database_url: str = os.getenv(
-        "DATABASE_URL",
-        os.getenv(
-            "MYSQL_URL",
-            "mysql+mysqlconnector://root:password@localhost:3306/edubot"
-        )
-    )
+    @property
+    def database_url(self) -> str:
+        """Get database URL, converting Railway's MYSQL_URL format if needed."""
+        # Check for DATABASE_URL first (takes precedence)
+        db_url = os.getenv("DATABASE_URL")
+        if db_url:
+            return db_url
+        
+        # Check for MYSQL_URL from Railway
+        mysql_url = os.getenv("MYSQL_URL")
+        if mysql_url:
+            # Railway provides MYSQL_URL in format: mysql://user:pass@host:port/database
+            # Convert to SQLAlchemy format: mysql+pymysql://user:pass@host:port/database
+            if mysql_url.startswith("mysql://"):
+                return mysql_url.replace("mysql://", "mysql+pymysql://", 1)
+            return mysql_url
+        
+        # Fallback for local development
+        return "mysql+pymysql://root:password@localhost:3306/edubot"
 
     # FastAPI
     debug: bool = os.getenv("DEBUG", "False").lower() == "true"
