@@ -248,47 +248,6 @@ async def whatsapp_status():
             "message": f"WhatsApp status check failed: {str(e)}",
             "phone_number": ""
         }
-                    logger.warning(f"WhatsApp API returned 400 - possibly invalid token")
-                    return {
-                        "status": "warning",
-                        "whatsapp": "configured",
-                        "timestamp": datetime.utcnow().isoformat(),
-                        "message": "WhatsApp credentials configured but not verified (check API key)",
-                        "phone_number": settings.whatsapp_phone_number
-                    }
-                else:
-                    logger.warning(f"WhatsApp API returned status {response.status_code}: {response.text[:100]}")
-                    return {
-                        "status": "error",
-                        "whatsapp": "disconnected",
-                        "timestamp": datetime.utcnow().isoformat(),
-                        "message": f"WhatsApp API error: {response.status_code}"
-                    }
-        except httpx.ConnectError as e:
-            logger.error(f"Cannot connect to WhatsApp API: {str(e)}")
-            return {
-                "status": "error",
-                "whatsapp": "unreachable",
-                "timestamp": datetime.utcnow().isoformat(),
-                "message": "Cannot reach WhatsApp API endpoint"
-            }
-        except httpx.TimeoutException:
-            logger.warning("WhatsApp API connection timeout")
-            return {
-                "status": "warning",
-                "whatsapp": "timeout",
-                "timestamp": datetime.utcnow().isoformat(),
-                "message": "WhatsApp API response timeout"
-            }
-            
-    except Exception as e:
-        logger.error(f"WhatsApp status check error: {str(e)}")
-        return {
-            "status": "error",
-            "whatsapp": "error",
-            "timestamp": datetime.utcnow().isoformat(),
-            "message": f"WhatsApp status check failed: {str(e)}"
-        }
 
 
 @router.post("/whatsapp/test")
