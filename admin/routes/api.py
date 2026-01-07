@@ -1151,31 +1151,79 @@ async def get_conversations(limit: int = Query(20, ge=1, le=100), db: Session = 
         students = db.query(Student).order_by(Student.updated_at.desc()).limit(limit).all()
         
         conversations = []
+        conversation_phones = set()
+        
         for student in students:
             # Get conversation state to find last message
             conv_state = ConversationService.get_state(student.phone_number)
-            last_message = "No messages"
             
-            if conv_state.get("data", {}).get("last_message"):
-                last_message = conv_state["data"]["last_message"]
-            elif student.full_name:
-                last_message = f"{student.full_name} is registered"
+            # Get the actual last message and time from conversation service
+            last_message = conv_state.get("data", {}).get("last_message") or f"{student.full_name} is registered" if student.full_name else "No messages"
+            
+            # Get actual message timestamp from messages list if available
+            messages = conv_state.get("data", {}).get("messages", [])
+            last_message_time = student.updated_at.isoformat() if student.updated_at else student.created_at.isoformat()
+            
+            if messages:
+                # Get the timestamp of the last message
+                last_msg = messages[-1]
+                if last_msg.get("timestamp"):
+                    last_message_time = last_msg["timestamp"]
+                # Update last_message from actual message content if empty
+                if not last_message or last_message == "No messages":
+                    last_message = last_msg.get("text", "No messages")
             
             conversations.append({
                 "phone_number": student.phone_number,
                 "student_name": student.full_name if student.full_name else None,
                 "last_message": last_message,
-                "last_message_time": student.updated_at.isoformat() if student.updated_at else student.created_at.isoformat(),
-                "message_count": 1,
+                "last_message_time": last_message_time,
+                "message_count": len(messages) if messages else 1,
                 "is_active": True,
             })
+            
+            conversation_phones.add(student.phone_number)
+        
+        # Also include conversations that have messages but no student record yet
+        # This can happen if messages arrived but student creation failed
+        for phone_number, state in ConversationService._conversation_states.items():
+            if phone_number not in conversation_phones:
+                messages = state.get("data", {}).get("messages", [])
+                if messages:
+                    last_message = state.get("data", {}).get("last_message", "New message")
+                    last_message_time = state.get("data", {}).get("created_at", datetime.utcnow().isoformat())
+                    
+                    if messages:
+                        last_msg = messages[-1]
+                        if last_msg.get("timestamp"):
+                            last_message_time = last_msg["timestamp"]
+                        if not last_message:
+                            last_message = last_msg.get("text", "No messages")
+                    
+                    conversations.append({
+                        "phone_number": phone_number,
+                        "student_name": state.get("data", {}).get("full_name"),
+                        "last_message": last_message,
+                        "last_message_time": last_message_time,
+                        "message_count": len(messages),
+                        "is_active": True,
+                    })
+        
+        # Sort by last message time
+        conversations.sort(
+            key=lambda x: x["last_message_time"], 
+            reverse=True
+        )
+        
+        # Limit to requested number
+        conversations = conversations[:limit]
         
         return {
             "status": "success",
             "data": conversations
         }
     except Exception as e:
-        logger.error(f"Error fetching conversations: {str(e)}")
+        logger.error(f"Error fetching conversations: {str(e)}", exc_info=True)
         return {
             "status": "error",
             "message": str(e),

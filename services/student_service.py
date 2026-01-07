@@ -95,6 +95,46 @@ class StudentService:
         return student
 
     @staticmethod
+    def create_student(
+        db: Session, phone_number: str, full_name: str, email: str, class_grade: str
+    ) -> Student:
+        """
+        Create a new student record. If student already exists, return the existing one.
+        
+        Args:
+            db: Database session
+            phone_number: WhatsApp phone number
+            full_name: Student's full name
+            email: Email address
+            class_grade: Class/grade level
+        
+        Returns:
+            Student object (created or existing)
+        """
+        # Check if student already exists
+        existing = db.query(Student).filter(Student.phone_number == phone_number).first()
+        if existing:
+            logger.info(f"Student already exists: {phone_number}")
+            return existing
+
+        # Create new student
+        student = Student(
+            phone_number=phone_number,
+            full_name=full_name,
+            email=email,
+            class_grade=class_grade,
+            status=UserStatus.REGISTERED_FREE,
+            is_active=True,
+        )
+
+        db.add(student)
+        db.commit()
+        db.refresh(student)
+
+        logger.info(f"Student created: {student.id} - {phone_number}")
+        return student
+
+    @staticmethod
     def get_student_by_id(db: Session, student_id: int) -> Optional[Student]:
         """Get student by ID."""
         return db.query(Student).filter(Student.id == student_id).first()

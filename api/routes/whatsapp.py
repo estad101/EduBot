@@ -68,7 +68,7 @@ async def whatsapp_webhook(request: Request, db: Session = Depends(get_db)):
         )
 
         # Get or create student - create a placeholder if doesn't exist
-        student = StudentService.get_by_phone(db, phone_number)
+        student = StudentService.get_student_by_phone(db, phone_number)
         if not student:
             try:
                 # Create a temporary student record for unregistered users
