@@ -86,10 +86,24 @@ async def whatsapp_webhook(request: Request, db: Session = Depends(get_db)):
                 # Continue without saving lead
 
         # Get conversation state and next response
+        # Pass student data if registered, so bot knows user is a registered student
+        student_data = None
+        if student:
+            student_data = {
+                "status": "RETURNING_USER",
+                "student_id": student.id,
+                "phone_number": student.phone_number,
+                "user_status": student.status.value,
+                "name": student.full_name,
+                "email": student.email,
+                "has_subscription": student.status.value == "ACTIVE_SUBSCRIBER",
+            }
+            logger.info(f"✓ User is registered: {student.full_name} ({student.phone_number})")
+        
         response_text, next_state = MessageRouter.get_next_response(
             phone_number,
             message_text,
-            student_data=None,  # Simplified - remove subscription check for now
+            student_data=student_data,  # Pass actual student data if registered
         )
         
         logger.info(f"✓ Got response from MessageRouter")
