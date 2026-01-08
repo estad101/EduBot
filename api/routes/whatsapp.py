@@ -90,7 +90,7 @@ async def whatsapp_webhook(request: Request, db: Session = Depends(get_db)):
             phone_number,
             message_text,
             student_data={
-                "has_subscription": student.has_active_subscription
+                "has_subscription": student.status.value == "ACTIVE_SUBSCRIBER"
                 if student
                 else False
             }
@@ -154,7 +154,7 @@ async def whatsapp_webhook(request: Request, db: Session = Depends(get_db)):
 
                 # Check if payment required
                 payment_required = (
-                    not student.has_active_subscription
+                    student.status.value != "ACTIVE_SUBSCRIBER"
                 )
 
                 try:
