@@ -80,6 +80,38 @@ export default function ConversationsPage() {
     return () => clearInterval(interval);
   }, [selectedPhone]);
 
+  // Component to format message text
+  const MessageContent = ({ text }: { text: string }) => {
+    // Remove asterisks and process commands
+    const cleanText = text.replace(/\*\*/g, '').replace(/\*/g, '');
+    
+    // Split by newlines
+    const lines = cleanText.split('\n');
+    
+    return (
+      <div className="break-words whitespace-pre-wrap">
+        {lines.map((line, idx) => {
+          // Check if line is a command (starts with •)
+          if (line.trim().startsWith('•')) {
+            const commandText = line.trim().substring(1).trim();
+            // Extract command in quotes or parentheses
+            const match = commandText.match(/['"](.*?)['"]|^\**(.*?)\**/);
+            if (match && (match[1] || match[2])) {
+              const command = (match[1] || match[2]).toUpperCase();
+              const rest = commandText.replace(match[0], '').trim();
+              return (
+                <div key={idx} className="my-1">
+                  <strong>{command}</strong> {rest}
+                </div>
+              );
+            }
+          }
+          return <div key={idx}>{line}</div>;
+        })}
+      </div>
+    );
+  };
+
   if (loading && conversations.length === 0) {
     return (
       <Layout>
@@ -205,7 +237,7 @@ export default function ConversationsPage() {
                             : 'bg-green-600 text-white rounded-br-none'
                         }`}
                       >
-                        <p className="break-words">{msg.text}</p>
+                        <MessageContent text={msg.text} />
                         <p
                           className={`text-xs mt-1 ${
                             msg.sender_type === 'user' ? 'text-gray-400' : 'text-green-100'
