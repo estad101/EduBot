@@ -139,19 +139,44 @@ export default function HomeworkPage() {
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-lg shadow-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">
             {/* Modal Header */}
-            <div className="sticky top-0 bg-gradient-to-r from-blue-600 to-blue-700 text-white p-6 flex justify-between items-center">
-              <div>
-                <h3 className="text-xl font-bold">{selectedHomework.subject}</h3>
-                <p className="text-blue-100 text-sm">
-                  {selectedHomework.student_name} • {selectedHomework.student_class}
-                </p>
+            <div className="sticky top-0 bg-gradient-to-r from-blue-600 to-blue-700 text-white p-6">
+              <div className="flex justify-between items-start gap-4 mb-4">
+                <div className="flex-1">
+                  <h3 className="text-xl font-bold">{selectedHomework.subject}</h3>
+                  <p className="text-blue-100 text-sm">
+                    {selectedHomework.student_name} • {selectedHomework.student_class}
+                  </p>
+                </div>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => {
+                      // TODO: Implement provide solution handler
+                      alert('Provide Homework Solution feature coming soon');
+                    }}
+                    className="px-3 py-2 bg-green-600 hover:bg-green-700 text-white rounded font-medium text-sm transition whitespace-nowrap"
+                    title="Provide Solution"
+                  >
+                    <i className="fas fa-check-circle mr-1"></i>Solution
+                  </button>
+                  <button
+                    onClick={() => {
+                      // TODO: Implement mark solved handler
+                      alert('Mark Homework Solved feature coming soon');
+                    }}
+                    className="px-3 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded font-medium text-sm transition whitespace-nowrap"
+                    title="Mark Solved"
+                  >
+                    <i className="fas fa-checkmark mr-1"></i>Solved
+                  </button>
+                  <button
+                    onClick={closeModal}
+                    className="px-3 py-2 bg-red-600 hover:bg-red-700 text-white rounded font-medium text-sm transition"
+                    title="Close"
+                  >
+                    <i className="fas fa-times mr-1"></i>Close
+                  </button>
+                </div>
               </div>
-              <button
-                onClick={closeModal}
-                className="text-white hover:bg-blue-500 rounded-full p-2 transition"
-              >
-                <i className="fas fa-times text-xl"></i>
-              </button>
             </div>
 
             {/* Modal Content */}
@@ -228,34 +253,7 @@ export default function HomeworkPage() {
             </div>
 
             {/* Modal Footer */}
-            <div className="bg-gray-50 border-t border-gray-200 p-6 flex justify-between gap-3">
-              <div className="flex gap-3">
-                <button
-                  onClick={() => {
-                    // TODO: Implement provide solution handler
-                    alert('Provide Homework Solution feature coming soon');
-                  }}
-                  className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded font-medium transition"
-                >
-                  <i className="fas fa-check-circle mr-2"></i>Provide Solution
-                </button>
-                <button
-                  onClick={() => {
-                    // TODO: Implement mark solved handler
-                    alert('Mark Homework Solved feature coming soon');
-                  }}
-                  className="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded font-medium transition"
-                >
-                  <i className="fas fa-checkmark mr-2"></i>Mark Solved
-                </button>
-              </div>
-              <button
-                onClick={closeModal}
-                className="px-4 py-2 bg-gray-300 hover:bg-gray-400 text-gray-800 rounded font-medium transition"
-              >
-                Close
-              </button>
-            </div>
+            <div className="bg-gray-50 border-t border-gray-200 p-6"></div>
           </div>
         </div>
       )}
