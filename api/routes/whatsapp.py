@@ -222,7 +222,11 @@ async def whatsapp_webhook(request: Request, db: Session = Depends(get_db)):
                             logger.info(f"✓ Downloaded media: {len(media_bytes)} bytes")
                             
                             # Save file with proper directory structure
-                            upload_dir = "uploads/homework"
+                            # Use Railway persistent volume if available, else local
+                            railway_uploads = "/app/uploads/homework"
+                            local_uploads = "uploads/homework"
+                            upload_dir = railway_uploads if os.path.exists("/app/uploads") else local_uploads
+                            
                             student_dir = os.path.join(upload_dir, str(student.id))
                             os.makedirs(student_dir, exist_ok=True)
                             
@@ -247,14 +251,18 @@ async def whatsapp_webhook(request: Request, db: Session = Depends(get_db)):
                                 logger.info(f"✓ Image saved successfully: {file_path}")
                                 logger.info(f"   File size: {actual_size} bytes")
                                 
-                                # Store relative path for database (without 'uploads/' prefix)
+                                # Store relative path for database
                                 # Format: homework/{student_id}/homework_*.jpg
-                                relative_path = os.path.relpath(file_path)
-                                # Remove 'uploads/' prefix if present
-                                if relative_path.startswith('uploads/') or relative_path.startswith('uploads\\'):
-                                    relative_path = relative_path[8:]  # Remove 'uploads/'
-                                # Normalize path separators to forward slash
-                                relative_path = relative_path.replace('\\', '/')
+                                # Extract just the relative part (last 2 components: student_id/filename)
+                                path_parts = file_path.replace('\\', '/').split('/')
+                                # Get the last 2 parts: [student_id, filename]
+                                if len(path_parts) >= 2:
+                                    relative_path = "{}/{}".format(path_parts[-2], path_parts[-1])
+                                    logger.info(f"   Database path: {relative_path}")
+                                else:
+                                    relative_path = file_path.replace('\\', '/')
+                                    logger.warning(f"   Path format unexpected, using: {relative_path}")
+                                
                                 file_path = relative_path
                                 submission_content = f"Image submission: {message_data.get('image_id')}"
                             else:
