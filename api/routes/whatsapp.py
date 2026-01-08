@@ -8,6 +8,7 @@ from sqlalchemy.orm import Session
 from typing import Optional
 import json
 import logging
+import time
 
 from config.database import get_db
 from services.whatsapp_service import WhatsAppService
@@ -194,140 +195,97 @@ async def whatsapp_webhook(request: Request, db: Session = Depends(get_db)):
                 logger.info(f"  Subject: {homework_data.get('subject')}")
                 logger.info(f"  Type: {homework_data.get('submission_type')}")
                 logger.info(f"  Message type: {message_type}")
-                logger.info(f"  Content length: {len(str(homework_data.get('content', '')))}")
                 
-                # Handle image submission
-                file_path = None
-                submission_content = homework_data["content"]
+                submission_type = homework_data.get("submission_type", "TEXT").upper()
                 
-                # If submission type is IMAGE and incoming message is image, download it
-                if homework_data.get("submission_type") == "IMAGE" and message_type == "image" and message_data.get("image_id"):
-                    try:
-                        import os
-                        import time
-                        
-                        logger.info(f"📸 Starting image download for homework")
-                        logger.info(f"   Image ID: {message_data.get('image_id')}")
-                        logger.info(f"   Student ID: {student.id}")
-                        
-                        media_bytes = await WhatsAppService.download_media(
-                            message_data.get("image_id"), 
-                            media_type="image"
-                        )
-                        
-                        if not media_bytes:
-                            logger.warning(f"❌ Failed to download media - no bytes received from WhatsApp")
-                            logger.warning(f"   This may be due to: timeout, invalid token, or WhatsApp API issue")
-                        else:
-                            logger.info(f"✓ Downloaded media: {len(media_bytes)} bytes")
-                            
-                            # Save file with proper directory structure
-                            # Use Railway persistent volume if available, else local
-                            railway_uploads = "/app/uploads/homework"
-                            local_uploads = "uploads/homework"
-                            upload_dir = railway_uploads if os.path.exists("/app/uploads") else local_uploads
-                            
-                            student_dir = os.path.join(upload_dir, str(student.id))
-                            os.makedirs(student_dir, exist_ok=True)
-                            
-                            # Create unique filename
-                            clean_phone = phone_number.replace('+', '').replace(' ', '')
-                            timestamp = int(time.time() * 1000)  # milliseconds for uniqueness
-                            filename = f"homework_{clean_phone}_{timestamp}.jpg"
-                            file_path = os.path.join(student_dir, filename)
-                            
-                            # Ensure absolute path
-                            file_path = os.path.abspath(file_path)
-                            
-                            # Write file
-                            logger.info(f"📝 Saving image to: {file_path}")
-                            with open(file_path, "wb") as f:
-                                bytes_written = f.write(media_bytes)
-                                logger.info(f"   Written {bytes_written} bytes")
-                            
-                            # Verify file was saved
-                            if os.path.exists(file_path):
-                                actual_size = os.path.getsize(file_path)
-                                logger.info(f"✓ Image saved successfully: {file_path}")
-                                logger.info(f"   File size: {actual_size} bytes")
-                                
-                                # Store relative path for database
-                                # Format: homework/{student_id}/homework_*.jpg
-                                # Extract just the relative part (last 2 components: student_id/filename)
-                                path_parts = file_path.replace('\\', '/').split('/')
-                                # Get the last 2 parts: [student_id, filename]
-                                if len(path_parts) >= 2:
-                                    relative_path = "{}/{}".format(path_parts[-2], path_parts[-1])
-                                    logger.info(f"   Database path: {relative_path}")
-                                else:
-                                    relative_path = file_path.replace('\\', '/')
-                                    logger.warning(f"   Path format unexpected, using: {relative_path}")
-                                
-                                file_path = relative_path
-                                submission_content = f"Image submission: {message_data.get('image_id')}"
-                            else:
-                                logger.error(f"❌ File not found after write: {file_path}")
-                                file_path = None
-                    except Exception as e:
-                        logger.error(f"❌ Failed to download/save image: {str(e)}")
-                        import traceback
-                        logger.error(f"   Traceback: {traceback.format_exc()}")
-                        file_path = None
-
-                # For now, accept all homework submissions without payment
                 try:
                     from services.homework_service import HomeworkService
-
-                    logger.info(f"📚 Submitting homework with:")
-                    logger.info(f"   student_id: {student.id}")
-                    logger.info(f"   subject: {homework_data.get('subject')}")
-                    logger.info(f"   submission_type: {homework_data.get('submission_type')}")
-                    logger.info(f"   file_path: {file_path}")
-                    logger.info(f"   content length: {len(submission_content)}")
                     
-                    # Normalize submission type to uppercase
-                    submission_type_normalized = homework_data.get("submission_type", "").upper()
-                    
-                    # If IMAGE submission but file_path is None (download failed), fallback to TEXT
-                    if submission_type_normalized == 'IMAGE' and not file_path:
-                        logger.warning(f"⚠️ Image download failed - falling back to TEXT submission")
-                        submission_type_normalized = "TEXT"
-                        submission_content = f"📸 Image submission attempted (ID: {message_data.get('image_id', 'unknown')})\n\nNote: Image failed to download. Please resubmit the image."
-                    
-                    homework = HomeworkService.submit_homework(
-                        db,
-                        student_id=student.id,
-                        subject=homework_data["subject"],
-                        submission_type=submission_type_normalized,
-                        content=submission_content,
-                        file_path=file_path,
-                        payment_required=False,  # Disabled for now
-                    )
-                    
-                    logger.info(f"✅ Homework created: {homework.id}")
-                    if file_path:
-                        logger.info(f"   Image path: {homework.file_path}")
-
-                    # Auto-assign to tutor (no payment needed)
-                    from services.tutor_service import TutorService
-                    
-                    assignment = TutorService.assign_homework_by_subject(db, homework.id)
-                    
-                    # Build response message
-                    if submission_type_normalized == "TEXT" and message_data.get('image_id'):
-                        # This is a fallback from failed image download
-                        response_text = (
-                            f"⚠️ Image upload had an issue, but homework was submitted as text!\n\n"
-                            f"✅ Homework submitted for {homework_data['subject']}\n\n"
-                            f"Please try uploading the image again or tutor will contact you.\n\n"
+                    # For IMAGE submissions, create homework record first without file
+                    # Then send upload link to user
+                    if submission_type == "IMAGE":
+                        logger.info(f"📷 IMAGE submission - creating homework record and sending upload link")
+                        
+                        # Create homework record (without file initially)
+                        homework = HomeworkService.submit_homework(
+                            db,
+                            student_id=student.id,
+                            subject=homework_data["subject"],
+                            submission_type="IMAGE",
+                            content="Image submission pending",
+                            file_path=None,  # No file yet
+                            payment_required=False,
                         )
-                        if assignment:
-                            response_text += "🎓 A tutor has been assigned!"
-                        else:
-                            response_text += "⏳ A tutor will be assigned shortly"
+                        
+                        logger.info(f"✅ Homework created: {homework.id}")
+                        
+                        # Generate secure upload token (just use homework_id + student_id hash)
+                        import hashlib
+                        upload_token = hashlib.sha256(
+                            f"{homework.id}{student.id}{int(time.time())}".encode()
+                        ).hexdigest()[:32]
+                        
+                        # Get app URL from environment
+                        import os
+                        app_url = os.getenv("APP_URL", "https://nurturing-exploration-production.up.railway.app")
+                        upload_page = f"{app_url}/homework-upload?student_id={student.id}&homework_id={homework.id}&subject={homework_data['subject']}&token={upload_token}"
+                        
+                        logger.info(f"   Upload link: {upload_page}")
+                        
+                        # Send WhatsApp message with upload link
+                        response_text = (
+                            f"📷 Great! Let's upload your homework image for {homework_data['subject']}!\n\n"
+                            f"🔗 Tap the link below to open the upload page:\n\n"
+                            f"{upload_page}\n\n"
+                            f"ℹ️ Tips:\n"
+                            f"✓ Make sure the image is clear and readable\n"
+                            f"✓ Landscape orientation works best\n"
+                            f"✓ File size must be less than 10MB\n\n"
+                            f"Once you upload, you'll get a confirmation!"
+                        )
+                        
+                    # For TEXT submissions, accept directly from message
                     else:
-                        # Normal successful submission
+                        logger.info(f"📝 TEXT submission - accepting directly from message")
+                        
+                        submission_content = homework_data.get("content", message_text)
+                        
+                        homework = HomeworkService.submit_homework(
+                            db,
+                            student_id=student.id,
+                            subject=homework_data["subject"],
+                            submission_type="TEXT",
+                            content=submission_content,
+                            file_path=None,
+                            payment_required=False,
+                        )
+                        
+                        logger.info(f"✅ Homework created: {homework.id}")
+                        
+                        # Auto-assign to tutor
+                        from services.tutor_service import TutorService
+                        assignment = TutorService.assign_homework_by_subject(db, homework.id)
+                        
                         if assignment:
+                            response_text = (
+                                f"✅ Homework submitted successfully for {homework_data['subject']}!\n\n"
+                                f"🎓 A tutor has been assigned and will respond soon!"
+                            )
+                        else:
+                            response_text = (
+                                f"✅ Homework submitted successfully for {homework_data['subject']}!\n\n"
+                                f"⏳ A tutor will be assigned to you shortly"
+                            )
+                    
+                    # Reset homework state
+                    ConversationService.reset_homework_state(phone_number)
+
+                except Exception as e:
+                    logger.error(f"❌ Error submitting homework: {str(e)}", exc_info=True)
+                    logger.error(f"Homework data: student_id={student.id}, subject={homework_data.get('subject')}, type={submission_type}")
+                    response_text = f"❌ Error submitting homework: {str(e)}"
+            else:
+                response_text = "❌ You need to register first!"
                             response_text = (
                                 f"✅ Homework submitted successfully for {homework_data['subject']}!\n\n"
                                 f"🎓 A tutor has been assigned and will respond soon with solutions!"

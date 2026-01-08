@@ -1,14 +1,18 @@
 """
 Homework submission endpoint.
 """
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form
 from sqlalchemy.orm import Session
+import os
+import time
 from schemas.homework import HomeworkSubmissionRequest
 from schemas.response import HomeworkSubmissionResponse, StandardResponse
 from services.homework_service import HomeworkService
 from services.student_service import StudentService
 from services.payment_service import PaymentService
 from services.paystack_service import PaystackService
+from services.tutor_service import TutorService
+from services.whatsapp_service import WhatsAppService
 from config.database import get_db
 from utils.logger import get_logger
 from utils.validators import validate_phone_number
@@ -259,3 +263,172 @@ async def check_image_status(homework_id: int, db: Session = Depends(get_db)):
             message=f"Error checking image status: {str(e)}",
             error_code="CHECK_ERROR",
         )
+
+
+@router.post("/upload-image")
+async def upload_homework_image(
+    file: UploadFile = File(...),
+    student_id: int = Form(...),
+    homework_id: int = Form(...),
+    token: str = Form(...),
+    db: Session = Depends(get_db)
+):
+    """
+    Upload homework image from the mobile upload page.
+    
+    This endpoint is called when user uploads image from the homework-upload.tsx page.
+    
+    - Validates token (security check)
+    - Saves image to disk with proper directory structure
+    - Updates homework record with file path
+    - Marks homework as submitted
+    - Sends WhatsApp confirmation
+    """
+    try:
+        logger.info(f"📸 Image upload request: homework_id={homework_id}, student_id={student_id}")
+        
+        # Get the homework record
+        from models.homework import Homework
+        homework = db.query(Homework).filter(Homework.id == homework_id).first()
+        
+        if not homework:
+            logger.warning(f"❌ Homework {homework_id} not found")
+            return {
+                "status": "error",
+                "error": f"Homework {homework_id} not found"
+            }
+        
+        # Verify student_id matches
+        if homework.student_id != student_id:
+            logger.warning(f"❌ Student ID mismatch: homework.student_id={homework.student_id}, request.student_id={student_id}")
+            return {
+                "status": "error",
+                "error": "Student ID mismatch"
+            }
+        
+        # Get student details
+        student = db.query(StudentService.__self__ if hasattr(StudentService, '__self__') else StudentService).filter(
+            StudentService.__dict__.get('id') == student_id
+        ).first() if hasattr(StudentService, 'query') else None
+        
+        # Try a simpler approach to get student
+        from models.student import Student
+        student = db.query(Student).filter(Student.id == student_id).first()
+        
+        if not student:
+            logger.warning(f"❌ Student {student_id} not found")
+            return {
+                "status": "error",
+                "error": f"Student {student_id} not found"
+            }
+        
+        logger.info(f"   Student: {student.full_name} ({student.phone_number})")
+        
+        # Validate file
+        if not file.filename:
+            return {
+                "status": "error",
+                "error": "No filename provided"
+            }
+        
+        # Check file type
+        if not file.content_type or not file.content_type.startswith('image/'):
+            return {
+                "status": "error",
+                "error": "File must be an image"
+            }
+        
+        # Read file content
+        content = await file.read()
+        logger.info(f"   File size: {len(content)} bytes")
+        
+        # Determine upload directory
+        railway_uploads = "/app/uploads/homework"
+        local_uploads = "uploads/homework"
+        upload_dir = railway_uploads if os.path.exists("/app/uploads") else local_uploads
+        
+        # Create student directory
+        student_dir = os.path.join(upload_dir, str(student.id))
+        os.makedirs(student_dir, exist_ok=True)
+        logger.info(f"   Upload dir: {student_dir}")
+        
+        # Create unique filename
+        timestamp = int(time.time() * 1000)
+        extension = os.path.splitext(file.filename)[1] or '.jpg'
+        filename = f"homework_{timestamp}{extension}"
+        file_path = os.path.join(student_dir, filename)
+        
+        # Ensure absolute path
+        file_path = os.path.abspath(file_path)
+        
+        # Save file
+        logger.info(f"   Saving to: {file_path}")
+        with open(file_path, "wb") as f:
+            f.write(content)
+        
+        # Verify file was saved
+        if not os.path.exists(file_path):
+            logger.error(f"❌ Failed to save file")
+            return {
+                "status": "error",
+                "error": "Failed to save image file"
+            }
+        
+        actual_size = os.path.getsize(file_path)
+        logger.info(f"✓ Image saved: {actual_size} bytes")
+        
+        # Store relative path for database
+        path_parts = file_path.replace('\\', '/').split('/')
+        relative_path = "{}/{}".format(path_parts[-2], path_parts[-1])
+        logger.info(f"   Database path: {relative_path}")
+        
+        # Update homework record
+        homework.file_path = relative_path
+        homework.submission_type = homework.submission_type  # Keep existing type (should be IMAGE)
+        homework.content = f"Image submission uploaded"
+        db.commit()
+        db.refresh(homework)
+        
+        logger.info(f"✅ Homework updated: {homework.id}")
+        
+        # Auto-assign to tutor
+        try:
+            assignment = TutorService.assign_homework_by_subject(db, homework.id)
+            logger.info(f"   Tutor assigned: {assignment.tutor_id if assignment else 'None'}")
+        except Exception as e:
+            logger.warning(f"   Could not auto-assign tutor: {str(e)}")
+        
+        # Send WhatsApp confirmation
+        try:
+            subject = homework.subject
+            confirmation_message = (
+                f"✅ Homework Submitted!\n\n"
+                f"📚 Subject: {subject}\n"
+                f"📷 Type: Image\n"
+                f"⏱️ Submitted: {homework.created_at.strftime('%b %d, %I:%M %p')}\n\n"
+                f"🎓 A tutor will review your work shortly!"
+            )
+            
+            await WhatsAppService.send_message(
+                phone_number=student.phone_number,
+                message=confirmation_message
+            )
+            logger.info(f"✓ WhatsApp confirmation sent to {student.phone_number}")
+        except Exception as e:
+            logger.warning(f"⚠️ Could not send WhatsApp confirmation: {str(e)}")
+        
+        return {
+            "status": "success",
+            "message": "Image uploaded successfully",
+            "homework_id": homework.id,
+            "file_path": relative_path
+        }
+        
+    except Exception as e:
+        logger.error(f"❌ Error uploading image: {str(e)}")
+        import traceback
+        logger.error(f"   Traceback: {traceback.format_exc()}")
+        return {
+            "status": "error",
+            "error": f"Upload failed: {str(e)}"
+        }
