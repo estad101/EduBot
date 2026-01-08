@@ -359,15 +359,21 @@ async def upload_homework_image(
         content = await file.read()
         logger.info(f"   File size: {len(content)} bytes")
         
-        # Determine upload directory
+        # Determine upload directory (Railway persistent volume)
         railway_uploads = "/app/uploads/homework"
         local_uploads = "uploads/homework"
-        upload_dir = railway_uploads if os.path.exists("/app/uploads") else local_uploads
+        
+        # Check if Railway volume exists
+        railway_volume_exists = os.path.exists("/app/uploads")
+        upload_dir = railway_uploads if railway_volume_exists else local_uploads
+        logger.info(f"   Railway volume /app/uploads exists: {railway_volume_exists}")
+        logger.info(f"   Using upload directory: {upload_dir}")
         
         # Create student directory
         student_dir = os.path.join(upload_dir, str(student.id))
         os.makedirs(student_dir, exist_ok=True)
-        logger.info(f"   Upload dir: {student_dir}")
+        logger.info(f"   Student directory: {student_dir}")
+        logger.info(f"   Student directory exists: {os.path.exists(student_dir)}")
         
         # Create unique filename
         timestamp = int(time.time() * 1000)
@@ -377,15 +383,21 @@ async def upload_homework_image(
         
         # Ensure absolute path
         file_path = os.path.abspath(file_path)
+        logger.info(f"   Full file path: {file_path}")
         
         # Save file
         logger.info(f"   Saving to: {file_path}")
-        with open(file_path, "wb") as f:
-            f.write(content)
+        try:
+            with open(file_path, "wb") as f:
+                bytes_written = f.write(content)
+            logger.info(f"   ✓ Wrote {bytes_written} bytes to file")
+        except Exception as save_error:
+            logger.error(f"   ❌ Error writing file: {str(save_error)}")
+            raise
         
         # Verify file was saved
         if not os.path.exists(file_path):
-            logger.error(f"❌ Failed to save file")
+            logger.error(f"❌ File verification failed - file does not exist at: {file_path}")
             return JSONResponse(
                 status_code=500,
                 content={
@@ -395,7 +407,11 @@ async def upload_homework_image(
             )
         
         actual_size = os.path.getsize(file_path)
-        logger.info(f"✓ Image saved: {actual_size} bytes")
+        is_railway = file_path.startswith("/app/uploads")
+        location_info = "Railway persistent volume" if is_railway else "Local storage"
+        logger.info(f"✅ Image saved successfully: {actual_size} bytes")
+        logger.info(f"   Location: {location_info}")
+        logger.info(f"   Path: {file_path}")
         
         # Store relative path for database
         path_parts = file_path.replace('\\', '/').split('/')
