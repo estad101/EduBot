@@ -200,7 +200,27 @@ export default function HomeworkPage() {
             </div>
 
             {/* Modal Footer */}
-            <div className="bg-gray-50 border-t border-gray-200 p-6 flex justify-end gap-3">
+            <div className="bg-gray-50 border-t border-gray-200 p-6 flex justify-between gap-3">
+              <div className="flex gap-3">
+                <button
+                  onClick={() => {
+                    // TODO: Implement provide solution handler
+                    alert('Provide Homework Solution feature coming soon');
+                  }}
+                  className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded font-medium transition"
+                >
+                  <i className="fas fa-check-circle mr-2"></i>Provide Solution
+                </button>
+                <button
+                  onClick={() => {
+                    // TODO: Implement mark solved handler
+                    alert('Mark Homework Solved feature coming soon');
+                  }}
+                  className="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded font-medium transition"
+                >
+                  <i className="fas fa-checkmark mr-2"></i>Mark Solved
+                </button>
+              </div>
               <button
                 onClick={closeModal}
                 className="px-4 py-2 bg-gray-300 hover:bg-gray-400 text-gray-800 rounded font-medium transition"
