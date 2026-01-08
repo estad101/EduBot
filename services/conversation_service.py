@@ -256,7 +256,7 @@ class MessageRouter:
             return [
                 {"id": "faq", "title": "❓ FAQs"},
                 {"id": "support", "title": "💬 Chat Support"},
-                {"id": "help", "title": "ℹ️ Help"},
+                {"id": "main_menu", "title": "📍 Main Menu"},
             ]
 
         # Registration flows - collect info with cancel option
