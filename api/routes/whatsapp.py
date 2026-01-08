@@ -284,7 +284,8 @@ async def whatsapp_webhook(request: Request, db: Session = Depends(get_db)):
         buttons = MessageRouter.get_buttons(
             intent=MessageRouter.extract_intent(message_text),
             current_state=next_state or ConversationState.IDLE,
-            is_registered=bool(student_data)
+            is_registered=bool(student_data),
+            phone_number=phone_number
         )
 
         # Send response message

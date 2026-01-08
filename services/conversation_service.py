@@ -196,7 +196,7 @@ class MessageRouter:
     KEYWORD_CANCEL = ["cancel", "stop", "reset", "clear", "menu"]
 
     @staticmethod
-    def get_buttons(intent: str, current_state: ConversationState, is_registered: bool = False) -> Optional[List[Dict[str, str]]]:
+    def get_buttons(intent: str, current_state: ConversationState, is_registered: bool = False, phone_number: str = None) -> Optional[List[Dict[str, str]]]:
         """
         Get interactive buttons for a given state.
 
@@ -204,6 +204,7 @@ class MessageRouter:
             intent: Current user intent
             current_state: Current conversation state
             is_registered: Whether user is registered
+            phone_number: User's phone number (for menu state lookup)
 
         Returns:
             List of button dicts with 'id' and 'title', or None for text-only responses
@@ -212,7 +213,7 @@ class MessageRouter:
         
         # Idle/Initial state buttons (Main Menu) - Toggle between FAQ menu and Homework menu
         if current_state in [ConversationState.INITIAL, ConversationState.IDLE, ConversationState.IDENTIFYING]:
-            menu_state = ConversationService.get_data(phone_number, "menu_state") or "faq_menu"
+            menu_state = ConversationService.get_data(phone_number, "menu_state") or "faq_menu" if phone_number else "faq_menu"
             
             if menu_state == "homework_menu":
                 return [
@@ -229,7 +230,7 @@ class MessageRouter:
 
         # Registration complete - main menu
         if current_state == ConversationState.REGISTERED:
-            menu_state = ConversationService.get_data(phone_number, "menu_state") or "faq_menu"
+            menu_state = ConversationService.get_data(phone_number, "menu_state") or "faq_menu" if phone_number else "faq_menu"
             
             if menu_state == "homework_menu":
                 return [
@@ -261,7 +262,7 @@ class MessageRouter:
 
         # Homework submitted - what's next
         if current_state == ConversationState.HOMEWORK_SUBMITTED:
-            menu_state = ConversationService.get_data(phone_number, "menu_state") or "faq_menu"
+            menu_state = ConversationService.get_data(phone_number, "menu_state") or "faq_menu" if phone_number else "faq_menu"
             
             if menu_state == "homework_menu":
                 return [
