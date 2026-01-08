@@ -275,8 +275,11 @@ async def whatsapp_webhook(request: Request, db: Session = Depends(get_db)):
                     logger.info(f"   file_path: {file_path}")
                     logger.info(f"   content length: {len(submission_content)}")
                     
+                    # Normalize submission type to uppercase
+                    submission_type_normalized = homework_data.get("submission_type", "").upper()
+                    
                     # Validate before submitting
-                    if homework_data.get('submission_type') == 'IMAGE':
+                    if submission_type_normalized == 'IMAGE':
                         if not file_path:
                             logger.warning(f"⚠️ Image submission without file_path - likely download failed")
                         elif not os.path.exists(file_path):
@@ -287,7 +290,7 @@ async def whatsapp_webhook(request: Request, db: Session = Depends(get_db)):
                         db,
                         student_id=student.id,
                         subject=homework_data["subject"],
-                        submission_type=homework_data["submission_type"],
+                        submission_type=submission_type_normalized,
                         content=submission_content,
                         file_path=file_path,
                         payment_required=False,  # Disabled for now
@@ -317,7 +320,10 @@ async def whatsapp_webhook(request: Request, db: Session = Depends(get_db)):
 
                 except Exception as e:
                     logger.error(f"Error submitting homework: {str(e)}", exc_info=True)
-                    response_text = "❌ Error submitting homework. Please try again."
+                    logger.error(f"Exception details: {type(e).__name__}: {str(e)}")
+                    logger.error(f"Homework data: student_id={student.id}, subject={homework_data.get('subject')}, type={homework_data.get('submission_type')}")
+                    logger.error(f"File path: {file_path}")
+                    response_text = f"❌ Error submitting homework: {str(e)}"
             else:
                 response_text = "❌ You need to register first!"
 

@@ -63,13 +63,21 @@ class HomeworkService:
             if not file_path:
                 raise ValueError("File path required for IMAGE submissions")
             
-            # Verify file exists
-            if not os.path.exists(file_path):
-                logger.warning(f"⚠️ IMAGE submission - file_path provided but file does not exist: {file_path}")
-                # Don't raise error, proceed but log warning
-            else:
+            # Verify file exists - try both relative and with uploads prefix
+            file_exists = os.path.exists(file_path)
+            if not file_exists and not file_path.startswith('uploads/'):
+                # Try with uploads prefix
+                alt_path = f"uploads/{file_path}"
+                file_exists = os.path.exists(alt_path)
+                if file_exists:
+                    logger.info(f"✓ IMAGE file found at: {alt_path}")
+                    file_size = os.path.getsize(alt_path)
+                    logger.info(f"  File size: {file_size} bytes")
+            elif file_exists:
                 file_size = os.path.getsize(file_path)
                 logger.info(f"✓ IMAGE file verified: {file_path} ({file_size} bytes)")
+            else:
+                logger.warning(f"⚠️ IMAGE submission - file not found at: {file_path}")
 
         # Create homework record
         homework = Homework(
