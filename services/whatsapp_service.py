@@ -43,12 +43,19 @@ class WhatsAppService:
         Returns:
             Dict with response from WhatsApp API
         """
+        logger.info(f"🔵 [send_message] Starting - phone: {phone_number}, type: {message_type}")
+        
         if not settings.whatsapp_api_key or not settings.whatsapp_phone_number_id:
-            logger.error("WhatsApp API credentials not configured")
+            logger.error(f"🔴 [send_message] WhatsApp credentials not configured")
             return {"status": "error", "message": "WhatsApp not configured"}
+
+        logger.info(f"🔵 [send_message] API Key exists: {bool(settings.whatsapp_api_key)}")
+        logger.info(f"🔵 [send_message] Phone ID: {settings.whatsapp_phone_number_id}")
+        logger.info(f"🔵 [send_message] API URL base: {WHATSAPP_API_URL}")
 
         # Clean phone number - ensure it starts with country code (no +)
         clean_phone = phone_number.replace("+", "")
+        logger.info(f"🔵 [send_message] Clean phone: {clean_phone}")
 
         try:
             async with httpx.AsyncClient(timeout=30.0) as client:
@@ -105,7 +112,14 @@ class WhatsAppService:
                     "Content-Type": "application/json",
                 }
 
+                logger.info(f"🔵 [send_message] Prepared API call")
+                logger.info(f"🔵 [send_message] URL: {url}")
+                logger.info(f"🔵 [send_message] Payload type: {message_type}")
+                logger.info(f"🔵 [send_message] Making POST request to WhatsApp API...")
+                
                 response = await client.post(url, json=payload, headers=headers)
+                
+                logger.info(f"🔵 [send_message] API response status: {response.status_code}")
 
                 if response.status_code in [200, 201]:
                     result = response.json()

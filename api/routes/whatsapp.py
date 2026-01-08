@@ -97,9 +97,11 @@ async def whatsapp_webhook(request: Request, db: Session = Depends(get_db)):
             if student
             else None,
         )
-
-        if next_state:
-            ConversationService.set_state(phone_number, next_state)
+        
+        logger.info(f"✓ Got response from MessageRouter")
+        logger.info(f"  Response text length: {len(response_text) if response_text else 0}")
+        logger.info(f"  Response text: {response_text[:150] if response_text else 'NONE'}")
+        logger.info(f"  Next state: {next_state}")
 
         # Handle registration completion
         if next_state and next_state.value == "registered":
