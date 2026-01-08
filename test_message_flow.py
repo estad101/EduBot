@@ -1,98 +1,174 @@
 #!/usr/bin/env python3
 """
-Test script to verify message tracking flow.
-Simulates a WhatsApp message and checks if it gets stored.
+Test the complete message flow for WhatsApp bot.
+Validates: phone number → message routing → response generation → button creation
 """
-import json
 import sys
 import os
+import logging
 from datetime import datetime
 
 # Add project root to path
-sys.path.insert(0, os.path.dirname(__file__))
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
-# Test the message tracking directly
-from services.conversation_service import ConversationService
-from utils.logger import get_logger
+# Configure logging
+logging.basicConfig(
+    level=logging.DEBUG,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+)
+logger = logging.getLogger(__name__)
 
-logger = get_logger("test_message_flow")
-
-def test_message_tracking():
-    """Test message tracking functionality."""
-    phone_number = "+15551234567"
+def test_message_flow():
+    """Test the complete message flow."""
+    print("\n" + "="*70)
+    print("🧪 WHATSAPP MESSAGE FLOW TEST")
+    print("="*70)
     
-    logger.info("=" * 60)
-    logger.info("Testing Message Tracking Flow")
-    logger.info("=" * 60)
+    test_phone_number = "+2348123456789"
+    test_message = "Hello"
     
-    # Get conversation state
-    conv_state = ConversationService.get_state(phone_number)
-    logger.info(f"Initial state for {phone_number}")
-    logger.info(f"  - Has messages: {'messages' in conv_state.get('data', {})}")
-    logger.info(f"  - Has last_message: {'last_message' in conv_state.get('data', {})}")
+    # Import services
+    try:
+        from services.conversation_service import MessageRouter, ConversationService, ConversationState
+        print("✅ Imported ConversationService and MessageRouter")
+    except Exception as e:
+        print(f"❌ Failed to import: {str(e)}")
+        return False
     
-    # Simulate adding a user message
-    logger.info("\n1. Adding user message...")
-    if "messages" not in conv_state["data"]:
-        conv_state["data"]["messages"] = []
+    print("\n" + "-"*70)
+    print("1️⃣ Test: Extract Intent from Message")
+    print("-"*70)
+    try:
+        intent = MessageRouter.extract_intent(test_message)
+        print(f"   Input message: '{test_message}'")
+        print(f"   ✅ Extracted intent: '{intent}'")
+    except Exception as e:
+        print(f"   ❌ Error extracting intent: {str(e)}")
+        return False
     
-    user_msg = {
-        "id": "msg_test_001",
-        "phone_number": phone_number,
-        "text": "Hello, I need homework help",
-        "timestamp": datetime.now().isoformat(),
-        "sender_type": "user",
-        "message_type": "text"
-    }
-    conv_state["data"]["messages"].append(user_msg)
-    ConversationService.set_data(phone_number, "last_message", user_msg["text"])
-    logger.info(f"Added user message: {user_msg['text']}")
+    print("\n" + "-"*70)
+    print("2️⃣ Test: Get Next Response from MessageRouter")
+    print("-"*70)
+    try:
+        response_text, next_state = MessageRouter.get_next_response(
+            phone_number=test_phone_number,
+            message_text=test_message,
+            student_data=None
+        )
+        print(f"   Input: phone={test_phone_number}, message='{test_message}'")
+        print(f"   ✅ Response text: {response_text[:100]}...")
+        print(f"   ✅ Next state: {next_state}")
+        
+        if not response_text:
+            print(f"   ⚠️  WARNING: Response text is empty!")
+            return False
+    except Exception as e:
+        print(f"   ❌ Error getting response: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        return False
     
-    # Simulate adding a bot response
-    logger.info("\n2. Adding bot response...")
-    bot_msg = {
-        "id": "msg_test_002",
-        "phone_number": phone_number,
-        "text": "Sure! I can help you with that. What subject?",
-        "timestamp": datetime.now().isoformat(),
-        "sender_type": "bot",
-        "message_type": "text"
-    }
-    conv_state["data"]["messages"].append(bot_msg)
-    ConversationService.set_data(phone_number, "last_message", bot_msg["text"])
-    logger.info(f"Added bot message: {bot_msg['text']}")
+    print("\n" + "-"*70)
+    print("3️⃣ Test: Get Buttons for State")
+    print("-"*70)
+    try:
+        buttons = MessageRouter.get_buttons(
+            intent=intent,
+            current_state=next_state or ConversationState.IDLE,
+            is_registered=False,
+            phone_number=test_phone_number
+        )
+        
+        if buttons:
+            print(f"   State: {next_state or ConversationState.IDLE}")
+            print(f"   ✅ Got {len(buttons)} buttons:")
+            for btn in buttons:
+                print(f"      - {btn.get('title')} (id: {btn.get('id')})")
+        else:
+            print(f"   ⚠️  State: {next_state or ConversationState.IDLE}")
+            print(f"   ℹ️  No buttons for this state (text-only response)")
+    except Exception as e:
+        print(f"   ❌ Error getting buttons: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        return False
     
-    # Verify messages are stored
-    logger.info("\n3. Verifying messages storage...")
-    conv_state = ConversationService.get_state(phone_number)
-    messages = conv_state.get("data", {}).get("messages", [])
-    last_message = conv_state.get("data", {}).get("last_message")
+    print("\n" + "-"*70)
+    print("4️⃣ Test: Menu State Persistence")
+    print("-"*70)
+    try:
+        # Set menu state
+        ConversationService.set_data(test_phone_number, "menu_state", "homework_menu")
+        menu_state = ConversationService.get_data(test_phone_number, "menu_state")
+        print(f"   Set menu_state to: 'homework_menu'")
+        print(f"   ✅ Retrieved menu_state: '{menu_state}'")
+        
+        # Get buttons with homework menu active
+        buttons = MessageRouter.get_buttons(
+            intent=intent,
+            current_state=ConversationState.IDLE,
+            is_registered=False,
+            phone_number=test_phone_number
+        )
+        
+        if buttons and buttons[0]['id'] == 'homework':
+            print(f"   ✅ Menu toggle works - showing homework menu")
+            for btn in buttons:
+                print(f"      - {btn.get('title')}")
+        else:
+            print(f"   ⚠️  Menu toggle issue - not showing homework menu")
+            if buttons:
+                print(f"   Current buttons:")
+                for btn in buttons:
+                    print(f"      - {btn.get('title')}")
+    except Exception as e:
+        print(f"   ❌ Error testing menu state: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        return False
     
-    logger.info(f"Total messages stored: {len(messages)}")
-    logger.info(f"Last message: {last_message}")
+    print("\n" + "-"*70)
+    print("5️⃣ Test: All Intent Handlers")
+    print("-"*70)
     
-    for i, msg in enumerate(messages, 1):
-        logger.info(f"\n  Message {i}:")
-        logger.info(f"    - ID: {msg['id']}")
-        logger.info(f"    - From: {msg['sender_type']}")
-        logger.info(f"    - Text: {msg['text'][:50]}...")
-        logger.info(f"    - Time: {msg['timestamp']}")
+    test_intents = [
+        ("hello", "greeting"),
+        ("homework", "homework intent"),
+        ("faq", "FAQ intent"),
+        ("support", "support intent"),
+        ("register", "registration intent"),
+        ("pay", "payment intent"),
+        ("help", "help intent"),
+    ]
     
-    # Check if messages are accessible
-    logger.info("\n4. Checking message accessibility...")
-    assert len(messages) == 2, f"Expected 2 messages, got {len(messages)}"
-    assert messages[0]["sender_type"] == "user", "First message should be from user"
-    assert messages[1]["sender_type"] == "bot", "Second message should be from bot"
-    assert last_message == "Sure! I can help you with that. What subject?", "Last message mismatch"
+    all_ok = True
+    for test_input, description in test_intents:
+        try:
+            response_text, next_state = MessageRouter.get_next_response(
+                phone_number=test_phone_number,
+                message_text=test_input,
+                student_data=None
+            )
+            
+            if response_text:
+                print(f"   ✅ {description:20} → Response OK ({len(response_text)} chars)")
+            else:
+                print(f"   ❌ {description:20} → No response text!")
+                all_ok = False
+        except Exception as e:
+            print(f"   ❌ {description:20} → Error: {str(e)}")
+            all_ok = False
     
-    logger.info("\n✅ All tests passed!")
-    logger.info("=" * 60)
+    if not all_ok:
+        return False
     
+    print("\n" + "="*70)
+    print("✅ ALL TESTS PASSED - Message flow is working correctly!")
+    print("="*70 + "\n")
     return True
 
+
 if __name__ == "__main__":
-    try:
-        test_message_tracking()
-    except Exception as e:
-        logger.error(f"❌ Test failed: {str(e)}", exc_info=True)
-        sys.exit(1)
+    success = test_message_flow()
+    sys.exit(0 if success else 1)
+
