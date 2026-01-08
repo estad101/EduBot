@@ -208,6 +208,7 @@ async def whatsapp_webhook(request: Request, db: Session = Depends(get_db)):
                         
                         logger.info(f"📸 Starting image download for homework")
                         logger.info(f"   Image ID: {message_data.get('image_id')}")
+                        logger.info(f"   Student ID: {student.id}")
                         
                         media_bytes = await WhatsAppService.download_media(
                             message_data.get("image_id"), 
@@ -215,7 +216,8 @@ async def whatsapp_webhook(request: Request, db: Session = Depends(get_db)):
                         )
                         
                         if not media_bytes:
-                            logger.warning(f"❌ Failed to download media - no bytes received")
+                            logger.warning(f"❌ Failed to download media - no bytes received from WhatsApp")
+                            logger.warning(f"   This may be due to: timeout, invalid token, or WhatsApp API issue")
                         else:
                             logger.info(f"✓ Downloaded media: {len(media_bytes)} bytes")
                             
@@ -278,13 +280,11 @@ async def whatsapp_webhook(request: Request, db: Session = Depends(get_db)):
                     # Normalize submission type to uppercase
                     submission_type_normalized = homework_data.get("submission_type", "").upper()
                     
-                    # Validate before submitting
-                    if submission_type_normalized == 'IMAGE':
-                        if not file_path:
-                            logger.warning(f"⚠️ Image submission without file_path - likely download failed")
-                        elif not os.path.exists(file_path):
-                            logger.error(f"❌ File path specified but file does not exist: {file_path}")
-                            file_path = None
+                    # If IMAGE submission but file_path is None (download failed), fallback to TEXT
+                    if submission_type_normalized == 'IMAGE' and not file_path:
+                        logger.warning(f"⚠️ Image download failed - falling back to TEXT submission")
+                        submission_type_normalized = "TEXT"
+                        submission_content = f"📸 Image submission attempted (ID: {message_data.get('image_id', 'unknown')})\n\nNote: Image failed to download. Please resubmit the image."
                     
                     homework = HomeworkService.submit_homework(
                         db,
@@ -304,16 +304,31 @@ async def whatsapp_webhook(request: Request, db: Session = Depends(get_db)):
                     from services.tutor_service import TutorService
                     
                     assignment = TutorService.assign_homework_by_subject(db, homework.id)
-                    if assignment:
+                    
+                    # Build response message
+                    if submission_type_normalized == "TEXT" and message_data.get('image_id'):
+                        # This is a fallback from failed image download
                         response_text = (
-                            f"✅ Homework submitted successfully for {homework_data['subject']}!\n\n"
-                            f"🎓 A tutor has been assigned and will respond soon with solutions!"
+                            f"⚠️ Image upload had an issue, but homework was submitted as text!\n\n"
+                            f"✅ Homework submitted for {homework_data['subject']}\n\n"
+                            f"Please try uploading the image again or tutor will contact you.\n\n"
                         )
+                        if assignment:
+                            response_text += "🎓 A tutor has been assigned!"
+                        else:
+                            response_text += "⏳ A tutor will be assigned shortly"
                     else:
-                        response_text = (
-                            f"✅ Homework submitted successfully for {homework_data['subject']}!\n\n"
-                            f"⏳ A tutor will be assigned to you shortly"
-                        )
+                        # Normal successful submission
+                        if assignment:
+                            response_text = (
+                                f"✅ Homework submitted successfully for {homework_data['subject']}!\n\n"
+                                f"🎓 A tutor has been assigned and will respond soon with solutions!"
+                            )
+                        else:
+                            response_text = (
+                                f"✅ Homework submitted successfully for {homework_data['subject']}!\n\n"
+                                f"⏳ A tutor will be assigned to you shortly"
+                            )
 
                     # Reset homework state
                     ConversationService.reset_homework_state(phone_number)
