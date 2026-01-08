@@ -16,6 +16,7 @@ from services.student_service import StudentService
 from services.lead_service import LeadService
 from services.payment_service import PaymentService
 from schemas.response import StandardResponse
+from models.student import UserStatus
 
 logger = logging.getLogger(__name__)
 
@@ -86,13 +87,22 @@ async def whatsapp_webhook(request: Request, db: Session = Depends(get_db)):
                 # Continue without saving lead
 
         # Get conversation state and next response
+        # Check if student has active subscription
+        has_subscription = False
+        if student:
+            # Check status
+            has_subscription = student.status == UserStatus.ACTIVE_SUBSCRIBER
+            
+            # Or check if has active subscription record
+            if not has_subscription:
+                active_subs = [s for s in student.subscriptions if s.is_valid()]
+                has_subscription = len(active_subs) > 0
+        
         response_data = MessageRouter.get_next_response(
             phone_number,
             message_text,
             student_data={
-                "has_subscription": student.has_active_subscription
-                if student
-                else False
+                "has_subscription": has_subscription
             }
             if student
             else None,
@@ -159,7 +169,7 @@ async def whatsapp_webhook(request: Request, db: Session = Depends(get_db)):
 
                 # Check if payment required
                 payment_required = (
-                    not student.has_active_subscription
+                    student.status != UserStatus.ACTIVE_SUBSCRIBER
                 )
 
                 try:

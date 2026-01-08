@@ -199,7 +199,7 @@ async def whatsapp_status():
             import httpx
             async with httpx.AsyncClient(timeout=5, follow_redirects=True) as client:
                 response = await client.get(
-                    f"https://graph.instagram.com/v18.0/{settings.whatsapp_phone_number_id}",
+                    f"https://graph.facebook.com/v22.0/{settings.whatsapp_phone_number_id}",
                     params={"access_token": settings.whatsapp_api_key}
                 )
                 
