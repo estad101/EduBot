@@ -182,37 +182,78 @@ async def whatsapp_webhook(request: Request, db: Session = Depends(get_db)):
                 # If submission type is IMAGE and incoming message is image, download it
                 if homework_data.get("submission_type") == "IMAGE" and message_type == "image" and message_data.get("image_id"):
                     try:
+                        import os
+                        import time
+                        
+                        logger.info(f"📸 Starting image download for homework")
+                        logger.info(f"   Image ID: {message_data.get('image_id')}")
+                        
                         media_bytes = await WhatsAppService.download_media(
                             message_data.get("image_id"), 
                             media_type="image"
                         )
-                        if media_bytes:
-                            # Save file
-                            import os
+                        
+                        if not media_bytes:
+                            logger.warning(f"❌ Failed to download media - no bytes received")
+                        else:
+                            logger.info(f"✓ Downloaded media: {len(media_bytes)} bytes")
+                            
+                            # Save file with proper directory structure
                             upload_dir = "uploads/homework"
-                            os.makedirs(upload_dir, exist_ok=True)
+                            student_dir = os.path.join(upload_dir, str(student.id))
+                            os.makedirs(student_dir, exist_ok=True)
                             
-                            import time
-                            filename = f"homework_{phone_number.replace('+', '')}_{int(time.time())}.jpg"
-                            file_path = os.path.join(upload_dir, filename)
+                            # Create unique filename
+                            clean_phone = phone_number.replace('+', '').replace(' ', '')
+                            timestamp = int(time.time() * 1000)  # milliseconds for uniqueness
+                            filename = f"homework_{clean_phone}_{timestamp}.jpg"
+                            file_path = os.path.join(student_dir, filename)
                             
+                            # Ensure absolute path
+                            file_path = os.path.abspath(file_path)
+                            
+                            # Write file
+                            logger.info(f"📝 Saving image to: {file_path}")
                             with open(file_path, "wb") as f:
-                                f.write(media_bytes)
-                            logger.info(f"Saved homework image: {file_path}")
-                            # For images, set a placeholder content
-                            submission_content = f"Image submission: {message_data.get('image_id')}"
+                                bytes_written = f.write(media_bytes)
+                                logger.info(f"   Written {bytes_written} bytes")
+                            
+                            # Verify file was saved
+                            if os.path.exists(file_path):
+                                actual_size = os.path.getsize(file_path)
+                                logger.info(f"✓ Image saved successfully: {file_path}")
+                                logger.info(f"   File size: {actual_size} bytes")
+                                
+                                # Store relative path for database
+                                file_path = os.path.relpath(file_path)
+                                submission_content = f"Image submission: {message_data.get('image_id')}"
+                            else:
+                                logger.error(f"❌ File not found after write: {file_path}")
+                                file_path = None
                     except Exception as e:
-                        logger.error(f"Failed to download image: {str(e)}")
+                        logger.error(f"❌ Failed to download/save image: {str(e)}")
+                        import traceback
+                        logger.error(f"   Traceback: {traceback.format_exc()}")
+                        file_path = None
 
                 # For now, accept all homework submissions without payment
                 try:
                     from services.homework_service import HomeworkService
 
-                    logger.info(f"Submitting homework with:")
-                    logger.info(f"  student_id: {student.id}")
-                    logger.info(f"  subject: {homework_data.get('subject')}")
-                    logger.info(f"  submission_type: {homework_data.get('submission_type')}")
-                    logger.info(f"  file_path: {file_path}")
+                    logger.info(f"📚 Submitting homework with:")
+                    logger.info(f"   student_id: {student.id}")
+                    logger.info(f"   subject: {homework_data.get('subject')}")
+                    logger.info(f"   submission_type: {homework_data.get('submission_type')}")
+                    logger.info(f"   file_path: {file_path}")
+                    logger.info(f"   content length: {len(submission_content)}")
+                    
+                    # Validate before submitting
+                    if homework_data.get('submission_type') == 'IMAGE':
+                        if not file_path:
+                            logger.warning(f"⚠️ Image submission without file_path - likely download failed")
+                        elif not os.path.exists(file_path):
+                            logger.error(f"❌ File path specified but file does not exist: {file_path}")
+                            file_path = None
                     
                     homework = HomeworkService.submit_homework(
                         db,
@@ -224,7 +265,9 @@ async def whatsapp_webhook(request: Request, db: Session = Depends(get_db)):
                         payment_required=False,  # Disabled for now
                     )
                     
-                    logger.info(f"✓ Homework created: {homework.id}")
+                    logger.info(f"✅ Homework created: {homework.id}")
+                    if file_path:
+                        logger.info(f"   Image path: {homework.file_path}")
 
                     # Auto-assign to tutor (no payment needed)
                     from services.tutor_service import TutorService

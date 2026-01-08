@@ -3,6 +3,7 @@ Homework service - handles homework submissions.
 """
 from typing import Optional
 from sqlalchemy.orm import Session
+import os
 from models.homework import Homework, SubmissionType, PaymentType
 from models.student import Student
 from utils.logger import get_logger
@@ -61,6 +62,14 @@ class HomeworkService:
         elif submission_type.upper() == "IMAGE":
             if not file_path:
                 raise ValueError("File path required for IMAGE submissions")
+            
+            # Verify file exists
+            if not os.path.exists(file_path):
+                logger.warning(f"⚠️ IMAGE submission - file_path provided but file does not exist: {file_path}")
+                # Don't raise error, proceed but log warning
+            else:
+                file_size = os.path.getsize(file_path)
+                logger.info(f"✓ IMAGE file verified: {file_path} ({file_size} bytes)")
 
         # Create homework record
         homework = Homework(
@@ -78,9 +87,11 @@ class HomeworkService:
         db.refresh(homework)
 
         logger.info(
-            f"Homework submitted: {homework.id} by student {student_id} "
-            f"({submission_type}) - {subject}"
+            f"✅ Homework submitted: ID={homework.id}, Student={student_id}, "
+            f"Type={submission_type}, Subject={subject}"
         )
+        if file_path:
+            logger.info(f"   📎 File: {file_path}")
 
         return homework
 

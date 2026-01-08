@@ -175,3 +175,87 @@ async def submit_homework(
     except Exception as e:
         logger.error(f"Unexpected error during homework submission: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
+
+@router.get("/{homework_id}/image-status")
+async def check_image_status(homework_id: int, db: Session = Depends(get_db)):
+    """
+    Check if an image homework submission has a valid image file.
+    
+    Returns status of the image file for verification purposes.
+    """
+    import os
+    
+    try:
+        homework = HomeworkService.get_homework_by_id(db, homework_id)
+        if not homework:
+            return StandardResponse(
+                status="error",
+                message="Homework not found",
+                error_code="NOT_FOUND",
+            )
+        
+        # Check if it's an image submission
+        if homework.submission_type.value != "IMAGE":
+            return StandardResponse(
+                status="success",
+                message="Not an image submission",
+                data={
+                    "homework_id": homework_id,
+                    "type": homework.submission_type.value,
+                    "has_file": False,
+                },
+            )
+        
+        # Check if file path exists and file is accessible
+        file_path = homework.file_path
+        if not file_path:
+            logger.warning(f"Image submission {homework_id} has no file_path")
+            return StandardResponse(
+                status="success",
+                message="Image submission has no file path",
+                data={
+                    "homework_id": homework_id,
+                    "type": "IMAGE",
+                    "has_file": False,
+                    "file_path": None,
+                },
+            )
+        
+        # Check if file exists
+        if os.path.exists(file_path):
+            file_size = os.path.getsize(file_path)
+            logger.info(f"✓ Image file verified for homework {homework_id}: {file_path} ({file_size} bytes)")
+            return StandardResponse(
+                status="success",
+                message="Image file found and accessible",
+                data={
+                    "homework_id": homework_id,
+                    "type": "IMAGE",
+                    "has_file": True,
+                    "file_path": file_path,
+                    "file_size": file_size,
+                    "file_exists": True,
+                },
+            )
+        else:
+            logger.warning(f"Image file missing for homework {homework_id}: {file_path}")
+            return StandardResponse(
+                status="success",
+                message="Image file path recorded but file not found",
+                data={
+                    "homework_id": homework_id,
+                    "type": "IMAGE",
+                    "has_file": False,
+                    "file_path": file_path,
+                    "file_exists": False,
+                    "status": "FILE_MISSING",
+                },
+            )
+    
+    except Exception as e:
+        logger.error(f"Error checking image status: {str(e)}")
+        return StandardResponse(
+            status="error",
+            message=f"Error checking image status: {str(e)}",
+            error_code="CHECK_ERROR",
+        )
