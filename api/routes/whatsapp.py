@@ -89,13 +89,7 @@ async def whatsapp_webhook(request: Request, db: Session = Depends(get_db)):
         response_text, next_state = MessageRouter.get_next_response(
             phone_number,
             message_text,
-            student_data={
-                "has_subscription": student.status.value == "ACTIVE_SUBSCRIBER"
-                if student
-                else False
-            }
-            if student
-            else None,
+            student_data=None,  # Simplified - remove subscription check for now
         )
         
         logger.info(f"✓ Got response from MessageRouter")
@@ -152,11 +146,7 @@ async def whatsapp_webhook(request: Request, db: Session = Depends(get_db)):
                     except Exception as e:
                         logger.error(f"Failed to download image: {str(e)}")
 
-                # Check if payment required
-                payment_required = (
-                    student.status.value != "ACTIVE_SUBSCRIBER"
-                )
-
+                # For now, accept all homework submissions without payment
                 try:
                     from services.homework_service import HomeworkService
 
@@ -167,44 +157,23 @@ async def whatsapp_webhook(request: Request, db: Session = Depends(get_db)):
                         submission_type=homework_data["submission_type"],
                         content=homework_data["content"],
                         file_path=file_path,
-                        payment_required=payment_required,
+                        payment_required=False,  # Disabled for now
                     )
 
-                    if payment_required:
-                        # Initiate payment
-                        payment = PaymentService.initiate_payment(
-                            db,
-                            student_id=student.id,
-                            amount=500.0,  # Per-submission fee
-                            is_subscription=False,
-                            email=student.email,
-                        )
-
-                        auth_url = payment.authorization_url
+                    # Auto-assign to tutor (no payment needed)
+                    from services.tutor_service import TutorService
+                    
+                    assignment = TutorService.assign_homework_by_subject(db, homework.id)
+                    if assignment:
                         response_text = (
-                            f"✅ Homework received for {homework_data['subject']}!\n\n"
-                            f"💳 Payment required: ₦500\n\n"
-                            f"Click here to pay: {auth_url}"
+                            f"✅ Homework submitted successfully for {homework_data['subject']}!\n\n"
+                            f"🎓 A tutor has been assigned and will respond soon with solutions!"
                         )
-                        # Store homework ID for later tutor assignment after payment
-                        ConversationService.set_data(phone_number, "homework_id", homework.id)
                     else:
-                        # Subscription covers this - auto-assign to tutor
-                        from services.tutor_service import TutorService
-                        
-                        assignment = TutorService.assign_homework_by_subject(db, homework.id)
-                        if assignment:
-                            response_text = (
-                                f"✅ Homework submitted successfully for {homework_data['subject']}!\n\n"
-                                f"Your active subscription covers this submission.\n\n"
-                                f"🎓 A tutor has been assigned and will respond soon with solutions!"
-                            )
-                        else:
-                            response_text = (
-                                f"✅ Homework submitted successfully for {homework_data['subject']}!\n\n"
-                                f"Your active subscription covers this submission.\n\n"
-                                f"⏳ No tutors currently available. We'll assign one shortly."
-                            )
+                        response_text = (
+                            f"✅ Homework submitted successfully for {homework_data['subject']}!\n\n"
+                            f"⏳ No tutors currently available. We'll assign one shortly."
+                        )
 
                     # Reset homework state
                     ConversationService.reset_homework_state(phone_number)
