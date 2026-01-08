@@ -249,15 +249,17 @@ class MessageRouter:
         # Handle cancel command
         if intent == "cancel":
             ConversationService.clear_state(phone_number)
+            farewell = f"See you soon, {first_name}!" if first_name else "See you!"
             return (
-                "❌ Conversation cleared. Type 'register', 'homework', 'pay', or 'help' to continue.",
+                f"❌ Conversation cleared. {farewell} Type 'register', 'homework', 'pay', or 'help' to continue.",
                 ConversationState.INITIAL,
             )
 
         # Handle help command
         if intent == "help":
+            welcome = f"Welcome back, {first_name}!" if first_name else "Welcome to Study Bot!"
             return (
-                "📚 **Welcome to Study Bot!**\n\n"
+                f"📚 **{welcome}**\n\n"
                 "Commands:\n"
                 "• **register** - Create your student account\n"
                 "• **homework** - Submit homework\n"
@@ -311,8 +313,9 @@ class MessageRouter:
                     ConversationState.IDLE,
                 )
             else:
+                greeting = f"👋 Hey {first_name}!" if first_name else "👋 Hi!"
                 return (
-                    "👋 Hi! Type 'help' for available commands, or:\n"
+                    f"{greeting} Type 'help' for available commands, or:\n"
                     "• **register** - Create account\n"
                     "• **homework** - Submit homework\n"
                     "• **pay** - Get subscription\n"
@@ -359,29 +362,33 @@ class MessageRouter:
         elif current_state == ConversationState.HOMEWORK_TYPE:
             submission_type = "IMAGE" if "image" in message_text.lower() else "TEXT"
             ConversationService.set_data(phone_number, "homework_type", submission_type)
+            name_ref = f"{first_name}, g" if first_name else "G"
             return (
-                f"Got it, {submission_type} submission. Please send your homework now:",
+                f"Got it, {submission_type} submission. {name_ref}o ahead and send your homework now:",
                 ConversationState.HOMEWORK_CONTENT,
             )
 
         elif current_state == ConversationState.HOMEWORK_CONTENT:
             ConversationService.set_data(phone_number, "homework_content", message_text)
+            name_ref = f"Thanks, {first_name}! 📤" if first_name else "📤"
             return (
-                "📤 Processing your homework submission...",
+                f"{name_ref} Processing your homework submission...",
                 ConversationState.HOMEWORK_SUBMITTED,
             )
 
         # Payment flow
         elif current_state == ConversationState.PAYMENT_PENDING:
             if "confirm" in message_text.lower():
+                name_ref = f"{first_name}, here's" if first_name else "Here's"
                 return (
-                    "🔗 Here's your payment link: [Payment Link]\n\n"
+                    f"🔗 {name_ref} your payment link: [Payment Link]\n\n"
                     "Click to complete payment. We'll confirm once received!",
                     ConversationState.PAYMENT_CONFIRMED,
                 )
             else:
+                prompt = f"{first_name}, please type" if first_name else "Type"
                 return (
-                    "Type 'confirm' to proceed with payment, or 'cancel' to exit.",
+                    f"{prompt} 'confirm' to proceed with payment, or 'cancel' to exit.",
                     ConversationState.PAYMENT_PENDING,
                 )
 
