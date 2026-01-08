@@ -91,7 +91,7 @@ export default function HomeworkPage() {
                       </span>
                     </td>
                     <td className="px-6 py-4 text-sm text-gray-600">
-                      {hw.submission_type === 'TEXT' ? hw.content.substring(0, 50) : '📷 Image'}
+                      {hw.submission_type === 'TEXT' ? (hw.content ? hw.content.substring(0, 50) : '(No content)') : '📷 Image'}
                     </td>
                     <td className="px-6 py-4 text-sm text-gray-600">
                       {new Date(hw.created_at).toLocaleDateString()}
