@@ -13,6 +13,7 @@ from services.payment_service import PaymentService
 from services.paystack_service import PaystackService
 from services.tutor_service import TutorService
 from services.whatsapp_service import WhatsAppService
+from services.conversation_service import ConversationState
 from config.database import get_db
 from utils.logger import get_logger
 from utils.validators import validate_phone_number
@@ -398,15 +399,26 @@ async def upload_homework_image(
         except Exception as e:
             logger.warning(f"   Could not auto-assign tutor: {str(e)}")
         
+        # Reset conversation state for next interaction
+        try:
+            from services.conversation_service import ConversationService
+            ConversationService.reset_homework_state(student.phone_number)
+            ConversationService.set_state(student.phone_number, ConversationState.REGISTERED)
+            logger.info(f"   Conversation state reset to REGISTERED")
+        except Exception as e:
+            logger.warning(f"   Could not reset conversation state: {str(e)}")
+        
         # Send WhatsApp confirmation
         try:
+            from services.whatsapp_service import WhatsAppService
             subject = homework.subject
             confirmation_message = (
-                f"✅ Homework Submitted!\n\n"
+                f"✅ Homework Submitted Successfully!\n\n"
                 f"📚 Subject: {subject}\n"
                 f"📷 Type: Image\n"
                 f"⏱️ Submitted: {homework.created_at.strftime('%b %d, %I:%M %p')}\n\n"
-                f"🎓 A tutor will review your work shortly!"
+                f"🎓 A tutor has been assigned and will review your work shortly.\n"
+                f"You'll receive feedback soon!"
             )
             
             await WhatsAppService.send_message(
