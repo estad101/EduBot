@@ -295,8 +295,11 @@ async def whatsapp_webhook(request: Request, db: Session = Depends(get_db)):
             logger.info(f"   Result: {result.get('status')}")
             
             if result.get('status') == 'error':
-                logger.error(f"   Error: {result.get('message')}")
+                logger.error(f"   ❌ Error sending WhatsApp message to {phone_number}")
+                logger.error(f"   Message: {result.get('message')}")
                 logger.error(f"   Details: {result.get('error')}")
+            else:
+                logger.info(f"   ✅ Message sent successfully to {phone_number}")
             
             # Add bot message to conversation
             conv_state["data"]["messages"].append({
@@ -306,7 +309,8 @@ async def whatsapp_webhook(request: Request, db: Session = Depends(get_db)):
                 "timestamp": datetime.now().isoformat(),
                 "sender_type": "bot",
                 "message_type": "interactive" if buttons else "text",
-                "buttons": buttons
+                "buttons": buttons,
+                "send_result": result.get('status')
             })
         except Exception as e:
             logger.error(f"❌ Exception sending WhatsApp message: {str(e)}", exc_info=True)
