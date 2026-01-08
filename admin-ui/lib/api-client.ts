@@ -165,10 +165,21 @@ class APIClient {
   }
 
   // Homework endpoints
-  async getHomework(skip: number = 0, limit: number = 50) {
-    const response = await this.client.get("/api/admin/homework", {
-      params: { skip, limit },
-    });
+  async getHomework(
+    skip: number = 0,
+    limit: number = 50,
+    filters?: {
+      submission_type?: string;
+      subject?: string;
+      student_id?: number;
+    }
+  ) {
+    const params: any = { skip, limit };
+    if (filters?.submission_type) params.submission_type = filters.submission_type;
+    if (filters?.subject) params.subject = filters.subject;
+    if (filters?.student_id) params.student_id = filters.student_id;
+    
+    const response = await this.client.get("/api/admin/homework", { params });
     return response.data;
   }
 

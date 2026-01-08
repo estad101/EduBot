@@ -562,13 +562,43 @@ async def list_subscriptions(
 async def list_homework(
     skip: int = Query(0, ge=0),
     limit: int = Query(50, ge=1, le=100),
+    submission_type: str = Query(None),
+    subject: str = Query(None),
+    student_id: int = Query(None),
     db: Session = Depends(get_db)
 ):
-    """List all homework submissions with pagination."""
-    homeworks = db.query(Homework).offset(skip).limit(limit).all()
+    """List homework submissions with pagination and filtering.
+    
+    Query parameters:
+    - skip: Number of records to skip (default 0)
+    - limit: Number of records to return (default 50, max 100)
+    - submission_type: Filter by IMAGE or TEXT (optional)
+    - subject: Filter by subject name (optional)
+    - student_id: Filter by student ID (optional)
+    """
+    # Build query
+    query = db.query(Homework)
+    
+    # Apply filters
+    if submission_type:
+        query = query.filter(Homework.submission_type == submission_type.upper())
+    if subject:
+        query = query.filter(Homework.subject.ilike(f"%{subject}%"))
+    if student_id:
+        query = query.filter(Homework.student_id == student_id)
+    
+    # Get total count before pagination
+    total_count = query.count()
+    
+    # Apply sorting (latest first) and pagination
+    homeworks = query.order_by(Homework.created_at.desc()).offset(skip).limit(limit).all()
     
     return {
         "status": "success",
+        "total": total_count,
+        "skip": skip,
+        "limit": limit,
+        "count": len(homeworks),
         "data": [
             {
                 "id": h.id,

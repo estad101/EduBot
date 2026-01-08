@@ -17,6 +17,15 @@ interface Homework {
   created_at: string;
 }
 
+interface HomeworkResponse {
+  status: string;
+  total: number;
+  skip: number;
+  limit: number;
+  count: number;
+  data: Homework[];
+}
+
 export default function HomeworkPage() {
   const router = useRouter();
   const [homeworks, setHomeworks] = useState<Homework[]>([]);
@@ -25,34 +34,52 @@ export default function HomeworkPage() {
   const [selectedHomework, setSelectedHomework] = useState<Homework | null>(null);
   const [showModal, setShowModal] = useState(false);
 
-  useEffect(() => {
-    const fetchHomework = async () => {
-      try {
-        setLoading(true);
-        const token = localStorage.getItem('admin_token');
-        if (!token) {
-          router.push('/login');
-          return;
-        }
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
+  const [totalCount, setTotalCount] = useState(0);
 
-        const response = await apiClient.getHomework(0, 50);
-        if (response.status === 'success') {
-          // Sort by created_at in descending order (latest first)
-          const sortedHomeworks = response.data.sort(
-            (a: Homework, b: Homework) =>
-              new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
-          );
-          setHomeworks(sortedHomeworks);
-        }
-      } catch (err: any) {
-        setError(err.message || 'Failed to load homework');
-      } finally {
-        setLoading(false);
+  // Filter state
+  const [submissionTypeFilter, setSubmissionTypeFilter] = useState('');
+  const [subjectFilter, setSubjectFilter] = useState('');
+
+  const totalPages = Math.ceil(totalCount / pageSize);
+
+  const fetchHomework = async (page: number = 1) => {
+    try {
+      setLoading(true);
+      const token = localStorage.getItem('admin_token');
+      if (!token) {
+        router.push('/login');
+        return;
       }
-    };
 
-    fetchHomework();
-  }, [router]);
+      const skip = (page - 1) * pageSize;
+      const filters: any = {};
+
+      if (submissionTypeFilter) {
+        filters.submission_type = submissionTypeFilter;
+      }
+      if (subjectFilter) {
+        filters.subject = subjectFilter;
+      }
+
+      const response: HomeworkResponse = await apiClient.getHomework(skip, pageSize, filters);
+      if (response.status === 'success') {
+        setHomeworks(response.data);
+        setTotalCount(response.total);
+        setCurrentPage(page);
+      }
+    } catch (err: any) {
+      setError(err.message || 'Failed to load homework');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchHomework(1);
+  }, [submissionTypeFilter, subjectFilter, pageSize]);
 
   const openModal = (homework: Homework) => {
     setSelectedHomework(homework);
@@ -64,13 +91,114 @@ export default function HomeworkPage() {
     setSelectedHomework(null);
   };
 
+  const handlePreviousPage = () => {
+    if (currentPage > 1) {
+      fetchHomework(currentPage - 1);
+    }
+  };
+
+  const handleNextPage = () => {
+    if (currentPage < totalPages) {
+      fetchHomework(currentPage + 1);
+    }
+  };
+
   return (
     <Layout>
       <div className="bg-white rounded-lg shadow">
         <div className="p-6 border-b border-gray-200">
-          <h2 className="text-xl font-semibold text-gray-800">
+          <h2 className="text-xl font-semibold text-gray-800 mb-4">
             <i className="fas fa-book mr-2 text-blue-600"></i>All Submissions
           </h2>
+
+          {/* Filters Section */}
+          <div className="bg-gray-50 rounded-lg p-4 -mx-6 -mb-4 px-6 py-4">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              {/* Submission Type Filter */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Submission Type
+                </label>
+                <select
+                  value={submissionTypeFilter}
+                  onChange={(e) => {
+                    setSubmissionTypeFilter(e.target.value);
+                    setCurrentPage(1);
+                  }}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                >
+                  <option value="">All Types</option>
+                  <option value="IMAGE">Image Only</option>
+                  <option value="TEXT">Text Only</option>
+                </select>
+              </div>
+
+              {/* Subject Filter */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Subject
+                </label>
+                <input
+                  type="text"
+                  placeholder="Search subject..."
+                  value={subjectFilter}
+                  onChange={(e) => {
+                    setSubjectFilter(e.target.value);
+                    setCurrentPage(1);
+                  }}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                />
+              </div>
+
+              {/* Page Size */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Items Per Page
+                </label>
+                <select
+                  value={pageSize}
+                  onChange={(e) => {
+                    setPageSize(Number(e.target.value));
+                    setCurrentPage(1);
+                  }}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                >
+                  <option value={10}>10 per page</option>
+                  <option value={25}>25 per page</option>
+                  <option value={50}>50 per page</option>
+                  <option value={100}>100 per page</option>
+                </select>
+              </div>
+            </div>
+
+            {/* Active Filters Display */}
+            {(submissionTypeFilter || subjectFilter) && (
+              <div className="mt-4 flex flex-wrap gap-2">
+                {submissionTypeFilter && (
+                  <span className="inline-block bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm">
+                    Type: {submissionTypeFilter}
+                    <button
+                      onClick={() => setSubmissionTypeFilter('')}
+                      className="ml-2 font-bold"
+                    >
+                      ✕
+                    </button>
+                  </span>
+                )}
+                {subjectFilter && (
+                  <span className="inline-block bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm">
+                    Subject: {subjectFilter}
+                    <button
+                      onClick={() => setSubjectFilter('')}
+                      className="ml-2 font-bold"
+                    >
+                      ✕
+                    </button>
+                  </span>
+                )}
+              </div>
+            )}
+          </div>
         </div>
 
         {loading ? (
@@ -82,55 +210,116 @@ export default function HomeworkPage() {
           <div className="p-6 bg-red-50 border border-red-200 rounded text-red-700">
             {error}
           </div>
+        ) : homeworks.length === 0 ? (
+          <div className="p-6 text-center text-gray-500">
+            <i className="fas fa-inbox text-3xl mb-2"></i>
+            <p>No homework submissions found</p>
+          </div>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead className="bg-gray-50 border-b">
-                <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase">Student Name</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase">Class</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase">Subject</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase">Type</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase">Action</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase">Submitted</th>
-                </tr>
-              </thead>
-              <tbody>
-                {homeworks.map((hw) => (
-                  <tr key={hw.id} className="border-b hover:bg-gray-50 transition">
-                    <td className="px-6 py-4 text-sm font-medium text-gray-900">{hw.student_name}</td>
-                    <td className="px-6 py-4 text-sm text-gray-600">{hw.student_class}</td>
-                    <td className="px-6 py-4 text-sm text-gray-600">{hw.subject}</td>
-                    <td className="px-6 py-4 text-sm">
-                      <span
-                        className={`inline-block px-3 py-1 rounded-full text-xs font-semibold ${
-                          hw.submission_type === 'TEXT'
-                            ? 'bg-blue-100 text-blue-800'
-                            : 'bg-green-100 text-green-800'
+          <>
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead className="bg-gray-50 border-b">
+                  <tr>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase">Student Name</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase">Class</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase">Subject</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase">Type</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase">Action</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase">Submitted</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {homeworks.map((hw) => (
+                    <tr key={hw.id} className="border-b hover:bg-gray-50 transition">
+                      <td className="px-6 py-4 text-sm font-medium text-gray-900">{hw.student_name}</td>
+                      <td className="px-6 py-4 text-sm text-gray-600">{hw.student_class}</td>
+                      <td className="px-6 py-4 text-sm text-gray-600">{hw.subject}</td>
+                      <td className="px-6 py-4 text-sm">
+                        <span
+                          className={`inline-block px-3 py-1 rounded-full text-xs font-semibold ${
+                            hw.submission_type === 'TEXT'
+                              ? 'bg-blue-100 text-blue-800'
+                              : 'bg-green-100 text-green-800'
+                          }`}
+                        >
+                          {hw.submission_type}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 text-sm">
+                        <button
+                          onClick={() => openModal(hw)}
+                          className="inline-block px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded font-medium text-xs transition"
+                        >
+                          <i className="fas fa-eye mr-1"></i>View Homework
+                        </button>
+                      </td>
+                      <td className="px-6 py-4 text-sm text-gray-600">
+                        <div>
+                          <div className="font-medium">{new Date(hw.created_at).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })}</div>
+                          <div className="text-xs text-gray-500">{new Date(hw.created_at).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true })}</div>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Pagination Controls */}
+            <div className="bg-gray-50 border-t border-gray-200 px-6 py-4 flex items-center justify-between">
+              <div className="text-sm text-gray-600">
+                Showing <span className="font-semibold">{(currentPage - 1) * pageSize + 1}</span> to{' '}
+                <span className="font-semibold">{Math.min(currentPage * pageSize, totalCount)}</span> of{' '}
+                <span className="font-semibold">{totalCount}</span> submissions
+              </div>
+
+              <div className="flex gap-2">
+                <button
+                  onClick={handlePreviousPage}
+                  disabled={currentPage === 1}
+                  className={`px-4 py-2 rounded font-medium text-sm transition ${
+                    currentPage === 1
+                      ? 'bg-gray-200 text-gray-500 cursor-not-allowed'
+                      : 'bg-blue-600 hover:bg-blue-700 text-white'
+                  }`}
+                >
+                  <i className="fas fa-chevron-left mr-2"></i>Previous
+                </button>
+
+                <div className="flex items-center gap-2 px-4 py-2">
+                  {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                    const pageNum = i + 1;
+                    return (
+                      <button
+                        key={pageNum}
+                        onClick={() => fetchHomework(pageNum)}
+                        className={`w-8 h-8 rounded text-sm font-medium transition ${
+                          currentPage === pageNum
+                            ? 'bg-blue-600 text-white'
+                            : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
                         }`}
                       >
-                        {hw.submission_type}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 text-sm">
-                      <button
-                        onClick={() => openModal(hw)}
-                        className="inline-block px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded font-medium text-xs transition"
-                      >
-                        <i className="fas fa-eye mr-1"></i>View Homework
+                        {pageNum}
                       </button>
-                    </td>
-                    <td className="px-6 py-4 text-sm text-gray-600">
-                      <div>
-                        <div className="font-medium">{new Date(hw.created_at).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })}</div>
-                        <div className="text-xs text-gray-500">{new Date(hw.created_at).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true })}</div>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                    );
+                  })}
+                </div>
+
+                <button
+                  onClick={handleNextPage}
+                  disabled={currentPage >= totalPages}
+                  className={`px-4 py-2 rounded font-medium text-sm transition ${
+                    currentPage >= totalPages
+                      ? 'bg-gray-200 text-gray-500 cursor-not-allowed'
+                      : 'bg-blue-600 hover:bg-blue-700 text-white'
+                  }`}
+                >
+                  Next<i className="fas fa-chevron-right ml-2"></i>
+                </button>
+              </div>
+            </div>
+          </>
         )}
       </div>
 
