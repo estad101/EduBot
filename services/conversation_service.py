@@ -369,21 +369,7 @@ class MessageRouter:
 
         # Handle help command
         if intent == "help":
-            welcome = f"Welcome back, {first_name}!" if first_name else "Welcome to Study Bot!"
-            if first_name:
-                # Registered user - don't show register option
-                help_text = (
-                    f"📚 {welcome}\n\n"
-                    f"You can submit homework, manage your subscription, "
-                    f"and check your status. Choose an option below to continue."
-                )
-            else:
-                # Unregistered user - show register option
-                help_text = (
-                    f"📚 {welcome}\n\n"
-                    f"Create an account to start submitting homework and "
-                    f"accessing tutoring services. Choose an option below to get started."
-                )
+            help_text = "How may I help you?\n\nFAQ, Chat Support, Cancel"
             return (help_text, ConversationState.IDLE)
 
         # Handle FAQ command
