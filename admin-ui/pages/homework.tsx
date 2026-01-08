@@ -37,7 +37,12 @@ export default function HomeworkPage() {
 
         const response = await apiClient.getHomework(0, 50);
         if (response.status === 'success') {
-          setHomeworks(response.data);
+          // Sort by created_at in descending order (latest first)
+          const sortedHomeworks = response.data.sort(
+            (a: Homework, b: Homework) =>
+              new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+          );
+          setHomeworks(sortedHomeworks);
         }
       } catch (err: any) {
         setError(err.message || 'Failed to load homework');
@@ -116,7 +121,10 @@ export default function HomeworkPage() {
                       </button>
                     </td>
                     <td className="px-6 py-4 text-sm text-gray-600">
-                      {new Date(hw.created_at).toLocaleDateString()}
+                      <div>
+                        <div className="font-medium">{new Date(hw.created_at).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })}</div>
+                        <div className="text-xs text-gray-500">{new Date(hw.created_at).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true })}</div>
+                      </div>
                     </td>
                   </tr>
                 ))}
