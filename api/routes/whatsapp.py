@@ -16,7 +16,6 @@ from services.student_service import StudentService
 from services.lead_service import LeadService
 from services.payment_service import PaymentService
 from schemas.response import StandardResponse
-from models.student import UserStatus
 
 logger = logging.getLogger(__name__)
 
@@ -64,19 +63,10 @@ async def whatsapp_webhook(request: Request, db: Session = Depends(get_db)):
         sender_name = message_data.get("sender_name")
         message_text = message_data.get("text", "")
         message_type = message_data.get("type")
-        button_id = message_data.get("button_id")  # Extract button ID if button message
-        button_text = message_data.get("button_text", "")  # Extract button text for logging
-
-        # For button messages, use button text as fallback if no text message
-        if message_type == "button" and button_text and not message_text:
-            message_text = button_text
 
         logger.info(
             f"WhatsApp message from {phone_number} ({sender_name}): {message_type}"
         )
-        if button_id:
-            logger.info(f"   Button ID: {button_id}")
-            logger.info(f"   Button text: {button_text}")
 
         # Check if user is registered
         student = StudentService.get_student_by_phone(db, phone_number)
@@ -96,34 +86,17 @@ async def whatsapp_webhook(request: Request, db: Session = Depends(get_db)):
                 # Continue without saving lead
 
         # Get conversation state and next response
-        # Check if student has active subscription
-        has_subscription = False
-        if student:
-            # Check status
-            has_subscription = student.status == UserStatus.ACTIVE_SUBSCRIBER
-            
-            # Or check if has active subscription record
-            if not has_subscription:
-                active_subs = [s for s in student.subscriptions if s.is_valid()]
-                has_subscription = len(active_subs) > 0
-        
-        response_data = MessageRouter.get_next_response(
+        response_text, next_state = MessageRouter.get_next_response(
             phone_number,
             message_text,
             student_data={
-                "has_subscription": has_subscription
+                "has_subscription": student.has_active_subscription
+                if student
+                else False
             }
             if student
             else None,
-            button_id=button_id,  # Pass button ID to router
         )
-        
-        # Unpack response (can be 2-tuple or 3-tuple with button data)
-        if len(response_data) == 3:
-            response_text, next_state, button_data = response_data
-        else:
-            response_text, next_state = response_data
-            button_data = None
 
         if next_state:
             ConversationService.set_state(phone_number, next_state)
@@ -179,7 +152,7 @@ async def whatsapp_webhook(request: Request, db: Session = Depends(get_db)):
 
                 # Check if payment required
                 payment_required = (
-                    student.status != UserStatus.ACTIVE_SUBSCRIBER
+                    not student.has_active_subscription
                 )
 
                 try:
@@ -271,83 +244,33 @@ async def whatsapp_webhook(request: Request, db: Session = Depends(get_db)):
         ConversationService.set_data(phone_number, "last_message", message_text)
 
         # Send response message
-        result = None
-        send_error = None
         try:
             logger.info(f"📤 Sending message to {phone_number}")
-            logger.info(f"   Message text: {response_text[:100] if response_text else '(empty)'}...")
-            logger.info(f"   Button data: {button_data}")
+            logger.info(f"   Message text: {response_text[:100]}...")
             
-            # Validate response text is not empty
-            if not response_text or not response_text.strip():
-                logger.error("❌ Response text is empty - cannot send message")
-                send_error = "Response text is empty"
-                # Return error but still return 200 to avoid WhatsApp retry
-                return StandardResponse(
-                    status="success",
-                    message="Webhook received (response was empty)",
-                )
+            result = await WhatsAppService.send_message(
+                phone_number=phone_number,
+                message_type="text",
+                text=response_text,
+            )
             
-            # Check if this should be an interactive button message
-            if button_data and button_data.get("message_type") == "interactive_buttons":
-                buttons = button_data.get("buttons", [])
-                if not buttons:
-                    logger.error("❌ Interactive message requested but no buttons provided")
-                    send_error = "No buttons provided"
-                else:
-                    logger.info(f"   Sending as interactive button message with {len(buttons)} buttons")
-                    result = await WhatsAppService.send_interactive_buttons(
-                        phone_number=phone_number,
-                        text=response_text,
-                        buttons=buttons
-                    )
-                    logger.info(f"   Sent as interactive button message")
-            else:
-                logger.info(f"   Sending as text message")
-                result = await WhatsAppService.send_message(
-                    phone_number=phone_number,
-                    message_type="text",
-                    text=response_text,
-                )
+            logger.info(f"   Result: {result.get('status')}")
             
-            if result:
-                logger.info(f"   Result status: {result.get('status')}")
-                
-                if result.get('status') == 'error':
-                    logger.error(f"   ❌ Error: {result.get('message')}")
-                    logger.error(f"   Details: {result.get('error')}")
-                    send_error = result.get('message')
-                elif result.get('status') == 'success':
-                    logger.info(f"✅ Message successfully sent to {phone_number}")
-            else:
-                logger.warning(f"⚠️ No result returned from WhatsAppService")
-                send_error = "No response from service"
+            if result.get('status') == 'error':
+                logger.error(f"   Error: {result.get('message')}")
+                logger.error(f"   Details: {result.get('error')}")
             
-            # Add bot message to conversation (even if send failed - for history)
+            # Add bot message to conversation
             conv_state["data"]["messages"].append({
                 "id": f"msg_{uuid.uuid4().hex[:12]}",
                 "phone_number": phone_number,
                 "text": response_text,
                 "timestamp": datetime.now().isoformat(),
                 "sender_type": "bot",
-                "message_type": "interactive" if button_data else "text",
-                "sent": result.get('status') == 'success' if result else False
+                "message_type": "text"
             })
         except Exception as e:
             logger.error(f"❌ Exception sending WhatsApp message: {str(e)}", exc_info=True)
-            send_error = str(e)
-            
-            # Still log the conversation even if send failed
-            conv_state["data"]["messages"].append({
-                "id": f"msg_{uuid.uuid4().hex[:12]}",
-                "phone_number": phone_number,
-                "text": response_text,
-                "timestamp": datetime.now().isoformat(),
-                "sender_type": "bot",
-                "message_type": "interactive" if button_data else "text",
-                "sent": False,
-                "error": send_error
-            })
 
         return StandardResponse(
             status="success",

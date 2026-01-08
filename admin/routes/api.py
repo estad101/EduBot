@@ -199,7 +199,7 @@ async def whatsapp_status():
             import httpx
             async with httpx.AsyncClient(timeout=5, follow_redirects=True) as client:
                 response = await client.get(
-                    f"https://graph.facebook.com/v22.0/{settings.whatsapp_phone_number_id}",
+                    f"https://graph.instagram.com/v18.0/{settings.whatsapp_phone_number_id}",
                     params={"access_token": settings.whatsapp_api_key}
                 )
                 
@@ -1041,8 +1041,6 @@ async def debug_settings(db: Session = Depends(get_db)):
 @router.post("/settings/update")
 async def update_settings(data: dict, db: Session = Depends(get_db)):
     """Update admin settings in database."""
-    from services.settings_service import refresh_cache
-    
     logger.info(f"=== SETTINGS UPDATE: Received {len(data)} keys ===")
     
     try:
@@ -1074,12 +1072,7 @@ async def update_settings(data: dict, db: Session = Depends(get_db)):
             updated_count += 1
         
         db.commit()
-        
-        # Refresh settings cache so new values are immediately available
-        if refresh_cache(db):
-            logger.info(f"SUCCESS: Updated {updated_count} settings and refreshed cache")
-        else:
-            logger.warning(f"Updated {updated_count} settings but failed to refresh cache")
+        logger.info(f"SUCCESS: Updated {updated_count} settings")
         
         return {
             "status": "success",
@@ -1384,7 +1377,7 @@ async def get_conversations(limit: int = Query(20, ge=1, le=100), db: Session = 
     try:
         from models.student import Student
         from models.lead import Lead
-        from datetime import datetime as dt_class
+        from services.conversation_service import ConversationService
         
         conversations = []
         conversation_phones = set()
@@ -1393,13 +1386,17 @@ async def get_conversations(limit: int = Query(20, ge=1, le=100), db: Session = 
         all_students = (
             db.query(Student)
             .order_by(Student.updated_at.desc())
-            .limit(limit * 2)
+            .limit(limit * 2)  # Get more to account for filtering
             .all()
         )
         
-        # Process students
+        # Separate fully registered from partially registered
         for student in all_students:
             try:
+                # Get conversation state to find last message
+                conv_state = ConversationService.get_state(student.phone_number)
+                messages = conv_state.get("data", {}).get("messages", [])
+                
                 # Determine if fully registered
                 is_fully_registered = (
                     student.full_name and student.full_name.strip() != "" and
@@ -1407,15 +1404,26 @@ async def get_conversations(limit: int = Query(20, ge=1, le=100), db: Session = 
                     student.class_grade != "Pending"
                 )
                 
-                last_message = f"{student.full_name or student.phone_number}" if is_fully_registered else "Pending registration"
-                last_message_time = (student.updated_at or student.created_at).isoformat() if student.updated_at or student.created_at else dt_class.utcnow().isoformat()
+                last_message = conv_state.get("data", {}).get("last_message")
+                if not last_message:
+                    if messages and len(messages) > 0:
+                        last_message = messages[-1].get("text", "No message")
+                    else:
+                        last_message = "No messages yet" if not is_fully_registered else f"{student.full_name} is registered"
+                
+                last_message_time = student.updated_at.isoformat() if student.updated_at else student.created_at.isoformat()
+                
+                if messages and len(messages) > 0:
+                    last_msg = messages[-1]
+                    if last_msg.get("timestamp"):
+                        last_message_time = last_msg["timestamp"]
                 
                 conversations.append({
                     "phone_number": student.phone_number,
                     "student_name": student.full_name or student.phone_number,
                     "last_message": last_message,
                     "last_message_time": last_message_time,
-                    "message_count": 0,  # Don't load message count to optimize
+                    "message_count": len(messages),
                     "is_active": True,
                     "type": "student" if is_fully_registered else "lead"
                 })
@@ -1437,11 +1445,14 @@ async def get_conversations(limit: int = Query(20, ge=1, le=100), db: Session = 
         for lead in unregistered_leads:
             if lead.phone_number not in conversation_phones:
                 try:
+                    conv_state = ConversationService.get_state(lead.phone_number)
+                    messages = conv_state.get("data", {}).get("messages", [])
+                    
                     conversations.append({
                         "phone_number": lead.phone_number,
                         "student_name": lead.sender_name or lead.phone_number,
-                        "last_message": lead.last_message or "New lead",
-                        "last_message_time": (lead.last_message_time or lead.created_at).isoformat(),
+                        "last_message": lead.last_message or "Awaiting registration",
+                        "last_message_time": lead.last_message_time.isoformat(),
                         "message_count": lead.message_count,
                         "is_active": True,
                         "type": "lead"
@@ -1457,23 +1468,23 @@ async def get_conversations(limit: int = Query(20, ge=1, le=100), db: Session = 
             try:
                 time_str = conv.get("last_message_time", "")
                 if isinstance(time_str, str):
-                    return dt_class.fromisoformat(time_str.replace('Z', '+00:00'))
-                return dt_class.utcnow()
+                    return datetime.fromisoformat(time_str.replace('Z', '+00:00'))
+                return datetime.utcnow()
             except Exception as e:
-                logger.warning(f"Error parsing time: {e}")
-                return dt_class.utcnow()
+                logger.warning(f"Error parsing time {time_str}: {e}")
+                return datetime.utcnow()
         
         conversations.sort(key=get_sort_key, reverse=True)
         conversations = conversations[:limit]
         
-        logger.info(f"✓ Returned {len(conversations)} conversations ({sum(1 for c in conversations if c['type']=='student')} students, {sum(1 for c in conversations if c['type']=='lead')} leads)")
+        logger.info(f"Returning {len(conversations)} conversations ({sum(1 for c in conversations if c['type']=='student')} students, {sum(1 for c in conversations if c['type']=='lead')} leads)")
         
         return {
             "status": "success",
             "data": conversations
         }
     except Exception as e:
-        logger.error(f"❌ Error fetching conversations: {str(e)}", exc_info=True)
+        logger.error(f"Error fetching conversations: {str(e)}", exc_info=True)
         return {
             "status": "error",
             "message": str(e),

@@ -2,14 +2,12 @@
 WhatsApp Cloud API Integration Service.
 
 Handles sending messages, receiving webhooks, and managing WhatsApp communication.
-Uses configuration from database via SettingsService with fallback to environment variables.
 """
 import httpx
 import json
 import logging
 from typing import Optional, List, Dict, Any
 from config.settings import settings
-from services.settings_service import get_setting, get_whatsapp_config
 
 logger = logging.getLogger(__name__)
 
@@ -19,142 +17,6 @@ WHATSAPP_API_URL = "https://graph.facebook.com/v22.0"
 
 class WhatsAppService:
     """Service for WhatsApp Cloud API integration."""
-
-    @staticmethod
-    def get_api_credentials() -> tuple:
-        """
-        Get WhatsApp API credentials from database (or env fallback).
-        
-        Returns:
-            Tuple of (api_key, phone_number_id)
-        """
-        api_key = get_setting("whatsapp_api_key", settings.whatsapp_api_key)
-        phone_number_id = get_setting("whatsapp_phone_number_id", settings.whatsapp_phone_number_id)
-        return api_key, phone_number_id
-
-    @staticmethod
-    async def send_interactive_buttons(
-        phone_number: str,
-        text: str,
-        buttons: List[Dict[str, str]],
-    ) -> Dict[str, Any]:
-        """
-        Send an interactive button message via WhatsApp.
-
-        Args:
-            phone_number: Recipient phone number
-            text: Message body text
-            buttons: List of button dicts with format:
-                [
-                    {"id": "btn_1", "title": "Button 1"},
-                    {"id": "btn_2", "title": "Button 2"},
-                    ...
-                ]
-
-        Returns:
-            Response from WhatsApp API
-        """
-        api_key, phone_number_id = WhatsAppService.get_api_credentials()
-        
-        if not api_key or not phone_number_id:
-            logger.error("WhatsApp API credentials not configured")
-            return {"status": "error", "message": "WhatsApp not configured"}
-
-        clean_phone = phone_number.replace("+", "")
-
-        try:
-            async with httpx.AsyncClient(timeout=30.0) as client:
-                # Build interactive buttons payload
-                payload = {
-                    "messaging_product": "whatsapp",
-                    "recipient_type": "individual",
-                    "to": clean_phone,
-                    "type": "interactive",
-                    "interactive": {
-                        "type": "button",
-                        "body": {"text": text},
-                        "action": {
-                            "buttons": [
-                                {
-                                    "type": "reply",
-                                    "reply": {
-                                        "id": btn["id"],
-                                        "title": btn["title"]
-                                    }
-                                }
-                                for btn in buttons[:3]  # WhatsApp allows max 3 buttons
-                            ]
-                        }
-                    }
-                }
-
-                url = f"{WHATSAPP_API_URL}/{phone_number_id}/messages"
-                headers = {
-                    "Authorization": f"Bearer {api_key}",
-                    "Content-Type": "application/json",
-                }
-
-                response = await client.post(url, json=payload, headers=headers)
-
-                if response.status_code in [200, 201]:
-                    result = response.json()
-                    logger.info(
-                        f"✓ Interactive button message sent to {phone_number}: {result.get('messages', [{}])[0].get('id', 'unknown')}"
-                    )
-                    return {
-                        "status": "success",
-                        "message": "Button message sent successfully",
-                        "data": result,
-                    }
-                else:
-                    error_text = response.text
-                    logger.error(
-                        f"❌ WhatsApp API error ({response.status_code}) sending button message to {phone_number}"
-                    )
-                    logger.error(f"   Response: {error_text}")
-                    return {
-                        "status": "error",
-                        "message": f"Failed to send button message: {response.status_code}",
-                        "error": error_text,
-                    }
-
-        except httpx.TimeoutException:
-            logger.error(f"WhatsApp API timeout for {phone_number}")
-            return {"status": "error", "message": "Request timeout"}
-        except httpx.RequestError as e:
-            logger.error(f"WhatsApp API error: {str(e)}")
-            return {"status": "error", "message": str(e)}
-        except Exception as e:
-            logger.error(f"Unexpected error sending button message: {str(e)}")
-            return {"status": "error", "message": "Internal server error"}
-
-    @staticmethod
-    async def send_message_with_link(
-        phone_number: str,
-        text: str,
-        link_url: str,
-        link_text: str = "Click here",
-    ) -> Dict[str, Any]:
-        """
-        Send a text message with a clickable link.
-
-        Args:
-            phone_number: Recipient phone number
-            text: Message body
-            link_url: URL to link to
-            link_text: Text for the link
-
-        Returns:
-            Response from WhatsApp API
-        """
-        # For now, just send as regular text with URL embedded
-        # WhatsApp will auto-detect and make URLs clickable
-        message_with_link = f"{text}\n\n🔗 {link_text}: {link_url}"
-        return await WhatsAppService.send_message(
-            phone_number=phone_number,
-            message_type="text",
-            text=message_with_link,
-        )
 
     @staticmethod
     async def send_message(
@@ -181,9 +43,7 @@ class WhatsAppService:
         Returns:
             Dict with response from WhatsApp API
         """
-        api_key, phone_number_id = WhatsAppService.get_api_credentials()
-        
-        if not api_key or not phone_number_id:
+        if not settings.whatsapp_api_key or not settings.whatsapp_phone_number_id:
             logger.error("WhatsApp API credentials not configured")
             return {"status": "error", "message": "WhatsApp not configured"}
 
@@ -239,9 +99,9 @@ class WhatsAppService:
                     }
 
                 # Make API request
-                url = f"{WHATSAPP_API_URL}/{phone_number_id}/messages"
+                url = f"{WHATSAPP_API_URL}/{settings.whatsapp_phone_number_id}/messages"
                 headers = {
-                    "Authorization": f"Bearer {api_key}",
+                    "Authorization": f"Bearer {settings.whatsapp_api_key}",
                     "Content-Type": "application/json",
                 }
 
@@ -263,7 +123,7 @@ class WhatsAppService:
                         f"❌ WhatsApp API error ({response.status_code}) sending to {phone_number}"
                     )
                     logger.error(f"   Status: {response.status_code}")
-                    logger.error(f"   Phone ID: {phone_number_id}")
+                    logger.error(f"   Phone ID: {settings.whatsapp_phone_number_id}")
                     logger.error(f"   Response: {error_text}")
                     return {
                         "status": "error",
@@ -298,15 +158,13 @@ class WhatsAppService:
         import hmac
         import hashlib
 
-        webhook_token = get_setting("whatsapp_webhook_token", settings.whatsapp_webhook_token)
-        
-        if not webhook_token:
+        if not settings.whatsapp_webhook_token:
             logger.warning("WhatsApp webhook token not configured")
             return False
 
         # Create signature: SHA256 hash of body with token
         expected_signature = hmac.new(
-            webhook_token.encode(),
+            settings.whatsapp_webhook_token.encode(),
             request_body.encode(),
             hashlib.sha256,
         ).hexdigest()
@@ -396,9 +254,7 @@ class WhatsAppService:
         Returns:
             Media bytes or None if failed
         """
-        api_key, phone_number_id = WhatsAppService.get_api_credentials()
-        
-        if not api_key or not phone_number_id:
+        if not settings.whatsapp_api_key or not settings.whatsapp_phone_number_id:
             logger.error("WhatsApp API credentials not configured")
             return None
 
@@ -407,7 +263,7 @@ class WhatsAppService:
                 # Get media URL
                 url = f"{WHATSAPP_API_URL}/{media_id}"
                 headers = {
-                    "Authorization": f"Bearer {api_key}",
+                    "Authorization": f"Bearer {settings.whatsapp_api_key}",
                 }
 
                 response = await client.get(url, headers=headers)
@@ -425,7 +281,7 @@ class WhatsAppService:
                     return None
 
                 media_response = await client.get(
-                    media_url, headers={"Authorization": f"Bearer {api_key}"}
+                    media_url, headers={"Authorization": f"Bearer {settings.whatsapp_api_key}"}
                 )
 
                 if media_response.status_code == 200:
