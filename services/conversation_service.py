@@ -482,6 +482,13 @@ class MessageRouter:
                     f"Status: {status}",
                     ConversationState.IDLE,
                 )
+            elif intent == "main_menu":
+                # If user clicks main menu from IDLE/INITIAL, return to main options
+                greeting = f"Welcome back, {first_name}! 👋" if first_name else "Welcome back! 👋"
+                return (
+                    f"{greeting}\n\nWhat would you like to do?",
+                    ConversationState.REGISTERED if student_data else ConversationState.IDLE,
+                )
             else:
                 greeting = f"👋 Hey {first_name}!" if first_name else "👋 Hi!"
                 if first_name:
