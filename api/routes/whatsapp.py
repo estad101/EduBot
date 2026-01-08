@@ -37,6 +37,7 @@ async def whatsapp_webhook(request: Request, db: Session = Depends(get_db)):
 
         # Parse JSON
         webhook_data = json.loads(body_str)
+        logger.info(f"✓ Webhook received: {webhook_data.get('object', 'unknown')}")
 
         # Check if this is a verification request from WhatsApp
         if webhook_data.get("object") == "whatsapp_business_account":
@@ -286,27 +287,6 @@ async def whatsapp_webhook(request: Request, db: Session = Depends(get_db)):
                     response_text = f"❌ Error submitting homework: {str(e)}"
             else:
                 response_text = "❌ You need to register first!"
-                            response_text = (
-                                f"✅ Homework submitted successfully for {homework_data['subject']}!\n\n"
-                                f"🎓 A tutor has been assigned and will respond soon with solutions!"
-                            )
-                        else:
-                            response_text = (
-                                f"✅ Homework submitted successfully for {homework_data['subject']}!\n\n"
-                                f"⏳ A tutor will be assigned to you shortly"
-                            )
-
-                    # Reset homework state
-                    ConversationService.reset_homework_state(phone_number)
-
-                except Exception as e:
-                    logger.error(f"Error submitting homework: {str(e)}", exc_info=True)
-                    logger.error(f"Exception details: {type(e).__name__}: {str(e)}")
-                    logger.error(f"Homework data: student_id={student.id}, subject={homework_data.get('subject')}, type={homework_data.get('submission_type')}")
-                    logger.error(f"File path: {file_path}")
-                    response_text = f"❌ Error submitting homework: {str(e)}"
-            else:
-                response_text = "❌ You need to register first!"
 
         # Handle payment confirmation
         elif next_state and next_state.value == "payment_confirmed":
@@ -374,6 +354,18 @@ async def whatsapp_webhook(request: Request, db: Session = Depends(get_db)):
                 logger.error(f"   ❌ Error sending WhatsApp message to {phone_number}")
                 logger.error(f"   Message: {result.get('message')}")
                 logger.error(f"   Details: {result.get('error')}")
+                
+                # Retry with fallback to text message
+                if buttons and len(buttons) > 0:
+                    logger.info(f"   ⚠️ Interactive message failed, retrying with text+buttons fallback")
+                    retry_text = response_text + "\n\n" + "\n".join([f"• {btn.get('title')}" for btn in buttons])
+                    result = await WhatsAppService.send_message(
+                        phone_number=phone_number,
+                        message_type="text",
+                        text=retry_text,
+                    )
+                    if result.get('status') == 'success':
+                        logger.info(f"   ✓ Fallback message sent successfully")
             else:
                 logger.info(f"   ✅ Message sent successfully to {phone_number}")
             
