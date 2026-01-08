@@ -232,7 +232,7 @@ class MessageRouter:
         Args:
             phone_number: User's phone number
             message_text: User's message text
-            student_data: Optional student data from database
+            student_data: Optional student data from database (includes name, status, etc.)
 
         Returns:
             Tuple of (response_message, next_state)
@@ -240,6 +240,11 @@ class MessageRouter:
         state = ConversationService.get_state(phone_number)
         current_state = state.get("state")
         intent = MessageRouter.extract_intent(message_text)
+        
+        # Extract first name for personalization
+        first_name = None
+        if student_data and student_data.get("name"):
+            first_name = student_data.get("name").split()[0]
 
         # Handle cancel command
         if intent == "cancel":
@@ -276,8 +281,9 @@ class MessageRouter:
                         "❌ You need to register first. Type 'register' to get started!",
                         ConversationState.IDLE,
                     )
+                greeting = f"Hey {first_name}! 📝" if first_name else "📝"
                 return (
-                    "📝 What subject is your homework for? (e.g., Mathematics, English, Science)",
+                    f"{greeting} What subject is your homework for? (e.g., Mathematics, English, Science)",
                     ConversationState.HOMEWORK_SUBJECT,
                 )
             elif intent == "pay":
@@ -286,8 +292,9 @@ class MessageRouter:
                         "❌ You need to register first. Type 'register' to get started!",
                         ConversationState.IDLE,
                     )
+                greeting = f"Hi {first_name}! 💳" if first_name else "💳"
                 return (
-                    "💳 Subscription: ₦5,000/month (unlimited homework submission)\n\n"
+                    f"{greeting} Subscription: ₦5,000/month (unlimited homework submission)\n\n"
                     "Reply with 'confirm' to proceed with payment.",
                     ConversationState.PAYMENT_PENDING,
                 )
@@ -298,8 +305,9 @@ class MessageRouter:
                         ConversationState.IDLE,
                     )
                 status = "✅ Active" if student_data.get("has_subscription") else "❌ Inactive"
+                greeting = f"{first_name}, y" if first_name else "Y"
                 return (
-                    f"📊 Your subscription status: {status}",
+                    f"📊 {greeting}our subscription status: {status}",
                     ConversationState.IDLE,
                 )
             else:
@@ -329,8 +337,10 @@ class MessageRouter:
 
         elif current_state == ConversationState.REGISTERING_CLASS:
             ConversationService.set_data(phone_number, "class_grade", message_text)
+            full_name = ConversationService.get_data(phone_number, "full_name")
+            first_name_reg = full_name.split()[0] if full_name else "there"
             return (
-                "✅ Registration complete! You are now registered as REGISTERED_FREE.\n\n"
+                f"✅ Registration complete, {first_name_reg}! You are now registered as REGISTERED_FREE.\n\n"
                 "You can now:\n"
                 "• Submit homework (with payment per submission)\n"
                 "• Buy monthly subscription for unlimited access\n\n"
