@@ -5,10 +5,11 @@ Production-grade chatbot system for homework submission and payments.
 Integrates with WhatsApp Cloud API and Paystack.
 Includes native WhatsApp message handling (no n8n required).
 """
-from fastapi import FastAPI, Request, HTTPException, FileResponse
+from fastapi import FastAPI, Request, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
+from starlette.responses import FileResponse
 from contextlib import asynccontextmanager
 import logging
 import os
