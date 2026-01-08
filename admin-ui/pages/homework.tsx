@@ -161,9 +161,13 @@ export default function HomeworkPage() {
                   {selectedHomework.file_path ? (
                     <div className="bg-gray-50 rounded-lg p-4 flex items-center justify-center min-h-[300px]">
                       <img
-                        src={selectedHomework.file_path}
+                        src={`/uploads/${selectedHomework.file_path}`}
                         alt="Homework submission"
                         className="max-w-full max-h-[500px] rounded"
+                        onError={(e) => {
+                          console.error('Failed to load image:', selectedHomework.file_path);
+                          e.currentTarget.src = '/placeholder-image.jpg';
+                        }}
                       />
                     </div>
                   ) : (

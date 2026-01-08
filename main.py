@@ -5,7 +5,7 @@ Production-grade chatbot system for homework submission and payments.
 Integrates with WhatsApp Cloud API and Paystack.
 Includes native WhatsApp message handling (no n8n required).
 """
-from fastapi import FastAPI, Request, HTTPException
+from fastapi import FastAPI, Request, HTTPException, FileResponse
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
@@ -180,6 +180,43 @@ app.include_router(admin_api.router)
 admin_static_path = os.path.join(os.path.dirname(__file__), "admin", "static")
 if os.path.exists(admin_static_path):
     app.mount("/admin/static", StaticFiles(directory=admin_static_path), name="admin_static")
+
+# Mount uploads directory for homework file access
+uploads_path = os.path.join(os.path.dirname(__file__), "uploads")
+if os.path.exists(uploads_path):
+    app.mount("/uploads", StaticFiles(directory=uploads_path), name="uploads")
+else:
+    os.makedirs(uploads_path, exist_ok=True)
+    logger.info(f"Created uploads directory at {uploads_path}")
+    app.mount("/uploads", StaticFiles(directory=uploads_path), name="uploads")
+
+
+# File serving endpoint with security
+@app.get("/files/{file_path:path}")
+async def get_file(file_path: str):
+    """
+    Serve uploaded files with security checks.
+    Prevents directory traversal attacks.
+    """
+    # Security: prevent directory traversal
+    if ".." in file_path or file_path.startswith("/"):
+        raise HTTPException(status_code=403, detail="Access denied")
+    
+    # Construct full file path
+    full_path = os.path.join(os.path.dirname(__file__), "uploads", file_path)
+    
+    # Verify file exists and is within uploads directory
+    abs_path = os.path.abspath(full_path)
+    uploads_abs = os.path.abspath(os.path.join(os.path.dirname(__file__), "uploads"))
+    
+    if not abs_path.startswith(uploads_abs):
+        raise HTTPException(status_code=403, detail="Access denied")
+    
+    if not os.path.exists(abs_path):
+        raise HTTPException(status_code=404, detail="File not found")
+    
+    # Serve the file
+    return FileResponse(abs_path)
 
 
 # Health check endpoint
