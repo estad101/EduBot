@@ -110,6 +110,7 @@ cors_allowed_origins = [
     "http://127.0.0.1:3000",    # IPv4 loopback Next.js
     "https://nurturing-exploration-production.up.railway.app",  # Current Railway frontend
     "https://proactive-insight-production-6462.up.railway.app",  # Old Railway frontend (legacy)
+    "https://edubot-production-cf26.up.railway.app",  # Backend service (for admin status checks)
 ]
 
 # Add environment-configured origins
