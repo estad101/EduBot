@@ -278,16 +278,6 @@ class MessageRouter:
                 {"id": "cancel", "title": "❌ Back"},
             ]
 
-        # FAQ menu buttons
-        if intent == "faq":
-            return [
-                {"id": "faq_register", "title": "📝 Registration"},
-                {"id": "faq_homework", "title": "📚 Homework"},
-                {"id": "faq_payment", "title": "💳 Payment"},
-                {"id": "faq_subscription", "title": "⭐ Subscription"},
-                {"id": "cancel", "title": "❌ Menu"},
-            ]
-
         return None
 
     @staticmethod
@@ -376,7 +366,10 @@ class MessageRouter:
         if intent == "faq":
             faq_text = (
                 "❓ Frequently Asked Questions\n\n"
-                "Select a category below to view answers to common questions."
+                "📝 Registration: Create account with name, email, class - it's FREE!\n\n"
+                "📚 Homework: Submit text or images. Get tutor responses within 24 hours.\n\n"
+                "💳 Payment: Subscribers enjoy unlimited homework submissions.\n\n"
+                "⭐ Subscription: Get premium access for continuous learning support."
             )
             return (faq_text, ConversationState.IDLE)
 
