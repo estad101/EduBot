@@ -59,49 +59,56 @@ def init_db():
         
         # Import models to register them with Base.metadata
         from models.student import Student
-        logger.info("✓ Imported Student model")
+        logger.info("[OK] Imported Student model")
         
         from models.lead import Lead
-        logger.info("✓ Imported Lead model")
+        logger.info("[OK] Imported Lead model")
         
         from models.homework import Homework
-        logger.info("✓ Imported Homework model")
+        logger.info("[OK] Imported Homework model")
         
         from models.payment import Payment
-        logger.info("✓ Imported Payment model")
+        logger.info("[OK] Imported Payment model")
         
         from models.subscription import Subscription
-        logger.info("✓ Imported Subscription model")
+        logger.info("[OK] Imported Subscription model")
         
         from models.tutor import Tutor
-        logger.info("✓ Imported Tutor model")
+        logger.info("[OK] Imported Tutor model")
         
         from models.tutor_assignment import TutorAssignment
-        logger.info("✓ Imported TutorAssignment model")
+        logger.info("[OK] Imported TutorAssignment model")
         
         logger.info(f"\nStep 2: Creating tables...")
         logger.info(f"Tables to create: {list(Base.metadata.tables.keys())}")
         
-        # Create all tables
-        Base.metadata.create_all(bind=engine)
-        
-        # Verify leads table exists
-        logger.info("\nStep 3: Verifying table creation...")
-        from sqlalchemy import inspect, text
-        
-        inspector = inspect(engine)
-        tables = inspector.get_table_names()
-        
-        if 'leads' in tables:
-            logger.info("✓✓✓ LEADS TABLE CREATED SUCCESSFULLY ✓✓✓")
-            leads_columns = [col['name'] for col in inspector.get_columns('leads')]
-            logger.info(f"Leads table columns: {leads_columns}")
-        else:
-            logger.warning(f"⚠ Leads table NOT FOUND. Available tables: {tables}")
-        
-        logger.info("=" * 80)
-        logger.info("✓✓✓ DATABASE INITIALIZATION COMPLETE ✓✓✓")
-        logger.info("=" * 80)
+        # Create all tables - with timeout handling
+        try:
+            Base.metadata.create_all(bind=engine)
+            
+            # Verify leads table exists
+            logger.info("\nStep 3: Verifying table creation...")
+            from sqlalchemy import inspect, text
+            
+            inspector = inspect(engine)
+            tables = inspector.get_table_names()
+            
+            if 'leads' in tables:
+                logger.info("[SUCCESS] LEADS TABLE CREATED SUCCESSFULLY")
+                leads_columns = [col['name'] for col in inspector.get_columns('leads')]
+                logger.info(f"Leads table columns: {leads_columns}")
+            else:
+                logger.warning(f"[WARN] Leads table NOT FOUND. Available tables: {tables}")
+            
+            logger.info("=" * 80)
+            logger.info("[SUCCESS] DATABASE INITIALIZATION COMPLETE")
+            logger.info("=" * 80)
+        except Exception as connection_error:
+            # If we can't connect (e.g., Railway database unreachable), continue anyway
+            # The database connection will be retried on first actual query
+            logger.warning(f"[WARN] Could not connect to database during init: {str(connection_error)}")
+            logger.warning("[WARN] Database operations will be retried on first use")
+            logger.info("=" * 80)
         
     except Exception as e:
         logger.error("=" * 80)

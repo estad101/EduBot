@@ -40,12 +40,12 @@ async def lifespan(app: FastAPI):
         db = SessionLocal()
         try:
             if init_settings_from_db(db):
-                logger.info("✓ WhatsApp settings loaded from database")
+                logger.info("[OK] WhatsApp settings loaded from database")
             else:
-                logger.warning("⚠ Using environment variables as fallback for settings")
+                logger.warning("[WARN] Using environment variables as fallback for settings")
         except Exception as e:
             logger.error(f"Error loading settings from database: {e}")
-            logger.warning("⚠ Using environment variables as fallback for settings")
+            logger.warning("[WARN] Using environment variables as fallback for settings")
         finally:
             db.close()
     except Exception as e:
