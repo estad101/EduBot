@@ -107,16 +107,37 @@ async def whatsapp_webhook(request: Request, db: Session = Depends(get_db)):
             }
             logger.info(f"✓ User is registered: {student.full_name} ({student.phone_number})")
         
-        try:
-            response_text, next_state = MessageRouter.get_next_response(
-                phone_number,
-                message_text,
-                student_data=student_data,  # Pass actual student data if registered
+        # Check if user has a registration state set
+        current_state = ConversationService.get_state(phone_number)
+        state_value = current_state.get("state")
+        
+        # If unregistered and no registration state set, prompt to register
+        if not student and state_value in [None, "idle", "initial"]:
+            logger.info(f"Prompting unregistered user {phone_number} to register")
+            response_text = (
+                "👋 Welcome! I'm EduBot, your AI tutor assistant.\n\n"
+                "I can help you with:\n"
+                "📝 Homework submissions\n"
+                "💳 Premium subscription\n"
+                "❓ FAQs and support\n\n"
+                "To get started, let's create your free account!\n\n"
+                "👤 What is your full name?"
             )
-        except Exception as e:
-            logger.error(f"❌ Error in MessageRouter.get_next_response: {str(e)}", exc_info=True)
-            response_text = "❌ Error processing your message. Please try again."
-            next_state = ConversationState.IDLE
+            next_state = ConversationState.REGISTERING_NAME
+            ConversationService.set_state(phone_number, next_state)
+            logger.info(f"Set state to REGISTERING_NAME for {phone_number}")
+        else:
+            # User is registered or already in registration flow - use normal flow
+            try:
+                response_text, next_state = MessageRouter.get_next_response(
+                    phone_number,
+                    message_text,
+                    student_data=student_data,  # Pass actual student data if registered
+                )
+            except Exception as e:
+                logger.error(f"❌ Error in MessageRouter.get_next_response: {str(e)}", exc_info=True)
+                response_text = "❌ Error processing your message. Please try again."
+                next_state = ConversationState.IDLE
         
         logger.info(f"✓ Got response from MessageRouter")
         logger.info(f"  Response text length: {len(response_text) if response_text else 0}")
