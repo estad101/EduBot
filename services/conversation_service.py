@@ -230,20 +230,11 @@ class MessageRouter:
 
         # Registration complete - main menu
         if current_state == ConversationState.REGISTERED:
-            menu_state = ConversationService.get_data(phone_number, "menu_state") or "faq_menu" if phone_number else "faq_menu"
-            
-            if menu_state == "homework_menu":
-                return [
-                    {"id": "homework", "title": "📝 Homework"},
-                    {"id": "pay", "title": "💳 Subscribe"},
-                    {"id": "help", "title": "ℹ️ Help"},
-                ]
-            else:  # faq_menu (default)
-                return [
-                    {"id": "faq", "title": "❓ FAQs"},
-                    {"id": "support", "title": "💬 Chat Support"},
-                    {"id": "cancel", "title": "❌ Back"},
-                ]
+            return [
+                {"id": "homework", "title": "📝 Homework"},
+                {"id": "pay", "title": "💳 Subscribe"},
+                {"id": "help", "title": "ℹ️ Help"},
+            ]
 
         # Homework type selection
         if current_state == ConversationState.HOMEWORK_TYPE:
