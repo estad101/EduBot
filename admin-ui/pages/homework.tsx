@@ -159,16 +159,32 @@ export default function HomeworkPage() {
                 <div>
                   <h4 className="text-gray-700 font-semibold mb-4">📷 Image Submission</h4>
                   {selectedHomework.file_path ? (
-                    <div className="bg-gray-50 rounded-lg p-4 flex items-center justify-center min-h-[300px]">
-                      <img
-                        src={`/uploads/${selectedHomework.file_path}`}
-                        alt="Homework submission"
-                        className="max-w-full max-h-[500px] rounded"
-                        onError={(e) => {
-                          console.error('Failed to load image:', selectedHomework.file_path);
-                          e.currentTarget.src = '/placeholder-image.jpg';
-                        }}
-                      />
+                    <div className="bg-gray-50 rounded-lg p-4">
+                      <div className="flex items-center justify-center min-h-[300px] mb-4">
+                        <img
+                          src={`/uploads/${selectedHomework.file_path}`}
+                          alt="Homework submission"
+                          className="max-w-full max-h-[500px] rounded"
+                          onError={(e) => {
+                            console.error('Failed to load image:', selectedHomework.file_path);
+                            (e.currentTarget as HTMLImageElement).style.display = 'none';
+                          }}
+                        />
+                      </div>
+                      <div className="mt-4 p-4 bg-white rounded border border-gray-300">
+                        <p className="text-sm text-gray-600 mb-2">📁 File Path:</p>
+                        <p className="text-sm font-mono text-gray-900 mb-3 break-all">
+                          {selectedHomework.file_path}
+                        </p>
+                        <a
+                          href={`/uploads/${selectedHomework.file_path}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-block px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded text-sm font-medium transition"
+                        >
+                          <i className="fas fa-external-link-alt mr-1"></i>Open Image in New Tab
+                        </a>
+                      </div>
                     </div>
                   ) : (
                     <div className="bg-gray-50 rounded-lg p-6 text-center text-gray-500">
