@@ -64,10 +64,19 @@ async def whatsapp_webhook(request: Request, db: Session = Depends(get_db)):
         sender_name = message_data.get("sender_name")
         message_text = message_data.get("text", "")
         message_type = message_data.get("type")
+        button_id = message_data.get("button_id")  # Extract button ID if button message
+        button_text = message_data.get("button_text", "")  # Extract button text for logging
+
+        # For button messages, use button text as fallback if no text message
+        if message_type == "button" and button_text and not message_text:
+            message_text = button_text
 
         logger.info(
             f"WhatsApp message from {phone_number} ({sender_name}): {message_type}"
         )
+        if button_id:
+            logger.info(f"   Button ID: {button_id}")
+            logger.info(f"   Button text: {button_text}")
 
         # Check if user is registered
         student = StudentService.get_student_by_phone(db, phone_number)
@@ -106,6 +115,7 @@ async def whatsapp_webhook(request: Request, db: Session = Depends(get_db)):
             }
             if student
             else None,
+            button_id=button_id,  # Pass button ID to router
         )
         
         # Unpack response (can be 2-tuple or 3-tuple with button data)
@@ -262,20 +272,36 @@ async def whatsapp_webhook(request: Request, db: Session = Depends(get_db)):
 
         # Send response message
         result = None
+        send_error = None
         try:
             logger.info(f"📤 Sending message to {phone_number}")
-            logger.info(f"   Message text: {response_text[:100]}...")
+            logger.info(f"   Message text: {response_text[:100] if response_text else '(empty)'}...")
             logger.info(f"   Button data: {button_data}")
+            
+            # Validate response text is not empty
+            if not response_text or not response_text.strip():
+                logger.error("❌ Response text is empty - cannot send message")
+                send_error = "Response text is empty"
+                # Return error but still return 200 to avoid WhatsApp retry
+                return StandardResponse(
+                    status="success",
+                    message="Webhook received (response was empty)",
+                )
             
             # Check if this should be an interactive button message
             if button_data and button_data.get("message_type") == "interactive_buttons":
-                logger.info(f"   Sending as interactive button message with {len(button_data.get('buttons', []))} buttons")
-                result = await WhatsAppService.send_interactive_buttons(
-                    phone_number=phone_number,
-                    text=response_text,
-                    buttons=button_data.get("buttons", [])
-                )
-                logger.info(f"   Sent as interactive button message")
+                buttons = button_data.get("buttons", [])
+                if not buttons:
+                    logger.error("❌ Interactive message requested but no buttons provided")
+                    send_error = "No buttons provided"
+                else:
+                    logger.info(f"   Sending as interactive button message with {len(buttons)} buttons")
+                    result = await WhatsAppService.send_interactive_buttons(
+                        phone_number=phone_number,
+                        text=response_text,
+                        buttons=buttons
+                    )
+                    logger.info(f"   Sent as interactive button message")
             else:
                 logger.info(f"   Sending as text message")
                 result = await WhatsAppService.send_message(
@@ -286,28 +312,42 @@ async def whatsapp_webhook(request: Request, db: Session = Depends(get_db)):
             
             if result:
                 logger.info(f"   Result status: {result.get('status')}")
-                logger.info(f"   Result data: {result}")
                 
                 if result.get('status') == 'error':
-                    logger.error(f"   Error: {result.get('message')}")
+                    logger.error(f"   ❌ Error: {result.get('message')}")
                     logger.error(f"   Details: {result.get('error')}")
+                    send_error = result.get('message')
                 elif result.get('status') == 'success':
                     logger.info(f"✅ Message successfully sent to {phone_number}")
             else:
                 logger.warning(f"⚠️ No result returned from WhatsAppService")
+                send_error = "No response from service"
             
-            # Add bot message to conversation
+            # Add bot message to conversation (even if send failed - for history)
             conv_state["data"]["messages"].append({
                 "id": f"msg_{uuid.uuid4().hex[:12]}",
                 "phone_number": phone_number,
                 "text": response_text,
                 "timestamp": datetime.now().isoformat(),
                 "sender_type": "bot",
-                "message_type": "interactive" if button_data else "text"
+                "message_type": "interactive" if button_data else "text",
+                "sent": result.get('status') == 'success' if result else False
             })
         except Exception as e:
             logger.error(f"❌ Exception sending WhatsApp message: {str(e)}", exc_info=True)
-            logger.error(f"   Result was: {result}")
+            send_error = str(e)
+            
+            # Still log the conversation even if send failed
+            conv_state["data"]["messages"].append({
+                "id": f"msg_{uuid.uuid4().hex[:12]}",
+                "phone_number": phone_number,
+                "text": response_text,
+                "timestamp": datetime.now().isoformat(),
+                "sender_type": "bot",
+                "message_type": "interactive" if button_data else "text",
+                "sent": False,
+                "error": send_error
+            })
 
         return StandardResponse(
             status="success",
