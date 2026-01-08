@@ -32,11 +32,21 @@ async def lifespan(app: FastAPI):
     # Startup
     logger.info("Starting WhatsApp Chatbot API")
     init_sentry()  # Initialize error tracking
+    
+    # Initialize database - don't timeout, let it connect naturally
     try:
-        init_db()
-        logger.info("Database initialized successfully")
-        
-        # Initialize settings from database
+        # Initialize database in background thread without blocking startup
+        import asyncio
+        db_task = asyncio.create_task(
+            asyncio.to_thread(init_db)
+        )
+        # Don't wait for it - it will complete in background
+        logger.info("Database initialization started in background")
+    except Exception as e:
+        logger.warning(f"[WARN] Could not start database initialization: {e}")
+    
+    # Initialize settings from database
+    try:
         db = SessionLocal()
         try:
             if init_settings_from_db(db):
@@ -49,8 +59,10 @@ async def lifespan(app: FastAPI):
         finally:
             db.close()
     except Exception as e:
-        logger.error(f"Database initialization failed: {e}")
-        logger.warning("Continuing startup - database will be initialized on first use")
+        logger.error(f"Settings initialization failed: {e}")
+        logger.warning("[WARN] Using environment variables as fallback for settings")
+    
+    logger.info("=== APPLICATION READY ===")
     yield
     # Shutdown
     logger.info("Shutting down WhatsApp Chatbot API")
