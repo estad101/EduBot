@@ -353,11 +353,12 @@ class MessageRouter:
         # Handle help command
         if intent == "help":
             return (
-                f"📚 Help\n\n"
-                f"Use the menu buttons to navigate:\n"
-                f"• 📝 Homework - Submit your homework\n"
-                f"• 💳 Subscribe - Manage your subscription\n"
-                f"• ❌ Back - Switch between menus",
+                f"📚 Help & Features\n\n"
+                f"🎓 EduBot helps you with:"
+                f"\n📝 Homework - Submit assignments and get tutor feedback"
+                f"\n💳 Subscribe - Unlock unlimited homework submissions (₦5,000/month)"
+                f"\n❓ FAQs - Quick answers to common questions"
+                f"\n💬 Chat Support - Talk to our support team",
                 ConversationState.IDLE,
             )
 
@@ -560,11 +561,12 @@ class MessageRouter:
                 )
             elif intent == "help":
                 return (
-                    f"📚 Help\n\n"
-                    f"Use the menu buttons to navigate:\n"
-                    f"• 📝 Homework - Submit your homework\n"
-                    f"• 💳 Subscribe - Get premium access\n"
-                    f"• ℹ️ Help - Get help (this menu)",
+                    f"📚 Help & Features\n\n"
+                    f"🎓 EduBot helps you with:"
+                    f"\n📝 Homework - Submit assignments and get tutor feedback"
+                    f"\n💳 Subscribe - Unlock unlimited homework submissions (₦5,000/month)"
+                    f"\n❓ FAQs - Quick answers to common questions"
+                    f"\n💬 Chat Support - Talk to our support team",
                     ConversationState.REGISTERED,
                 )
             else:
