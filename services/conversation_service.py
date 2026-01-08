@@ -258,17 +258,30 @@ class MessageRouter:
         # Handle help command
         if intent == "help":
             welcome = f"Welcome back, {first_name}!" if first_name else "Welcome to Study Bot!"
-            return (
-                f"📚 **{welcome}**\n\n"
-                "Commands:\n"
-                "• **register** - Create your student account\n"
-                "• **homework** - Submit homework\n"
-                "• **pay** - Buy a monthly subscription\n"
-                "• **status** - Check your subscription\n"
-                "• **cancel** - Reset conversation\n\n"
-                "Type any command to get started!",
-                ConversationState.IDLE,
-            )
+            if first_name:
+                # Registered user - don't show register option
+                commands = (
+                    "📚 **{0}**\n\n"
+                    "Commands:\n"
+                    "• **homework** - Submit homework\n"
+                    "• **pay** - Buy a monthly subscription\n"
+                    "• **status** - Check your subscription\n"
+                    "• **cancel** - Reset conversation\n\n"
+                    "Type any command to get started!"
+                ).format(welcome)
+            else:
+                # Unregistered user - show register option
+                commands = (
+                    "📚 **{0}**\n\n"
+                    "Commands:\n"
+                    "• **register** - Create your student account\n"
+                    "• **homework** - Submit homework\n"
+                    "• **pay** - Buy a monthly subscription\n"
+                    "• **status** - Check your subscription\n"
+                    "• **cancel** - Reset conversation\n\n"
+                    "Type any command to get started!"
+                ).format(welcome)
+            return (commands, ConversationState.IDLE)
 
         # Initial state - user hasn't chosen action
         if current_state == ConversationState.INITIAL or current_state == ConversationState.IDLE:
@@ -314,14 +327,25 @@ class MessageRouter:
                 )
             else:
                 greeting = f"👋 Hey {first_name}!" if first_name else "👋 Hi!"
-                return (
-                    f"{greeting} Type 'help' for available commands, or:\n"
-                    "• **register** - Create account\n"
-                    "• **homework** - Submit homework\n"
-                    "• **pay** - Get subscription\n"
-                    "• **status** - Check subscription",
-                    ConversationState.IDLE,
-                )
+                if first_name:
+                    # Registered user - don't show register option
+                    return (
+                        f"{greeting} Type 'help' for available commands, or:\n"
+                        "• **homework** - Submit homework\n"
+                        "• **pay** - Get subscription\n"
+                        "• **status** - Check subscription",
+                        ConversationState.IDLE,
+                    )
+                else:
+                    # Unregistered user - show register option
+                    return (
+                        f"{greeting} Type 'help' for available commands, or:\n"
+                        "• **register** - Create account\n"
+                        "• **homework** - Submit homework\n"
+                        "• **pay** - Get subscription\n"
+                        "• **status** - Check subscription",
+                        ConversationState.IDLE,
+                    )
 
         # Registration flow
         elif current_state == ConversationState.REGISTERING_NAME:
