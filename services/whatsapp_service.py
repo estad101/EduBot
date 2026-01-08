@@ -352,7 +352,7 @@ class WhatsAppService:
                 button_reply = interactive.get("button_reply", {})
                 message_data["button_id"] = button_reply.get("id")
                 message_data["button_text"] = button_reply.get("title")
-                message_data["text"] = button_reply.get("title")  # Use button text as message text
+                message_data["text"] = button_reply.get("id")  # Use button ID as message text for intent matching
                 logger.info(f"Interactive button response: id={message_data.get('button_id')}, text={message_data.get('button_text')}")
 
             return message_data
