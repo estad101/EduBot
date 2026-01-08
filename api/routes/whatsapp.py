@@ -77,20 +77,45 @@ async def whatsapp_webhook(request: Request, db: Session = Depends(get_db)):
 
         # Check if user is registered
         student = StudentService.get_student_by_phone(db, phone_number)
+        is_new_user = False
         
-        # If not registered, save as a lead (DO NOT create a student record)
+        # If not registered, auto-register as a new student
         if not student:
             try:
-                LeadService.get_or_create_lead(
+                is_new_user = True
+                # Auto-create student with WhatsApp name and phone
+                student = StudentService.create_student(
                     db,
                     phone_number=phone_number,
-                    sender_name=sender_name,
-                    first_message=message_text
+                    full_name=sender_name or "User",
+                    email="",  # Email can be updated later
+                    class_grade="Pending",  # Can be updated during onboarding
                 )
-                logger.info(f"Saved/updated lead for {phone_number} (not yet registered)")
+                logger.info(f"✓ Auto-registered new student: {phone_number} ({sender_name})")
+                
+                # Convert any existing lead to student
+                try:
+                    LeadService.convert_lead_to_student(
+                        db,
+                        phone_number=phone_number,
+                        student_id=student.id
+                    )
+                except ValueError:
+                    # Lead might not exist
+                    pass
             except Exception as e:
-                logger.warning(f"Could not save lead: {str(e)}")
-                # Continue without saving lead
+                logger.error(f"❌ Error auto-registering student: {str(e)}")
+                # Fall back to lead creation
+                try:
+                    LeadService.get_or_create_lead(
+                        db,
+                        phone_number=phone_number,
+                        sender_name=sender_name,
+                        first_message=message_text
+                    )
+                    logger.info(f"Saved as lead for {phone_number} (auto-registration failed)")
+                except Exception as e2:
+                    logger.warning(f"Could not save lead: {str(e2)}")
 
         # Get conversation state and next response
         # Pass student data if registered, so bot knows user is a registered student
@@ -107,16 +132,34 @@ async def whatsapp_webhook(request: Request, db: Session = Depends(get_db)):
             }
             logger.info(f"✓ User is registered: {student.full_name} ({student.phone_number})")
         
-        try:
-            response_text, next_state = MessageRouter.get_next_response(
-                phone_number,
-                message_text,
-                student_data=student_data,  # Pass actual student data if registered
+        # For new users, send a welcome message immediately
+        if is_new_user and student:
+            first_name = student.full_name.split()[0] if student.full_name else "User"
+            response_text = (
+                f"👋 Welcome to EduBot, {first_name}!\n\n"
+                f"I'm your AI tutor assistant. Here's what I can help you with:\n\n"
+                f"📝 *Submit Homework* - Send me your homework questions (text or images)\n"
+                f"   📖 Math, Science, English, History, and more\n\n"
+                f"💳 *Premium Subscription* - Get unlimited homework help\n"
+                f"   ⭐ Instant responses, priority support\n\n"
+                f"❓ *FAQ* - Learn how EduBot works\n\n"
+                f"💬 *Live Support* - Chat with our support team\n\n"
+                f"Just type one of these or use the menu buttons below to get started! 👇"
             )
-        except Exception as e:
-            logger.error(f"❌ Error in MessageRouter.get_next_response: {str(e)}", exc_info=True)
-            response_text = "❌ Error processing your message. Please try again."
             next_state = ConversationState.IDLE
+            logger.info(f"✅ Sending welcome message to new student: {student.full_name}")
+        else:
+            # Get conversation state and next response for existing users
+            try:
+                response_text, next_state = MessageRouter.get_next_response(
+                    phone_number,
+                    message_text,
+                    student_data=student_data,  # Pass actual student data if registered
+                )
+            except Exception as e:
+                logger.error(f"❌ Error in MessageRouter.get_next_response: {str(e)}", exc_info=True)
+                response_text = "❌ Error processing your message. Please try again."
+                next_state = ConversationState.IDLE
         
         logger.info(f"✓ Got response from MessageRouter")
         logger.info(f"  Response text length: {len(response_text) if response_text else 0}")
