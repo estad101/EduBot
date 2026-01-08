@@ -2,6 +2,7 @@
 Homework submission endpoint.
 """
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form
+from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
 import os
 import time
@@ -294,18 +295,24 @@ async def upload_homework_image(
         
         if not homework:
             logger.warning(f"❌ Homework {homework_id} not found")
-            return {
-                "status": "error",
-                "error": f"Homework {homework_id} not found"
-            }
+            return JSONResponse(
+                status_code=404,
+                content={
+                    "status": "error",
+                    "error": f"Homework {homework_id} not found"
+                }
+            )
         
         # Verify student_id matches
         if homework.student_id != student_id:
             logger.warning(f"❌ Student ID mismatch: homework.student_id={homework.student_id}, request.student_id={student_id}")
-            return {
-                "status": "error",
-                "error": "Student ID mismatch"
-            }
+            return JSONResponse(
+                status_code=403,
+                content={
+                    "status": "error",
+                    "error": "Student ID mismatch"
+                }
+            )
         
         # Get student details
         student = db.query(StudentService.__self__ if hasattr(StudentService, '__self__') else StudentService).filter(
@@ -318,26 +325,35 @@ async def upload_homework_image(
         
         if not student:
             logger.warning(f"❌ Student {student_id} not found")
-            return {
-                "status": "error",
-                "error": f"Student {student_id} not found"
-            }
+            return JSONResponse(
+                status_code=404,
+                content={
+                    "status": "error",
+                    "error": f"Student {student_id} not found"
+                }
+            )
         
         logger.info(f"   Student: {student.full_name} ({student.phone_number})")
         
         # Validate file
         if not file.filename:
-            return {
-                "status": "error",
-                "error": "No filename provided"
-            }
+            return JSONResponse(
+                status_code=400,
+                content={
+                    "status": "error",
+                    "error": "No filename provided"
+                }
+            )
         
         # Check file type
         if not file.content_type or not file.content_type.startswith('image/'):
-            return {
-                "status": "error",
-                "error": "File must be an image"
-            }
+            return JSONResponse(
+                status_code=400,
+                content={
+                    "status": "error",
+                    "error": "File must be an image"
+                }
+            )
         
         # Read file content
         content = await file.read()
@@ -370,10 +386,13 @@ async def upload_homework_image(
         # Verify file was saved
         if not os.path.exists(file_path):
             logger.error(f"❌ Failed to save file")
-            return {
-                "status": "error",
-                "error": "Failed to save image file"
-            }
+            return JSONResponse(
+                status_code=500,
+                content={
+                    "status": "error",
+                    "error": "Failed to save image file"
+                }
+            )
         
         actual_size = os.path.getsize(file_path)
         logger.info(f"✓ Image saved: {actual_size} bytes")
@@ -429,18 +448,24 @@ async def upload_homework_image(
         except Exception as e:
             logger.warning(f"⚠️ Could not send WhatsApp confirmation: {str(e)}")
         
-        return {
-            "status": "success",
-            "message": "Image uploaded successfully",
-            "homework_id": homework.id,
-            "file_path": relative_path
-        }
+        return JSONResponse(
+            status_code=200,
+            content={
+                "status": "success",
+                "message": "Image uploaded successfully",
+                "homework_id": homework.id,
+                "file_path": relative_path
+            }
+        )
         
     except Exception as e:
         logger.error(f"❌ Error uploading image: {str(e)}")
         import traceback
         logger.error(f"   Traceback: {traceback.format_exc()}")
-        return {
-            "status": "error",
-            "error": f"Upload failed: {str(e)}"
-        }
+        return JSONResponse(
+            status_code=500,
+            content={
+                "status": "error",
+                "error": f"Upload failed: {str(e)}"
+            }
+        )
