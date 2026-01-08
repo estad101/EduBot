@@ -7,7 +7,7 @@ Manages registration, homework submission, and payment flows.
 import json
 import logging
 from datetime import datetime, timedelta
-from typing import Optional, Dict, Any
+from typing import Optional, Dict, Any, List
 from enum import Enum
 
 logger = logging.getLogger(__name__)
