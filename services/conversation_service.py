@@ -225,7 +225,7 @@ class MessageRouter:
                 return [
                     {"id": "faq", "title": "❓ FAQs"},
                     {"id": "support", "title": "💬 Chat Support"},
-                    {"id": "cancel", "title": "❌ Back"},
+                    {"id": "main_menu", "title": "📍 Main Menu"},
                 ]
 
         # Registration complete - main menu
@@ -241,14 +241,14 @@ class MessageRouter:
             return [
                 {"id": "text", "title": "📄 Text"},
                 {"id": "image", "title": "📷 Image"},
-                {"id": "cancel", "title": "❌ Cancel"},
+                {"id": "main_menu", "title": "📍 Main Menu"},
             ]
 
         # Payment confirmation
         if current_state == ConversationState.PAYMENT_PENDING:
             return [
                 {"id": "confirm", "title": "✅ Confirm Payment"},
-                {"id": "cancel", "title": "❌ Cancel"},
+                {"id": "main_menu", "title": "📍 Main Menu"},
             ]
 
         # Homework submitted - what's next
@@ -259,16 +259,16 @@ class MessageRouter:
                 {"id": "main_menu", "title": "📍 Main Menu"},
             ]
 
-        # Registration flows - collect info with cancel option
+        # Registration flows - collect info with main menu option
         if current_state in [ConversationState.REGISTERING_NAME, ConversationState.REGISTERING_EMAIL, ConversationState.REGISTERING_CLASS]:
             return [
-                {"id": "cancel", "title": "❌ Cancel"},
+                {"id": "main_menu", "title": "📍 Main Menu"},
             ]
 
-        # Homework input flows - collect info with cancel option
+        # Homework input flows - collect info with main menu option
         if current_state in [ConversationState.HOMEWORK_SUBJECT, ConversationState.HOMEWORK_CONTENT]:
             return [
-                {"id": "cancel", "title": "❌ Cancel"},
+                {"id": "main_menu", "title": "📍 Main Menu"},
             ]
 
         # INTENT-BASED MENUS (CHECKED SECOND - Only when intent is explicit)
