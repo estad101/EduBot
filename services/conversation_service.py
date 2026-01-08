@@ -525,6 +525,14 @@ class MessageRouter:
                 ConversationState.REGISTERED,
             )
 
+        # Main menu - show welcome and main options (CHECK BEFORE REGISTERED STATE)
+        elif intent == "main_menu":
+            greeting = f"Welcome back, {first_name}! 👋" if first_name else "Welcome back! 👋"
+            return (
+                f"{greeting}\n\nWhat would you like to do?",
+                ConversationState.REGISTERED,
+            )
+
         # Registered user - handle intents
         elif current_state == ConversationState.REGISTERED:
             if intent == "homework":
@@ -559,14 +567,6 @@ class MessageRouter:
                     f"{greeting}\n\nWhat would you like to do?",
                     ConversationState.REGISTERED,
                 )
-
-        # Main menu - show welcome and main options
-        elif intent == "main_menu":
-            greeting = f"Welcome back, {first_name}! 👋" if first_name else "Welcome back! 👋"
-            return (
-                f"{greeting}\n\nWhat would you like to do?",
-                ConversationState.REGISTERED,
-            )
 
         # Homework flow
         elif current_state == ConversationState.HOMEWORK_SUBJECT:
