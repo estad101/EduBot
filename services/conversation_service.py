@@ -212,25 +212,18 @@ class MessageRouter:
         
         # Idle/Initial state buttons (Main Menu)
         if current_state in [ConversationState.INITIAL, ConversationState.IDLE, ConversationState.IDENTIFYING]:
-            if is_registered:
-                return [
-                    {"id": "homework", "title": "📝 Homework"},
-                    {"id": "pay", "title": "💳 Subscribe"},
-                    {"id": "help", "title": "ℹ️ Help"},
-                ]
-            else:
-                return [
-                    {"id": "register", "title": "👤 Register"},
-                    {"id": "help", "title": "ℹ️ Help"},
-                    {"id": "homework", "title": "📝 Homework"},
-                ]
+            return [
+                {"id": "faq", "title": "❓ FAQs"},
+                {"id": "support", "title": "💬 Chat Support"},
+                {"id": "cancel", "title": "❌ Back"},
+            ]
 
         # Registration complete - main menu
         if current_state == ConversationState.REGISTERED:
             return [
-                {"id": "homework", "title": "📝 Homework"},
-                {"id": "pay", "title": "💳 Subscribe"},
-                {"id": "help", "title": "ℹ️ Help"},
+                {"id": "faq", "title": "❓ FAQs"},
+                {"id": "support", "title": "💬 Chat Support"},
+                {"id": "cancel", "title": "❌ Back"},
             ]
 
         # Homework type selection
@@ -251,9 +244,9 @@ class MessageRouter:
         # Homework submitted - what's next
         if current_state == ConversationState.HOMEWORK_SUBMITTED:
             return [
-                {"id": "homework", "title": "📝 Submit More"},
-                {"id": "check", "title": "📊 Status"},
-                {"id": "help", "title": "ℹ️ Help"},
+                {"id": "faq", "title": "❓ FAQs"},
+                {"id": "support", "title": "💬 Chat Support"},
+                {"id": "cancel", "title": "❌ Back"},
             ]
 
         # Registration flows - collect info with cancel option
@@ -270,14 +263,6 @@ class MessageRouter:
 
         # INTENT-BASED MENUS (CHECKED SECOND - Only when intent is explicit)
         
-        # Help menu buttons - Shows FAQ and Chat Support
-        if intent == "help":
-            return [
-                {"id": "faq", "title": "❓ FAQs"},
-                {"id": "support", "title": "💬 Chat Support"},
-                {"id": "cancel", "title": "❌ Back"},
-            ]
-
         return None
 
     @staticmethod
@@ -356,11 +341,6 @@ class MessageRouter:
                 f"(Note: Type your message naturally - a support agent will respond to you)"
             )
             return (support_text, ConversationState.IDLE)
-
-        # Handle help command
-        if intent == "help":
-            help_text = "How may I help you?\n\nFAQ, Chat Support, Cancel"
-            return (help_text, ConversationState.IDLE)
 
         # Handle FAQ command
         if intent == "faq":
