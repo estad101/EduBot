@@ -244,11 +244,26 @@ class MessageRouter:
                 {"id": "image", "title": "📷 Image"},
             ]
 
+        # Registration complete - main menu
+        if current_state == ConversationState.REGISTERED:
+            return [
+                {"id": "homework", "title": "📝 Homework"},
+                {"id": "pay", "title": "💳 Subscribe"},
+            ]
+
         # Payment confirmation
         if current_state == ConversationState.PAYMENT_PENDING:
             return [
-                {"id": "confirm", "title": "✅ Confirm"},
+                {"id": "confirm", "title": "✅ Confirm Payment"},
                 {"id": "cancel", "title": "❌ Cancel"},
+            ]
+
+        # Homework submitted - what's next
+        if current_state == ConversationState.HOMEWORK_SUBMITTED:
+            return [
+                {"id": "homework", "title": "📝 Submit More"},
+                {"id": "check", "title": "📊 Status"},
+                {"id": "help", "title": "ℹ️ Help"},
             ]
 
         return None
@@ -320,90 +335,86 @@ class MessageRouter:
             welcome = f"Welcome back, {first_name}!" if first_name else "Welcome to Study Bot!"
             if first_name:
                 # Registered user - don't show register option
-                commands = (
-                    "📚 **{0}**\n\n"
-                    "Commands:\n"
-                    "• **homework** - Submit homework\n"
-                    "• **pay** - Buy a monthly subscription\n"
-                    "• **status** - Check your subscription\n"
-                    "• **cancel** - Reset conversation\n\n"
-                    "Type any command to get started!"
-                ).format(welcome)
+                help_text = (
+                    f"📚 {welcome}\n\n"
+                    f"You can submit homework, manage your subscription, "
+                    f"and check your status. Choose an option below to continue."
+                )
             else:
                 # Unregistered user - show register option
-                commands = (
-                    "📚 **{0}**\n\n"
-                    "Commands:\n"
-                    "• **register** - Create your student account\n"
-                    "• **homework** - Submit homework\n"
-                    "• **pay** - Buy a monthly subscription\n"
-                    "• **status** - Check your subscription\n"
-                    "• **cancel** - Reset conversation\n\n"
-                    "Type any command to get started!"
-                ).format(welcome)
-            return (commands, ConversationState.IDLE)
+                help_text = (
+                    f"📚 {welcome}\n\n"
+                    f"Create an account to start submitting homework and "
+                    f"accessing tutoring services. Choose an option below to get started."
+                )
+            return (help_text, ConversationState.IDLE)
 
         # Initial state - user hasn't chosen action
         if current_state == ConversationState.INITIAL or current_state == ConversationState.IDLE:
             if intent == "register":
                 return (
-                    "✅ Let's register you! What is your full name?",
+                    "👤 Let's create your account!\n\n"
+                    "What is your full name?",
                     ConversationState.REGISTERING_NAME,
                 )
             elif intent == "homework":
                 if not student_data:
                     return (
-                        "❌ You need to register first. Type 'register' to get started!",
+                        "❌ Registration Required\n\n"
+                        "You need to create an account first to submit homework. "
+                        "Choose 'Register' to get started.",
                         ConversationState.IDLE,
                     )
                 greeting = f"Hey {first_name}! 📝" if first_name else "📝"
                 return (
-                    f"{greeting} What subject is your homework for? (e.g., Mathematics, English, Science)",
+                    f"{greeting}\n\nWhat subject is your homework for?\n\n"
+                    "(e.g., Mathematics, English, Science)",
                     ConversationState.HOMEWORK_SUBJECT,
                 )
             elif intent == "pay":
                 if not student_data:
                     return (
-                        "❌ You need to register first. Type 'register' to get started!",
+                        "❌ Registration Required\n\n"
+                        "You need to create an account first to subscribe. "
+                        "Choose 'Register' to get started.",
                         ConversationState.IDLE,
                     )
                 greeting = f"Hi {first_name}! 💳" if first_name else "💳"
                 return (
-                    f"{greeting} Subscription: ₦5,000/month (unlimited homework submission)\n\n"
-                    "Reply with 'confirm' to proceed with payment.",
+                    f"{greeting}\n\n💰 Monthly Subscription\n"
+                    f"Price: ₦5,000/month\n"
+                    f"Unlimited homework submissions\n\n"
+                    f"Tap 'Confirm Payment' to proceed.",
                     ConversationState.PAYMENT_PENDING,
                 )
             elif intent == "check":
                 if not student_data:
                     return (
-                        "❌ You need to register first. Type 'register' to get started!",
+                        "❌ Registration Required\n\n"
+                        "You need to create an account first to check status. "
+                        "Choose 'Register' to get started.",
                         ConversationState.IDLE,
                     )
-                status = "✅ Active" if student_data.get("has_subscription") else "❌ Inactive"
+                status = "✅ ACTIVE" if student_data.get("has_subscription") else "❌ INACTIVE"
                 greeting = f"{first_name}, y" if first_name else "Y"
                 return (
-                    f"📊 {greeting}our subscription status: {status}",
+                    f"📊 Subscription Status\n\n"
+                    f"User: {greeting}our subscription\n"
+                    f"Status: {status}",
                     ConversationState.IDLE,
                 )
             else:
                 greeting = f"👋 Hey {first_name}!" if first_name else "👋 Hi!"
                 if first_name:
-                    # Registered user - don't show register option
+                    # Registered user
                     return (
-                        f"{greeting} Type 'help' for available commands, or:\n"
-                        "• **homework** - Submit homework\n"
-                        "• **pay** - Get subscription\n"
-                        "• **status** - Check subscription",
+                        f"{greeting}\n\nWhat would you like to do?",
                         ConversationState.IDLE,
                     )
                 else:
-                    # Unregistered user - show register option
+                    # Unregistered user
                     return (
-                        f"{greeting} Type 'help' for available commands, or:\n"
-                        "• **register** - Create account\n"
-                        "• **homework** - Submit homework\n"
-                        "• **pay** - Get subscription\n"
-                        "• **status** - Check subscription",
+                        f"{greeting}\n\nWelcome to Study Bot! Get started below.",
                         ConversationState.IDLE,
                     )
 
@@ -411,14 +422,14 @@ class MessageRouter:
         elif current_state == ConversationState.REGISTERING_NAME:
             ConversationService.set_data(phone_number, "full_name", message_text)
             return (
-                "Great! What is your email address?",
+                "📧 Great!\n\nWhat is your email address?",
                 ConversationState.REGISTERING_EMAIL,
             )
 
         elif current_state == ConversationState.REGISTERING_EMAIL:
             ConversationService.set_data(phone_number, "email", message_text)
             return (
-                "Perfect! What is your class/grade? (e.g., 10A, SS2, Form 4)",
+                "🎓 Perfect!\n\nWhat is your class/grade?\n\n(e.g., 10A, SS2, Form 4)",
                 ConversationState.REGISTERING_CLASS,
             )
 
@@ -427,11 +438,11 @@ class MessageRouter:
             full_name = ConversationService.get_data(phone_number, "full_name")
             first_name_reg = full_name.split()[0] if full_name else "there"
             return (
-                f"✅ Registration complete, {first_name_reg}! You are now registered as REGISTERED_FREE.\n\n"
-                "You can now:\n"
-                "• Submit homework (with payment per submission)\n"
-                "• Buy monthly subscription for unlimited access\n\n"
-                "Type 'homework' or 'pay' to continue!",
+                f"✅ Account Created!\n\n"
+                f"Welcome, {first_name_reg}!\n\n"
+                f"You're now registered as a FREE user. You can submit homework "
+                f"with payment per submission, or subscribe for unlimited access.\n\n"
+                f"What would you like to do?",
                 ConversationState.REGISTERED,
             )
 
@@ -439,45 +450,51 @@ class MessageRouter:
         elif current_state == ConversationState.HOMEWORK_SUBJECT:
             ConversationService.set_data(phone_number, "homework_subject", message_text)
             return (
-                "Is this a **text** or **image** submission?",
+                f"📚 Subject: {message_text}\n\n"
+                f"How would you like to submit your homework?",
                 ConversationState.HOMEWORK_TYPE,
             )
 
         elif current_state == ConversationState.HOMEWORK_TYPE:
             submission_type = "IMAGE" if "image" in message_text.lower() else "TEXT"
             ConversationService.set_data(phone_number, "homework_type", submission_type)
-            name_ref = f"{first_name}, g" if first_name else "G"
+            icon = "📄" if submission_type == "TEXT" else "📷"
+            name_ref = f"{first_name}, " if first_name else ""
             return (
-                f"Got it, {submission_type} submission. {name_ref}o ahead and send your homework now:",
+                f"{icon} {submission_type} Submission\n\n"
+                f"{name_ref}Go ahead and send your homework now.",
                 ConversationState.HOMEWORK_CONTENT,
             )
 
         elif current_state == ConversationState.HOMEWORK_CONTENT:
             ConversationService.set_data(phone_number, "homework_content", message_text)
-            name_ref = f"Thanks, {first_name}! 📤" if first_name else "📤"
+            name_ref = f"Thanks, {first_name}! " if first_name else ""
             return (
-                f"{name_ref} Processing your homework submission...",
+                f"{name_ref}📤 Processing your submission...\n\n"
+                f"Your homework has been received and is being reviewed by a tutor.",
                 ConversationState.HOMEWORK_SUBMITTED,
             )
 
         # Payment flow
         elif current_state == ConversationState.PAYMENT_PENDING:
             if "confirm" in message_text.lower():
-                name_ref = f"{first_name}, here's" if first_name else "Here's"
+                name_ref = f"{first_name}, your" if first_name else "Your"
                 return (
-                    f"🔗 {name_ref} your payment link: [Payment Link]\n\n"
-                    "Click to complete payment. We'll confirm once received!",
+                    f"🔗 Payment Link\n\n"
+                    f"{name_ref} payment link is ready. Click to complete payment on our secure gateway.\n\n"
+                    f"We'll confirm once payment is received!",
                     ConversationState.PAYMENT_CONFIRMED,
                 )
             else:
-                prompt = f"{first_name}, please type" if first_name else "Type"
                 return (
-                    f"{prompt} 'confirm' to proceed with payment, or 'cancel' to exit.",
+                    f"⚠️ Confirm Required\n\n"
+                    f"Tap 'Confirm Payment' to proceed, or 'Cancel' to go back.",
                     ConversationState.PAYMENT_PENDING,
                 )
 
         else:
             return (
-                "Sorry, I didn't understand. Type 'help' for available commands.",
+                f"❓ I didn't quite understand that.\n\n"
+                f"Choose an option above or tap 'Help' for available commands.",
                 ConversationState.IDLE,
             )
