@@ -529,6 +529,41 @@ class MessageRouter:
                 ConversationState.REGISTERED,
             )
 
+        # Registered user - handle intents
+        elif current_state == ConversationState.REGISTERED:
+            if intent == "homework":
+                greeting = f"Hey {first_name}! 📝" if first_name else "📝"
+                return (
+                    f"{greeting}\n\nWhat subject is your homework for?\n\n"
+                    "(e.g., Mathematics, English, Science)",
+                    ConversationState.HOMEWORK_SUBJECT,
+                )
+            elif intent == "pay":
+                greeting = f"Hi {first_name}! 💳" if first_name else "💳"
+                return (
+                    f"{greeting}\n\n💰 Monthly Subscription\n"
+                    f"Price: ₦5,000/month\n"
+                    f"Unlimited homework submissions\n\n"
+                    f"Tap 'Confirm Payment' to proceed.",
+                    ConversationState.PAYMENT_PENDING,
+                )
+            elif intent == "help":
+                return (
+                    f"📚 Help\n\n"
+                    f"Use the menu buttons to navigate:\n"
+                    f"• 📝 Homework - Submit your homework\n"
+                    f"• 💳 Subscribe - Get premium access\n"
+                    f"• ℹ️ Help - Get help (this menu)",
+                    ConversationState.REGISTERED,
+                )
+            else:
+                # Default response for other intents while registered
+                greeting = f"Hey {first_name}! 👋" if first_name else "👋"
+                return (
+                    f"{greeting}\n\nWhat would you like to do?",
+                    ConversationState.REGISTERED,
+                )
+
         # Homework flow
         elif current_state == ConversationState.HOMEWORK_SUBJECT:
             ConversationService.set_data(phone_number, "homework_subject", message_text)
