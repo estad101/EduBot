@@ -263,7 +263,7 @@ class WhatsAppService:
                         f"❌ WhatsApp API error ({response.status_code}) sending to {phone_number}"
                     )
                     logger.error(f"   Status: {response.status_code}")
-                    logger.error(f"   Phone ID: {settings.whatsapp_phone_number_id}")
+                    logger.error(f"   Phone ID: {phone_number_id}")
                     logger.error(f"   Response: {error_text}")
                     return {
                         "status": "error",

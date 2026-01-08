@@ -251,12 +251,15 @@ async def whatsapp_webhook(request: Request, db: Session = Depends(get_db)):
         ConversationService.set_data(phone_number, "last_message", message_text)
 
         # Send response message
+        result = None
         try:
             logger.info(f"📤 Sending message to {phone_number}")
             logger.info(f"   Message text: {response_text[:100]}...")
+            logger.info(f"   Button data: {button_data}")
             
             # Check if this should be an interactive button message
             if button_data and button_data.get("message_type") == "interactive_buttons":
+                logger.info(f"   Sending as interactive button message with {len(button_data.get('buttons', []))} buttons")
                 result = await WhatsAppService.send_interactive_buttons(
                     phone_number=phone_number,
                     text=response_text,
@@ -264,17 +267,24 @@ async def whatsapp_webhook(request: Request, db: Session = Depends(get_db)):
                 )
                 logger.info(f"   Sent as interactive button message")
             else:
+                logger.info(f"   Sending as text message")
                 result = await WhatsAppService.send_message(
                     phone_number=phone_number,
                     message_type="text",
                     text=response_text,
                 )
             
-            logger.info(f"   Result: {result.get('status')}")
-            
-            if result.get('status') == 'error':
-                logger.error(f"   Error: {result.get('message')}")
-                logger.error(f"   Details: {result.get('error')}")
+            if result:
+                logger.info(f"   Result status: {result.get('status')}")
+                logger.info(f"   Result data: {result}")
+                
+                if result.get('status') == 'error':
+                    logger.error(f"   Error: {result.get('message')}")
+                    logger.error(f"   Details: {result.get('error')}")
+                elif result.get('status') == 'success':
+                    logger.info(f"✅ Message successfully sent to {phone_number}")
+            else:
+                logger.warning(f"⚠️ No result returned from WhatsAppService")
             
             # Add bot message to conversation
             conv_state["data"]["messages"].append({
@@ -287,6 +297,7 @@ async def whatsapp_webhook(request: Request, db: Session = Depends(get_db)):
             })
         except Exception as e:
             logger.error(f"❌ Exception sending WhatsApp message: {str(e)}", exc_info=True)
+            logger.error(f"   Result was: {result}")
 
         return StandardResponse(
             status="success",
