@@ -60,24 +60,26 @@ class HomeworkService:
             if not content or len(content.strip()) == 0:
                 raise ValueError("Content required for TEXT submissions")
         elif submission_type.upper() == "IMAGE":
-            if not file_path:
-                raise ValueError("File path required for IMAGE submissions")
-            
-            # Verify file exists - try both relative and with uploads prefix
-            file_exists = os.path.exists(file_path)
-            if not file_exists and not file_path.startswith('uploads/'):
-                # Try with uploads prefix
-                alt_path = f"uploads/{file_path}"
-                file_exists = os.path.exists(alt_path)
-                if file_exists:
-                    logger.info(f"✓ IMAGE file found at: {alt_path}")
-                    file_size = os.path.getsize(alt_path)
-                    logger.info(f"  File size: {file_size} bytes")
-            elif file_exists:
-                file_size = os.path.getsize(file_path)
-                logger.info(f"✓ IMAGE file verified: {file_path} ({file_size} bytes)")
+            # For IMAGE submissions, file_path can be None initially
+            # (will be set after user uploads the image)
+            if file_path:
+                # Verify file exists - try both relative and with uploads prefix
+                file_exists = os.path.exists(file_path)
+                if not file_exists and not file_path.startswith('uploads/'):
+                    # Try with uploads prefix
+                    alt_path = f"uploads/{file_path}"
+                    file_exists = os.path.exists(alt_path)
+                    if file_exists:
+                        logger.info(f"✓ IMAGE file found at: {alt_path}")
+                        file_size = os.path.getsize(alt_path)
+                        logger.info(f"  File size: {file_size} bytes")
+                elif file_exists:
+                    file_size = os.path.getsize(file_path)
+                    logger.info(f"✓ IMAGE file verified: {file_path} ({file_size} bytes)")
+                else:
+                    logger.warning(f"⚠️ IMAGE submission - file not found at: {file_path}")
             else:
-                logger.warning(f"⚠️ IMAGE submission - file not found at: {file_path}")
+                logger.info(f"ℹ️ IMAGE submission - no file yet (will be uploaded later)")
 
         # Create homework record
         homework = Homework(
