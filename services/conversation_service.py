@@ -192,7 +192,8 @@ class MessageRouter:
     KEYWORD_CHECK = ["status", "check", "subscription", "active"]
     KEYWORD_HELP = ["help", "info", "how", "menu", "options"]
     KEYWORD_FAQ = ["faq", "faqs", "frequently asked", "question", "questions"]
-    KEYWORD_CANCEL = ["cancel", "stop", "reset", "clear"]
+    KEYWORD_SUPPORT = ["support", "chat", "help me", "agent", "human", "talk to someone"]
+    KEYWORD_CANCEL = ["cancel", "stop", "reset", "clear", "menu"]
 
     @staticmethod
     def get_buttons(intent: str, current_state: ConversationState, is_registered: bool = False) -> Optional[List[Dict[str, str]]]:
@@ -214,12 +215,17 @@ class MessageRouter:
                     {"id": "homework", "title": "📝 Homework"},
                     {"id": "pay", "title": "💳 Subscribe"},
                     {"id": "check", "title": "📊 Status"},
+                    {"id": "faq", "title": "❓ FAQs"},
+                    {"id": "support", "title": "💬 Chat Support"},
+                    {"id": "cancel", "title": "❌ Menu"},
                 ]
             else:
                 return [
                     {"id": "register", "title": "👤 Register"},
                     {"id": "homework", "title": "📝 Homework"},
-                    {"id": "help", "title": "ℹ️ Help"},
+                    {"id": "faq", "title": "❓ FAQs"},
+                    {"id": "support", "title": "💬 Chat Support"},
+                    {"id": "cancel", "title": "❌ Menu"},
                 ]
 
         # FAQ menu buttons
@@ -238,11 +244,14 @@ class MessageRouter:
                     {"id": "homework", "title": "📝 Homework"},
                     {"id": "pay", "title": "💳 Subscribe"},
                     {"id": "check", "title": "📊 Status"},
+                    {"id": "faq", "title": "❓ FAQs"},
+                    {"id": "support", "title": "💬 Chat Support"},
                 ]
             else:
                 return [
                     {"id": "register", "title": "👤 Register"},
                     {"id": "faq", "title": "❓ FAQs"},
+                    {"id": "support", "title": "💬 Chat Support"},
                     {"id": "help", "title": "ℹ️ Help"},
                 ]
 
@@ -258,6 +267,8 @@ class MessageRouter:
             return [
                 {"id": "homework", "title": "📝 Homework"},
                 {"id": "pay", "title": "💳 Subscribe"},
+                {"id": "faq", "title": "❓ FAQs"},
+                {"id": "support", "title": "💬 Chat Support"},
             ]
 
         # Payment confirmation
@@ -272,7 +283,8 @@ class MessageRouter:
             return [
                 {"id": "homework", "title": "📝 Submit More"},
                 {"id": "check", "title": "📊 Status"},
-                {"id": "help", "title": "ℹ️ Help"},
+                {"id": "faq", "title": "❓ FAQs"},
+                {"id": "support", "title": "💬 Chat Support"},
             ]
 
         return None
@@ -301,6 +313,8 @@ class MessageRouter:
             return "check"
         if any(kw in text_lower for kw in MessageRouter.KEYWORD_FAQ):
             return "faq"
+        if any(kw in text_lower for kw in MessageRouter.KEYWORD_SUPPORT):
+            return "support"
         if any(kw in text_lower for kw in MessageRouter.KEYWORD_HELP):
             return "help"
         if any(kw in text_lower for kw in MessageRouter.KEYWORD_CANCEL):
@@ -334,12 +348,23 @@ class MessageRouter:
 
         # Handle cancel command
         if intent == "cancel":
-            ConversationService.clear_state(phone_number)
             farewell = f"See you soon, {first_name}!" if first_name else "See you!"
             return (
-                f"❌ Conversation cleared. {farewell} Type 'register', 'homework', 'pay', or 'help' to continue.",
-                ConversationState.INITIAL,
+                f"👋 {farewell}\n\nYou're back to the main menu. Choose an option above to continue.",
+                ConversationState.IDLE,
             )
+
+        # Handle chat support command
+        if intent == "support":
+            greeting = f"Hi {first_name}! 💬" if first_name else "💬"
+            support_text = (
+                f"{greeting}\n\n"
+                f"📞 Live Chat Support\n\n"
+                f"You can now chat with our support team. They're available Monday-Friday, 9AM-6PM WAT.\n\n"
+                f"Please describe your issue and we'll help you as soon as possible!\n\n"
+                f"(Note: Type your message naturally - a support agent will respond to you)"
+            )
+            return (support_text, ConversationState.IDLE)
 
         # Handle help command
         if intent == "help":
