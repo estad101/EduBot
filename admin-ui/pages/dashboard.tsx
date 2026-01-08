@@ -14,6 +14,14 @@ interface DashboardStats {
   system_status: string;
 }
 
+interface HomeworkStats {
+  total_submissions: number;
+  text_submissions: number;
+  image_submissions: number;
+  unsolved_homework: number;
+  solved_homework: number;
+}
+
 interface LeadsStats {
   total_leads: number;
   active_leads: number;
@@ -34,6 +42,7 @@ export default function DashboardPage() {
   const router = useRouter();
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [leadsStats, setLeadsStats] = useState<LeadsStats | null>(null);
+  const [homeworkStats, setHomeworkStats] = useState<HomeworkStats | null>(null);
   const [conversations, setConversations] = useState<RecentConversation[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -63,6 +72,12 @@ export default function DashboardPage() {
         const leadsResponse = await apiClient.get('/api/admin/leads/stats');
         if (leadsResponse.status === 'success') {
           setLeadsStats(leadsResponse.data);
+        }
+
+        // Fetch homework stats
+        const hwResponse = await apiClient.get('/api/admin/homework/stats');
+        if (hwResponse.status === 'success') {
+          setHomeworkStats(hwResponse.data);
         }
 
         // Fetch recent conversations
@@ -158,6 +173,77 @@ export default function DashboardPage() {
             </div>
           </div>
           <p className="text-green-600 text-sm mt-4">All systems operational</p>
+        </div>
+      </div>
+
+      {/* Homework Statistics Row */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+        {/* Unsolved Homework Card - Clickable */}
+        <button
+          onClick={() => router.push('/homework')}
+          className="bg-white rounded-lg shadow p-6 hover:shadow-lg hover:bg-red-50 transition cursor-pointer text-left"
+        >
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-gray-600 text-sm font-medium">Unsolved Homework</p>
+              <p className="text-3xl font-bold text-red-600 mt-2">{homeworkStats?.unsolved_homework || 0}</p>
+            </div>
+            <div className="text-4xl text-red-600 opacity-20">
+              <i className="fas fa-clipboard-list"></i>
+            </div>
+          </div>
+          <p className="text-sm text-red-600 mt-4">
+            <i className="fas fa-arrow-right mr-1"></i>Click to view
+          </p>
+        </button>
+
+        {/* Solved Homework Card */}
+        <div className="bg-white rounded-lg shadow p-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-gray-600 text-sm font-medium">Solved Homework</p>
+              <p className="text-3xl font-bold text-green-600 mt-2">{homeworkStats?.solved_homework || 0}</p>
+            </div>
+            <div className="text-4xl text-green-600 opacity-20">
+              <i className="fas fa-check-double"></i>
+            </div>
+          </div>
+          <p className="text-sm text-gray-600 mt-4">Completed and delivered</p>
+        </div>
+
+        {/* Total Homework Card */}
+        <div className="bg-white rounded-lg shadow p-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-gray-600 text-sm font-medium">Total Submissions</p>
+              <p className="text-3xl font-bold text-gray-800 mt-2">{homeworkStats?.total_submissions || 0}</p>
+            </div>
+            <div className="text-4xl text-blue-600 opacity-20">
+              <i className="fas fa-book"></i>
+            </div>
+          </div>
+          <p className="text-sm text-gray-600 mt-4">
+            <span className="text-blue-600 font-semibold">{homeworkStats?.text_submissions || 0}</span> text,
+            <span className="text-blue-600 font-semibold ml-1">{homeworkStats?.image_submissions || 0}</span> images
+          </p>
+        </div>
+
+        {/* Completion Rate Card */}
+        <div className="bg-white rounded-lg shadow p-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-gray-600 text-sm font-medium">Completion Rate</p>
+              <p className="text-3xl font-bold text-purple-600 mt-2">
+                {homeworkStats?.total_submissions ? 
+                  ((homeworkStats.solved_homework / homeworkStats.total_submissions) * 100).toFixed(0) 
+                  : 0}%
+              </p>
+            </div>
+            <div className="text-4xl text-purple-600 opacity-20">
+              <i className="fas fa-chart-pie"></i>
+            </div>
+          </div>
+          <p className="text-sm text-gray-600 mt-4">Homework completion percentage</p>
         </div>
       </div>
 

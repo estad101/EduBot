@@ -855,6 +855,8 @@ async def cancel_subscription(subscription_id: int, db: Session = Depends(get_db
 @router.get("/homework/stats")
 async def get_homework_stats(db: Session = Depends(get_db)):
     """Get homework statistics."""
+    from models.homework import HomeworkStatus
+    
     total = db.query(Homework).count()
     text_submissions = db.query(Homework).filter_by(
         submission_type=SubmissionType.TEXT
@@ -863,12 +865,29 @@ async def get_homework_stats(db: Session = Depends(get_db)):
         submission_type=SubmissionType.IMAGE
     ).count()
     
+    # Count unsolved homework (PENDING, PAID, ASSIGNED, IN_PROGRESS)
+    unsolved = db.query(Homework).filter(
+        Homework.status.in_([
+            HomeworkStatus.PENDING,
+            HomeworkStatus.PAID,
+            HomeworkStatus.ASSIGNED,
+            HomeworkStatus.IN_PROGRESS
+        ])
+    ).count()
+    
+    # Count solved homework
+    solved = db.query(Homework).filter_by(
+        status=HomeworkStatus.SOLVED
+    ).count()
+    
     return {
         "status": "success",
         "data": {
             "total_submissions": total,
             "text_submissions": text_submissions,
-            "image_submissions": image_submissions
+            "image_submissions": image_submissions,
+            "unsolved_homework": unsolved,
+            "solved_homework": solved
         }
     }
 
