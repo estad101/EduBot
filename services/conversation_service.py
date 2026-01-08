@@ -216,16 +216,13 @@ class MessageRouter:
                 return [
                     {"id": "homework", "title": "📝 Homework"},
                     {"id": "pay", "title": "💳 Subscribe"},
-                    {"id": "check", "title": "📊 Status"},
-                    {"id": "faq", "title": "❓ FAQs"},
-                    {"id": "support", "title": "💬 Chat Support"},
+                    {"id": "help", "title": "ℹ️ Help"},
                 ]
             else:
                 return [
                     {"id": "register", "title": "👤 Register"},
-                    {"id": "faq", "title": "❓ FAQs"},
-                    {"id": "support", "title": "💬 Chat Support"},
                     {"id": "help", "title": "ℹ️ Help"},
+                    {"id": "homework", "title": "📝 Homework"},
                 ]
 
         # Registration complete - main menu
@@ -233,8 +230,7 @@ class MessageRouter:
             return [
                 {"id": "homework", "title": "📝 Homework"},
                 {"id": "pay", "title": "💳 Subscribe"},
-                {"id": "faq", "title": "❓ FAQs"},
-                {"id": "support", "title": "💬 Chat Support"},
+                {"id": "help", "title": "ℹ️ Help"},
             ]
 
         # Homework type selection
@@ -257,8 +253,7 @@ class MessageRouter:
             return [
                 {"id": "homework", "title": "📝 Submit More"},
                 {"id": "check", "title": "📊 Status"},
-                {"id": "faq", "title": "❓ FAQs"},
-                {"id": "support", "title": "💬 Chat Support"},
+                {"id": "help", "title": "ℹ️ Help"},
             ]
 
         # Registration flows - collect info with cancel option
@@ -275,25 +270,13 @@ class MessageRouter:
 
         # INTENT-BASED MENUS (CHECKED SECOND - Only when intent is explicit)
         
-        # Help menu buttons
+        # Help menu buttons - Shows FAQ and Chat Support
         if intent == "help":
-            if is_registered:
-                return [
-                    {"id": "homework", "title": "📝 Homework"},
-                    {"id": "pay", "title": "💳 Subscribe"},
-                    {"id": "check", "title": "📊 Status"},
-                    {"id": "faq", "title": "❓ FAQs"},
-                    {"id": "support", "title": "💬 Chat Support"},
-                    {"id": "cancel", "title": "❌ Menu"},
-                ]
-            else:
-                return [
-                    {"id": "register", "title": "👤 Register"},
-                    {"id": "homework", "title": "📝 Homework"},
-                    {"id": "faq", "title": "❓ FAQs"},
-                    {"id": "support", "title": "💬 Chat Support"},
-                    {"id": "cancel", "title": "❌ Menu"},
-                ]
+            return [
+                {"id": "faq", "title": "❓ FAQs"},
+                {"id": "support", "title": "💬 Chat Support"},
+                {"id": "cancel", "title": "❌ Back"},
+            ]
 
         # FAQ menu buttons
         if intent == "faq":
