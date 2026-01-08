@@ -208,38 +208,10 @@ class MessageRouter:
         Returns:
             List of button dicts with 'id' and 'title', or None for text-only responses
         """
-        # Help menu buttons
-        if intent == "help":
-            if is_registered:
-                return [
-                    {"id": "homework", "title": "📝 Homework"},
-                    {"id": "pay", "title": "💳 Subscribe"},
-                    {"id": "check", "title": "📊 Status"},
-                    {"id": "faq", "title": "❓ FAQs"},
-                    {"id": "support", "title": "💬 Chat Support"},
-                    {"id": "cancel", "title": "❌ Menu"},
-                ]
-            else:
-                return [
-                    {"id": "register", "title": "👤 Register"},
-                    {"id": "homework", "title": "📝 Homework"},
-                    {"id": "faq", "title": "❓ FAQs"},
-                    {"id": "support", "title": "💬 Chat Support"},
-                    {"id": "cancel", "title": "❌ Menu"},
-                ]
-
-        # FAQ menu buttons
-        if intent == "faq":
-            return [
-                {"id": "faq_register", "title": "📝 Registration"},
-                {"id": "faq_homework", "title": "📚 Homework"},
-                {"id": "faq_payment", "title": "💳 Payment"},
-                {"id": "faq_subscription", "title": "⭐ Subscription"},
-                {"id": "cancel", "title": "❌ Menu"},
-            ]
-
-        # Idle/Initial state buttons
-        if current_state in [ConversationState.INITIAL, ConversationState.IDLE]:
+        # STATE-BASED MENUS (CHECKED FIRST - Main menus always show regardless of intent)
+        
+        # Idle/Initial state buttons (Main Menu)
+        if current_state in [ConversationState.INITIAL, ConversationState.IDLE, ConversationState.IDENTIFYING]:
             if is_registered:
                 return [
                     {"id": "homework", "title": "📝 Homework"},
@@ -256,14 +228,6 @@ class MessageRouter:
                     {"id": "help", "title": "ℹ️ Help"},
                 ]
 
-        # Homework type selection
-        if current_state == ConversationState.HOMEWORK_TYPE:
-            return [
-                {"id": "text", "title": "📄 Text"},
-                {"id": "image", "title": "📷 Image"},
-                {"id": "cancel", "title": "❌ Cancel"},
-            ]
-
         # Registration complete - main menu
         if current_state == ConversationState.REGISTERED:
             return [
@@ -271,6 +235,14 @@ class MessageRouter:
                 {"id": "pay", "title": "💳 Subscribe"},
                 {"id": "faq", "title": "❓ FAQs"},
                 {"id": "support", "title": "💬 Chat Support"},
+            ]
+
+        # Homework type selection
+        if current_state == ConversationState.HOMEWORK_TYPE:
+            return [
+                {"id": "text", "title": "📄 Text"},
+                {"id": "image", "title": "📷 Image"},
+                {"id": "cancel", "title": "❌ Cancel"},
             ]
 
         # Payment confirmation
@@ -299,6 +271,38 @@ class MessageRouter:
         if current_state in [ConversationState.HOMEWORK_SUBJECT, ConversationState.HOMEWORK_CONTENT]:
             return [
                 {"id": "cancel", "title": "❌ Cancel"},
+            ]
+
+        # INTENT-BASED MENUS (CHECKED SECOND - Only when intent is explicit)
+        
+        # Help menu buttons
+        if intent == "help":
+            if is_registered:
+                return [
+                    {"id": "homework", "title": "📝 Homework"},
+                    {"id": "pay", "title": "💳 Subscribe"},
+                    {"id": "check", "title": "📊 Status"},
+                    {"id": "faq", "title": "❓ FAQs"},
+                    {"id": "support", "title": "💬 Chat Support"},
+                    {"id": "cancel", "title": "❌ Menu"},
+                ]
+            else:
+                return [
+                    {"id": "register", "title": "👤 Register"},
+                    {"id": "homework", "title": "📝 Homework"},
+                    {"id": "faq", "title": "❓ FAQs"},
+                    {"id": "support", "title": "💬 Chat Support"},
+                    {"id": "cancel", "title": "❌ Menu"},
+                ]
+
+        # FAQ menu buttons
+        if intent == "faq":
+            return [
+                {"id": "faq_register", "title": "📝 Registration"},
+                {"id": "faq_homework", "title": "📚 Homework"},
+                {"id": "faq_payment", "title": "💳 Payment"},
+                {"id": "faq_subscription", "title": "⭐ Subscription"},
+                {"id": "cancel", "title": "❌ Menu"},
             ]
 
         return None
