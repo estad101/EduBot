@@ -67,6 +67,13 @@ async def whatsapp_webhook(request: Request, db: Session = Depends(get_db)):
         logger.info(
             f"WhatsApp message from {phone_number} ({sender_name}): {message_type}"
         )
+        
+        # Validate phone number
+        if not phone_number:
+            logger.error("❌ No phone number in message data - cannot process")
+            return StandardResponse(
+                status="success", message="Webhook received (no phone number)"
+            )
 
         # Check if user is registered
         student = StudentService.get_student_by_phone(db, phone_number)
@@ -100,16 +107,26 @@ async def whatsapp_webhook(request: Request, db: Session = Depends(get_db)):
             }
             logger.info(f"✓ User is registered: {student.full_name} ({student.phone_number})")
         
-        response_text, next_state = MessageRouter.get_next_response(
-            phone_number,
-            message_text,
-            student_data=student_data,  # Pass actual student data if registered
-        )
+        try:
+            response_text, next_state = MessageRouter.get_next_response(
+                phone_number,
+                message_text,
+                student_data=student_data,  # Pass actual student data if registered
+            )
+        except Exception as e:
+            logger.error(f"❌ Error in MessageRouter.get_next_response: {str(e)}", exc_info=True)
+            response_text = "❌ Error processing your message. Please try again."
+            next_state = ConversationState.IDLE
         
         logger.info(f"✓ Got response from MessageRouter")
         logger.info(f"  Response text length: {len(response_text) if response_text else 0}")
         logger.info(f"  Response text: {response_text[:150] if response_text else 'NONE'}")
         logger.info(f"  Next state: {next_state}")
+        
+        # Validate response text
+        if not response_text:
+            logger.error("❌ No response text from MessageRouter - using default message")
+            response_text = "👋 Thanks for your message! Choose an option above to continue."
         
         # Update conversation state for next message
         if next_state:
@@ -313,7 +330,10 @@ async def whatsapp_webhook(request: Request, db: Session = Depends(get_db)):
                 "send_result": result.get('status')
             })
         except Exception as e:
-            logger.error(f"❌ Exception sending WhatsApp message: {str(e)}", exc_info=True)
+            logger.error(f"❌ Exception sending WhatsApp message to {phone_number}: {str(e)}", exc_info=True)
+            logger.error(f"   Response text was: {response_text[:100] if response_text else 'NONE'}")
+            logger.error(f"   Buttons: {buttons}")
+            # Still return success to prevent WhatsApp retries
 
         return StandardResponse(
             status="success",
