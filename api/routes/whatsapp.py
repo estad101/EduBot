@@ -155,11 +155,15 @@ async def whatsapp_webhook(request: Request, db: Session = Depends(get_db)):
                 logger.info(f"Processing homework submission for {phone_number}")
                 logger.info(f"  Subject: {homework_data.get('subject')}")
                 logger.info(f"  Type: {homework_data.get('submission_type')}")
+                logger.info(f"  Message type: {message_type}")
                 logger.info(f"  Content length: {len(str(homework_data.get('content', '')))}")
                 
-                # Download image if image submission
+                # Handle image submission
                 file_path = None
-                if message_type == "image" and message_data.get("image_id"):
+                submission_content = homework_data["content"]
+                
+                # If submission type is IMAGE and incoming message is image, download it
+                if homework_data.get("submission_type") == "IMAGE" and message_type == "image" and message_data.get("image_id"):
                     try:
                         media_bytes = await WhatsAppService.download_media(
                             message_data.get("image_id"), 
@@ -178,6 +182,8 @@ async def whatsapp_webhook(request: Request, db: Session = Depends(get_db)):
                             with open(file_path, "wb") as f:
                                 f.write(media_bytes)
                             logger.info(f"Saved homework image: {file_path}")
+                            # For images, set a placeholder content
+                            submission_content = f"Image submission: {message_data.get('image_id')}"
                     except Exception as e:
                         logger.error(f"Failed to download image: {str(e)}")
 
@@ -196,7 +202,7 @@ async def whatsapp_webhook(request: Request, db: Session = Depends(get_db)):
                         student_id=student.id,
                         subject=homework_data["subject"],
                         submission_type=homework_data["submission_type"],
-                        content=homework_data["content"],
+                        content=submission_content,
                         file_path=file_path,
                         payment_required=False,  # Disabled for now
                     )

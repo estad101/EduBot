@@ -530,6 +530,7 @@ class MessageRouter:
             )
 
         elif current_state == ConversationState.HOMEWORK_CONTENT:
+            # Store the content - for text it's the message, for images it's stored as placeholder
             ConversationService.set_data(phone_number, "homework_content", message_text)
             name_ref = f"Thanks, {first_name}! " if first_name else ""
             return (
