@@ -221,7 +221,7 @@ async def whatsapp_webhook(request: Request, db: Session = Depends(get_db)):
                     else:
                         response_text = (
                             f"✅ Homework submitted successfully for {homework_data['subject']}!\n\n"
-                            f"⏳ No tutors currently available. We'll assign one shortly."
+                            f"⏳ A tutor will be assigned to you shortly"
                         )
 
                     # Reset homework state
