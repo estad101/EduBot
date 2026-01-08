@@ -97,7 +97,13 @@ export default function HomeworkUploadPage() {
       formData.append('homework_id', String(homework_id));
       formData.append('token', String(token));
 
-      const response = await fetch('/api/homework/upload-image', {
+      // Use full API URL from environment
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'https://nurturing-exploration-production.up.railway.app';
+      const uploadUrl = `${apiUrl}/api/homework/upload-image`;
+      
+      console.log('Uploading to:', uploadUrl);
+
+      const response = await fetch(uploadUrl, {
         method: 'POST',
         body: formData,
         headers: {
@@ -105,10 +111,19 @@ export default function HomeworkUploadPage() {
         }
       });
 
-      const data = await response.json();
+      // Try to parse as JSON
+      let data: any;
+      try {
+        data = await response.json();
+      } catch (parseError) {
+        console.error('JSON parse error:', parseError);
+        console.error('Response status:', response.status);
+        console.error('Response text:', await response.text());
+        throw new Error(`Server error: Invalid response from server (${response.status})`);
+      }
 
       if (!response.ok) {
-        throw new Error(data.error || data.message || 'Upload failed');
+        throw new Error(data.error || data.message || `Upload failed (${response.status})`);
       }
 
       setState(prev => ({
@@ -123,6 +138,7 @@ export default function HomeworkUploadPage() {
         window.close();
       }, 3000);
     } catch (error) {
+      console.error('Upload error:', error);
       setState(prev => ({
         ...prev,
         uploading: false,
