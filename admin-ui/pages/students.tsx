@@ -68,6 +68,18 @@ export default function StudentsPage() {
     }
   };
 
+  const handleSearch = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      const response = await apiClient.searchStudents(searchQuery, statusFilter);
+      if (response.status === 'success') {
+        setStudents(response.data);
+      }
+    } catch (err) {
+      setError('Search failed');
+    }
+  };
+
   return (
     <Layout>
       <div className="bg-white rounded-lg shadow">
