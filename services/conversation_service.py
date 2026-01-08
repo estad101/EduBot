@@ -362,6 +362,17 @@ class MessageRouter:
                 ConversationState.IDLE,
             )
 
+        # Handle help command
+        if intent == "help":
+            return (
+                f"📚 Help\n\n"
+                f"Use the menu buttons to navigate:\n"
+                f"• 📝 Homework - Submit your homework\n"
+                f"• 💳 Subscribe - Manage your subscription\n"
+                f"• ❌ Back - Switch between menus",
+                ConversationState.IDLE,
+            )
+
         # Handle chat support command
         if intent == "support":
             greeting = f"Hi {first_name}! 💬" if first_name else "💬"
