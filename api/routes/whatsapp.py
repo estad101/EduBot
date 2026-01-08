@@ -220,7 +220,7 @@ async def whatsapp_webhook(request: Request, db: Session = Depends(get_db)):
                         
                         logger.info(f"✅ Homework created: {homework.id}")
                         
-                        # Generate secure upload token (just use homework_id + student_id hash)
+                        # Generate secure upload token
                         import hashlib
                         upload_token = hashlib.sha256(
                             f"{homework.id}{student.id}{int(time.time())}".encode()
