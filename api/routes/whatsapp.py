@@ -11,7 +11,7 @@ import logging
 
 from config.database import get_db
 from services.whatsapp_service import WhatsAppService
-from services.conversation_service import ConversationService, MessageRouter
+from services.conversation_service import ConversationService, MessageRouter, ConversationState
 from services.student_service import StudentService
 from services.lead_service import LeadService
 from services.payment_service import PaymentService
@@ -257,16 +257,34 @@ async def whatsapp_webhook(request: Request, db: Session = Depends(get_db)):
         # Store last message for preview
         ConversationService.set_data(phone_number, "last_message", message_text)
 
+        # Get buttons for interactive message
+        buttons = MessageRouter.get_buttons(
+            intent=MessageRouter.extract_intent(message_text),
+            current_state=next_state or ConversationState.IDLE,
+            is_registered=bool(student_data)
+        )
+
         # Send response message
         try:
             logger.info(f"📤 Sending message to {phone_number}")
             logger.info(f"   Message text: {response_text[:100]}...")
+            logger.info(f"   Has buttons: {buttons is not None and len(buttons) > 0}")
             
-            result = await WhatsAppService.send_message(
-                phone_number=phone_number,
-                message_type="text",
-                text=response_text,
-            )
+            # Send interactive message if buttons available, otherwise text
+            if buttons and len(buttons) > 0:
+                logger.info(f"   Sending with {len(buttons)} buttons")
+                result = await WhatsAppService.send_interactive_message(
+                    phone_number=phone_number,
+                    body_text=response_text,
+                    buttons=buttons,
+                )
+            else:
+                logger.info(f"   Sending as text message")
+                result = await WhatsAppService.send_message(
+                    phone_number=phone_number,
+                    message_type="text",
+                    text=response_text,
+                )
             
             logger.info(f"   Result: {result.get('status')}")
             
@@ -281,7 +299,8 @@ async def whatsapp_webhook(request: Request, db: Session = Depends(get_db)):
                 "text": response_text,
                 "timestamp": datetime.now().isoformat(),
                 "sender_type": "bot",
-                "message_type": "text"
+                "message_type": "interactive" if buttons else "text",
+                "buttons": buttons
             })
         except Exception as e:
             logger.error(f"❌ Exception sending WhatsApp message: {str(e)}", exc_info=True)

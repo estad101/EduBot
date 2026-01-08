@@ -194,6 +194,66 @@ class MessageRouter:
     KEYWORD_CANCEL = ["cancel", "stop", "reset", "clear"]
 
     @staticmethod
+    def get_buttons(intent: str, current_state: ConversationState, is_registered: bool = False) -> Optional[List[Dict[str, str]]]:
+        """
+        Get interactive buttons for a given state.
+
+        Args:
+            intent: Current user intent
+            current_state: Current conversation state
+            is_registered: Whether user is registered
+
+        Returns:
+            List of button dicts with 'id' and 'title', or None for text-only responses
+        """
+        # Help menu buttons
+        if intent == "help":
+            if is_registered:
+                return [
+                    {"id": "homework", "title": "📝 Homework"},
+                    {"id": "pay", "title": "💳 Subscribe"},
+                    {"id": "check", "title": "📊 Status"},
+                    {"id": "cancel", "title": "❌ Cancel"},
+                ]
+            else:
+                return [
+                    {"id": "register", "title": "👤 Register"},
+                    {"id": "homework", "title": "📝 Homework"},
+                    {"id": "pay", "title": "💳 Subscribe"},
+                ]
+
+        # Idle/Initial state buttons
+        if current_state in [ConversationState.INITIAL, ConversationState.IDLE]:
+            if is_registered:
+                return [
+                    {"id": "homework", "title": "📝 Homework"},
+                    {"id": "pay", "title": "💳 Subscribe"},
+                    {"id": "check", "title": "📊 Status"},
+                ]
+            else:
+                return [
+                    {"id": "register", "title": "👤 Register"},
+                    {"id": "homework", "title": "📝 Homework"},
+                    {"id": "help", "title": "ℹ️ Help"},
+                ]
+
+        # Homework type selection
+        if current_state == ConversationState.HOMEWORK_TYPE:
+            return [
+                {"id": "text", "title": "📄 Text"},
+                {"id": "image", "title": "📷 Image"},
+            ]
+
+        # Payment confirmation
+        if current_state == ConversationState.PAYMENT_PENDING:
+            return [
+                {"id": "confirm", "title": "✅ Confirm"},
+                {"id": "cancel", "title": "❌ Cancel"},
+            ]
+
+        return None
+
+    @staticmethod
     def extract_intent(message_text: str) -> str:
         """
         Extract user intent from message text.

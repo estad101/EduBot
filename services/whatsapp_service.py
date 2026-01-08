@@ -19,6 +19,105 @@ class WhatsAppService:
     """Service for WhatsApp Cloud API integration."""
 
     @staticmethod
+    async def send_interactive_message(
+        phone_number: str,
+        body_text: str,
+        buttons: List[Dict[str, str]],
+    ) -> Dict[str, Any]:
+        """
+        Send an interactive message with buttons via WhatsApp Cloud API.
+
+        Args:
+            phone_number: Recipient phone number (e.g., "+234901234567")
+            body_text: Message body text
+            buttons: List of button dicts with keys:
+                    - id: Button ID/payload (max 256 chars)
+                    - title: Button display text (max 20 chars)
+
+        Returns:
+            Dict with response from WhatsApp API
+        """
+        logger.info(f"🔵 [send_interactive_message] Starting - phone: {phone_number}, buttons: {len(buttons)}")
+        
+        if not settings.whatsapp_api_key or not settings.whatsapp_phone_number_id:
+            logger.error(f"🔴 [send_interactive_message] WhatsApp credentials not configured")
+            return {"status": "error", "message": "WhatsApp not configured"}
+
+        clean_phone = phone_number.replace("+", "")
+        logger.info(f"🔵 [send_interactive_message] Clean phone: {clean_phone}")
+
+        try:
+            async with httpx.AsyncClient(timeout=30.0) as client:
+                # Build interactive button payload
+                interactive_buttons = []
+                for idx, button in enumerate(buttons):
+                    if idx >= 3:  # WhatsApp allows max 3 buttons
+                        logger.warning(f"Max 3 buttons allowed, ignoring button {idx + 1}")
+                        break
+                    interactive_buttons.append({
+                        "type": "reply",
+                        "reply": {
+                            "id": str(button.get("id", f"button_{idx}"))[:256],
+                            "title": str(button.get("title", f"Option {idx + 1}"))[:20],
+                        }
+                    })
+
+                payload = {
+                    "messaging_product": "whatsapp",
+                    "recipient_type": "individual",
+                    "to": clean_phone,
+                    "type": "interactive",
+                    "interactive": {
+                        "type": "button",
+                        "body": {
+                            "text": body_text,
+                        },
+                        "action": {
+                            "buttons": interactive_buttons,
+                        }
+                    }
+                }
+
+                url = f"{WHATSAPP_API_URL}/{settings.whatsapp_phone_number_id}/messages"
+                headers = {
+                    "Authorization": f"Bearer {settings.whatsapp_api_key}",
+                    "Content-Type": "application/json",
+                }
+
+                logger.info(f"🔵 [send_interactive_message] Making API call with {len(interactive_buttons)} buttons")
+                response = await client.post(url, json=payload, headers=headers)
+                
+                logger.info(f"🔵 [send_interactive_message] API response status: {response.status_code}")
+
+                if response.status_code in [200, 201]:
+                    result = response.json()
+                    logger.info(f"✓ Interactive message sent to {phone_number}")
+                    return {
+                        "status": "success",
+                        "message": "Interactive message sent successfully",
+                        "data": result,
+                    }
+                else:
+                    error_text = response.text
+                    logger.error(f"❌ WhatsApp API error ({response.status_code}) sending interactive message to {phone_number}")
+                    logger.error(f"   Response: {error_text}")
+                    return {
+                        "status": "error",
+                        "message": f"Failed to send interactive message: {response.status_code}",
+                        "error": error_text,
+                    }
+
+        except httpx.TimeoutException:
+            logger.error(f"WhatsApp API timeout for {phone_number}")
+            return {"status": "error", "message": "Request timeout"}
+        except httpx.RequestError as e:
+            logger.error(f"WhatsApp API error: {str(e)}")
+            return {"status": "error", "message": str(e)}
+        except Exception as e:
+            logger.error(f"Unexpected error sending interactive message: {str(e)}")
+            return {"status": "error", "message": "Internal server error"}
+
+    @staticmethod
     async def send_message(
         phone_number: str,
         message_type: str = "text",
@@ -247,6 +346,14 @@ class WhatsAppService:
             elif message_type == "button":
                 message_data["button_id"] = message.get("button", {}).get("payload")
                 message_data["button_text"] = message.get("button", {}).get("text")
+            elif message_type == "interactive":
+                # Handle interactive message responses (button clicks)
+                interactive = message.get("interactive", {})
+                button_reply = interactive.get("button_reply", {})
+                message_data["button_id"] = button_reply.get("id")
+                message_data["button_text"] = button_reply.get("title")
+                message_data["text"] = button_reply.get("title")  # Use button text as message text
+                logger.info(f"Interactive button response: id={message_data.get('button_id')}, text={message_data.get('button_text')}")
 
             return message_data
 
