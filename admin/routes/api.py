@@ -463,6 +463,30 @@ async def get_student(student_id: int, db: Session = Depends(get_db)):
     }
 
 
+@router.delete("/students/{student_id}")
+async def delete_student(student_id: int, db: Session = Depends(get_db)):
+    """Hard delete a student from the database."""
+    student = db.query(Student).filter_by(id=student_id).first()
+    if not student:
+        raise HTTPException(status_code=404, detail="Student not found")
+    
+    try:
+        # Delete the student (hard delete)
+        db.delete(student)
+        db.commit()
+        
+        logger.info(f"✓ Student deleted: {student_id} ({student.full_name})")
+        
+        return {
+            "status": "success",
+            "message": f"Student {student.full_name} has been permanently deleted"
+        }
+    except Exception as e:
+        db.rollback()
+        logger.error(f"Error deleting student {student_id}: {str(e)}")
+        raise HTTPException(status_code=500, detail="Failed to delete student")
+
+
 # ==================== PAYMENTS ENDPOINTS ====================
 
 @router.get("/payments")

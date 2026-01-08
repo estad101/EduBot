@@ -50,15 +50,21 @@ export default function StudentsPage() {
     fetchStudents();
   }, [page, router]);
 
-  const handleSearch = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleDelete = async (studentId: number, studentName: string) => {
+    if (!confirm(`Are you sure you want to permanently delete ${studentName}? This cannot be undone.`)) {
+      return;
+    }
+
     try {
-      const response = await apiClient.searchStudents(searchQuery, statusFilter);
-      if (response.status === 'success') {
-        setStudents(response.data);
+      const response = await apiClient.delete(`/api/admin/students/${studentId}`);
+      if (response.status === 'success' || response.status === 200) {
+        // Remove student from list
+        setStudents(students.filter(s => s.id !== studentId));
+        setTotalCount(totalCount - 1);
+        alert('Student deleted successfully');
       }
-    } catch (err) {
-      setError('Search failed');
+    } catch (err: any) {
+      setError(err.message || 'Failed to delete student');
     }
   };
 
@@ -159,6 +165,13 @@ export default function StudentsPage() {
                         className="text-blue-600 hover:text-blue-800"
                       >
                         <i className="fas fa-eye mr-1"></i>View
+                      </button>
+                      <button
+                        onClick={() => handleDelete(student.id, student.full_name)}
+                        className="text-red-600 hover:text-red-800"
+                        title="Delete this student permanently"
+                      >
+                        <i className="fas fa-trash mr-1"></i>Delete
                       </button>
                     </td>
                   </tr>
