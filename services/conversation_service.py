@@ -289,7 +289,11 @@ class MessageRouter:
         """
         text_lower = message_text.lower().strip()
 
-        # Check for keywords
+        # Check for main_menu FIRST (highest priority) to prevent "menu" keyword from matching help
+        if any(kw in text_lower for kw in MessageRouter.KEYWORD_MAIN_MENU):
+            return "main_menu"
+        
+        # Check for other keywords
         if any(kw in text_lower for kw in MessageRouter.KEYWORD_REGISTER):
             return "register"
         if any(kw in text_lower for kw in MessageRouter.KEYWORD_HOMEWORK):
@@ -298,8 +302,6 @@ class MessageRouter:
             return "pay"
         if any(kw in text_lower for kw in MessageRouter.KEYWORD_CHECK):
             return "check"
-        if any(kw in text_lower for kw in MessageRouter.KEYWORD_MAIN_MENU):
-            return "main_menu"
         if any(kw in text_lower for kw in MessageRouter.KEYWORD_FAQ):
             return "faq"
         if any(kw in text_lower for kw in MessageRouter.KEYWORD_SUPPORT):
