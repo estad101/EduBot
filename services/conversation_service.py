@@ -324,9 +324,9 @@ class MessageRouter:
 
         # Handle cancel command
         if intent == "cancel":
-            greeting = f"Welcome back, {first_name}!" if first_name else "Welcome to Study Bot!"
+            greeting = f"Hey {first_name}!" if first_name else "Hey there!"
             return (
-                f"👋 {greeting}\n\nChoose an option below to continue.",
+                f"{greeting}\n\nWhat would you like to do?",
                 ConversationState.IDLE,
             )
 
@@ -542,8 +542,16 @@ class MessageRouter:
                 )
 
         else:
-            return (
-                f"❓ I didn't quite understand that.\n\n"
-                f"Choose an option above or tap 'Help' for available commands.",
-                ConversationState.IDLE,
-            )
+            # Default response for unknown intent on main menu
+            if current_state in [ConversationState.INITIAL, ConversationState.IDLE, ConversationState.IDENTIFYING]:
+                greeting = f"Hey {first_name}!" if first_name else "Hey there!"
+                return (
+                    f"{greeting}\n\nWhat would you like to do?",
+                    ConversationState.IDLE,
+                )
+            else:
+                return (
+                    f"❓ I didn't quite understand that.\n\n"
+                    f"Choose an option above to continue.",
+                    ConversationState.IDLE,
+                )
