@@ -245,8 +245,15 @@ async def whatsapp_webhook(request: Request, db: Session = Depends(get_db)):
                                 logger.info(f"✓ Image saved successfully: {file_path}")
                                 logger.info(f"   File size: {actual_size} bytes")
                                 
-                                # Store relative path for database
-                                file_path = os.path.relpath(file_path)
+                                # Store relative path for database (without 'uploads/' prefix)
+                                # Format: homework/{student_id}/homework_*.jpg
+                                relative_path = os.path.relpath(file_path)
+                                # Remove 'uploads/' prefix if present
+                                if relative_path.startswith('uploads/') or relative_path.startswith('uploads\\'):
+                                    relative_path = relative_path[8:]  # Remove 'uploads/'
+                                # Normalize path separators to forward slash
+                                relative_path = relative_path.replace('\\', '/')
+                                file_path = relative_path
                                 submission_content = f"Image submission: {message_data.get('image_id')}"
                             else:
                                 logger.error(f"❌ File not found after write: {file_path}")
