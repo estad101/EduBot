@@ -183,13 +183,22 @@ if os.path.exists(admin_static_path):
     app.mount("/admin/static", StaticFiles(directory=admin_static_path), name="admin_static")
 
 # Mount uploads directory for homework file access
-uploads_path = os.path.join(os.path.dirname(__file__), "uploads")
-if os.path.exists(uploads_path):
-    app.mount("/uploads", StaticFiles(directory=uploads_path), name="uploads")
+# Try Railway volume path first, fallback to local
+uploads_path = None
+railway_uploads = "/app/uploads"
+local_uploads = os.path.join(os.path.dirname(__file__), "uploads")
+
+# On Railway, use persistent volume path
+if os.path.exists(railway_uploads):
+    uploads_path = railway_uploads
+    logger.info(f"Using Railway persistent volume: {uploads_path}")
 else:
-    os.makedirs(uploads_path, exist_ok=True)
-    logger.info(f"Created uploads directory at {uploads_path}")
-    app.mount("/uploads", StaticFiles(directory=uploads_path), name="uploads")
+    uploads_path = local_uploads
+    logger.info(f"Using local uploads directory: {uploads_path}")
+
+# Ensure directory exists
+os.makedirs(uploads_path, exist_ok=True)
+app.mount("/uploads", StaticFiles(directory=uploads_path), name="uploads")
 
 
 # File serving endpoint with security
@@ -198,25 +207,34 @@ async def get_file(file_path: str):
     """
     Serve uploaded files with security checks.
     Prevents directory traversal attacks.
+    Works with Railway persistent volume and local uploads.
     """
     # Security: prevent directory traversal
     if ".." in file_path or file_path.startswith("/"):
         raise HTTPException(status_code=403, detail="Access denied")
     
-    # Construct full file path
-    full_path = os.path.join(os.path.dirname(__file__), "uploads", file_path)
+    # Try to find file in Railway volume or local directory
+    railway_uploads = "/app/uploads"
+    local_uploads = os.path.join(os.path.dirname(__file__), "uploads")
     
-    # Verify file exists and is within uploads directory
+    # Construct full file path - try Railway first
+    full_path = os.path.join(railway_uploads, file_path) if os.path.exists(railway_uploads) else os.path.join(local_uploads, file_path)
+    
+    # Verify file exists and is within appropriate uploads directory
     abs_path = os.path.abspath(full_path)
-    uploads_abs = os.path.abspath(os.path.join(os.path.dirname(__file__), "uploads"))
     
-    if not abs_path.startswith(uploads_abs):
+    # Check against both possible upload directories
+    railway_abs = os.path.abspath(railway_uploads)
+    local_abs = os.path.abspath(local_uploads)
+    
+    if not (abs_path.startswith(railway_abs) or abs_path.startswith(local_abs)):
         raise HTTPException(status_code=403, detail="Access denied")
     
     if not os.path.exists(abs_path):
+        logger.warning(f"File not found: {full_path} (abs: {abs_path})")
         raise HTTPException(status_code=404, detail="File not found")
     
-    # Serve the file
+    logger.info(f"Serving file: {abs_path}")
     return FileResponse(abs_path)
 
 
