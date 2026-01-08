@@ -74,17 +74,19 @@ export default function LeadsPage() {
     fetchLeads();
   }, [page, filter, router]);
 
-  const handleDelete = async (leadId: number) => {
-    if (confirm('Are you sure you want to deactivate this lead?')) {
-      try {
-        const response = await apiClient.delete(`/api/admin/leads/${leadId}`);
-        if (response.status === 'success') {
-          setLeads(leads.filter(l => l.id !== leadId));
-          alert('Lead deactivated successfully');
-        }
-      } catch (err) {
-        alert('Failed to deactivate lead');
+  const handleDelete = async (leadId: number, phoneNumber: string) => {
+    if (!confirm(`Are you sure you want to permanently delete this lead (${phoneNumber})? This cannot be undone.`)) {
+      return;
+    }
+
+    try {
+      const response = await apiClient.delete(`/api/admin/leads/${leadId}`);
+      if (response.status === 'success') {
+        setLeads(leads.filter(l => l.id !== leadId));
+        alert('Lead permanently deleted');
       }
+    } catch (err: any) {
+      alert(`Failed to delete lead: ${err.message || 'Unknown error'}`);
     }
   };
 
@@ -252,10 +254,10 @@ export default function LeadsPage() {
                         <i className="fas fa-eye mr-1"></i>View
                       </button>
                       <button
-                        onClick={() => handleDelete(lead.id)}
+                        onClick={() => handleDelete(lead.id, lead.phone_number)}
                         className="text-red-600 hover:text-red-800 font-medium"
                       >
-                        <i className="fas fa-trash mr-1"></i>Remove
+                        <i className="fas fa-trash mr-1"></i>Delete
                       </button>
                     </td>
                   </tr>

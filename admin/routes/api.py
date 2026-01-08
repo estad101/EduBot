@@ -1364,25 +1364,29 @@ async def convert_lead_to_student(
 
 @router.delete("/leads/{lead_id}")
 async def delete_lead(lead_id: int, db: Session = Depends(get_db)):
-    """Delete or deactivate a lead."""
+    """Hard delete a lead from the database."""
     try:
         lead = db.query(Lead).filter(Lead.id == lead_id).first()
         
         if not lead:
             raise HTTPException(status_code=404, detail="Lead not found")
         
-        # Soft delete - mark as inactive
-        LeadService.deactivate_lead(db, lead.phone_number)
+        phone_number = lead.phone_number
         
-        logger.info(f"Deactivated lead {lead_id} ({lead.phone_number})")
+        # Hard delete - completely remove from database
+        db.delete(lead)
+        db.commit()
+        
+        logger.info(f"✓ Lead hard deleted: {lead_id} ({phone_number})")
         
         return {
             "status": "success",
-            "message": "Lead deactivated"
+            "message": f"Lead {phone_number} has been permanently deleted"
         }
     except HTTPException:
         raise
     except Exception as e:
+        db.rollback()
         logger.error(f"Error deleting lead: {str(e)}")
         return {
             "status": "error",
