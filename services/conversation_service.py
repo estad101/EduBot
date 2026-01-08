@@ -235,6 +235,7 @@ class MessageRouter:
                 {"id": "faq_homework", "title": "📚 Homework"},
                 {"id": "faq_payment", "title": "💳 Payment"},
                 {"id": "faq_subscription", "title": "⭐ Subscription"},
+                {"id": "cancel", "title": "❌ Menu"},
             ]
 
         # Idle/Initial state buttons
@@ -260,6 +261,7 @@ class MessageRouter:
             return [
                 {"id": "text", "title": "📄 Text"},
                 {"id": "image", "title": "📷 Image"},
+                {"id": "cancel", "title": "❌ Cancel"},
             ]
 
         # Registration complete - main menu
@@ -285,6 +287,18 @@ class MessageRouter:
                 {"id": "check", "title": "📊 Status"},
                 {"id": "faq", "title": "❓ FAQs"},
                 {"id": "support", "title": "💬 Chat Support"},
+            ]
+
+        # Registration flows - collect info with cancel option
+        if current_state in [ConversationState.REGISTERING_NAME, ConversationState.REGISTERING_EMAIL, ConversationState.REGISTERING_CLASS]:
+            return [
+                {"id": "cancel", "title": "❌ Cancel"},
+            ]
+
+        # Homework input flows - collect info with cancel option
+        if current_state in [ConversationState.HOMEWORK_SUBJECT, ConversationState.HOMEWORK_CONTENT]:
+            return [
+                {"id": "cancel", "title": "❌ Cancel"},
             ]
 
         return None
