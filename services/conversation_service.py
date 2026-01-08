@@ -210,21 +210,39 @@ class MessageRouter:
         """
         # STATE-BASED MENUS (CHECKED FIRST - Main menus always show regardless of intent)
         
-        # Idle/Initial state buttons (Main Menu)
+        # Idle/Initial state buttons (Main Menu) - Toggle between FAQ menu and Homework menu
         if current_state in [ConversationState.INITIAL, ConversationState.IDLE, ConversationState.IDENTIFYING]:
-            return [
-                {"id": "faq", "title": "❓ FAQs"},
-                {"id": "support", "title": "💬 Chat Support"},
-                {"id": "cancel", "title": "❌ Back"},
-            ]
+            menu_state = ConversationService.get_data(phone_number, "menu_state") or "faq_menu"
+            
+            if menu_state == "homework_menu":
+                return [
+                    {"id": "homework", "title": "📝 Homework"},
+                    {"id": "pay", "title": "💳 Subscribe"},
+                    {"id": "help", "title": "ℹ️ Help"},
+                ]
+            else:  # faq_menu (default)
+                return [
+                    {"id": "faq", "title": "❓ FAQs"},
+                    {"id": "support", "title": "💬 Chat Support"},
+                    {"id": "cancel", "title": "❌ Back"},
+                ]
 
         # Registration complete - main menu
         if current_state == ConversationState.REGISTERED:
-            return [
-                {"id": "faq", "title": "❓ FAQs"},
-                {"id": "support", "title": "💬 Chat Support"},
-                {"id": "cancel", "title": "❌ Back"},
-            ]
+            menu_state = ConversationService.get_data(phone_number, "menu_state") or "faq_menu"
+            
+            if menu_state == "homework_menu":
+                return [
+                    {"id": "homework", "title": "📝 Homework"},
+                    {"id": "pay", "title": "💳 Subscribe"},
+                    {"id": "help", "title": "ℹ️ Help"},
+                ]
+            else:  # faq_menu (default)
+                return [
+                    {"id": "faq", "title": "❓ FAQs"},
+                    {"id": "support", "title": "💬 Chat Support"},
+                    {"id": "cancel", "title": "❌ Back"},
+                ]
 
         # Homework type selection
         if current_state == ConversationState.HOMEWORK_TYPE:
@@ -243,11 +261,20 @@ class MessageRouter:
 
         # Homework submitted - what's next
         if current_state == ConversationState.HOMEWORK_SUBMITTED:
-            return [
-                {"id": "faq", "title": "❓ FAQs"},
-                {"id": "support", "title": "💬 Chat Support"},
-                {"id": "cancel", "title": "❌ Back"},
-            ]
+            menu_state = ConversationService.get_data(phone_number, "menu_state") or "faq_menu"
+            
+            if menu_state == "homework_menu":
+                return [
+                    {"id": "homework", "title": "📝 Homework"},
+                    {"id": "pay", "title": "💳 Subscribe"},
+                    {"id": "help", "title": "ℹ️ Help"},
+                ]
+            else:  # faq_menu (default)
+                return [
+                    {"id": "faq", "title": "❓ FAQs"},
+                    {"id": "support", "title": "💬 Chat Support"},
+                    {"id": "cancel", "title": "❌ Back"},
+                ]
 
         # Registration flows - collect info with cancel option
         if current_state in [ConversationState.REGISTERING_NAME, ConversationState.REGISTERING_EMAIL, ConversationState.REGISTERING_CLASS]:
@@ -322,8 +349,13 @@ class MessageRouter:
         if student_data and student_data.get("name"):
             first_name = student_data.get("name").split()[0]
 
-        # Handle cancel command
+        # Handle cancel command - Toggle menu state
         if intent == "cancel":
+            # Toggle between faq_menu and homework_menu
+            current_menu = ConversationService.get_data(phone_number, "menu_state") or "faq_menu"
+            new_menu = "homework_menu" if current_menu == "faq_menu" else "faq_menu"
+            ConversationService.set_data(phone_number, "menu_state", new_menu)
+            
             greeting = f"Hey {first_name}!" if first_name else "Hey there!"
             return (
                 f"{greeting}\n\nWhat would you like to do?",
