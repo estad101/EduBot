@@ -194,6 +194,8 @@ class MessageRouter:
     KEYWORD_FAQ = ["faq", "faqs", "frequently asked", "question", "questions"]
     KEYWORD_SUPPORT = ["support", "chat", "help me", "agent", "human", "talk to someone"]
     KEYWORD_MAIN_MENU = ["main_menu", "main menu"]
+    KEYWORD_IMAGE = ["image", "📷", "photo", "picture", "img"]
+    KEYWORD_TEXT = ["text", "📄", "write", "type", "message"]
     KEYWORD_CANCEL = ["cancel", "stop", "reset", "clear", "menu"]
 
     @staticmethod
@@ -302,6 +304,10 @@ class MessageRouter:
             return "pay"
         if any(kw in text_lower for kw in MessageRouter.KEYWORD_CHECK):
             return "check"
+        if any(kw in text_lower for kw in MessageRouter.KEYWORD_IMAGE):
+            return "image"
+        if any(kw in text_lower for kw in MessageRouter.KEYWORD_TEXT):
+            return "text"
         if any(kw in text_lower for kw in MessageRouter.KEYWORD_FAQ):
             return "faq"
         if any(kw in text_lower for kw in MessageRouter.KEYWORD_SUPPORT):
