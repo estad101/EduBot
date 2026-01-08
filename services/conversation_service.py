@@ -324,9 +324,9 @@ class MessageRouter:
 
         # Handle cancel command
         if intent == "cancel":
-            farewell = f"See you soon, {first_name}!" if first_name else "See you!"
+            greeting = f"Welcome back, {first_name}!" if first_name else "Welcome to Study Bot!"
             return (
-                f"👋 {farewell}\n\nYou're back to the main menu. Choose an option above to continue.",
+                f"👋 {greeting}\n\nChoose an option below to continue.",
                 ConversationState.IDLE,
             )
 
