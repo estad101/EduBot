@@ -191,6 +191,7 @@ class MessageRouter:
     KEYWORD_PAY = ["pay", "payment", "subscribe", "buy"]
     KEYWORD_CHECK = ["status", "check", "subscription", "active"]
     KEYWORD_HELP = ["help", "info", "how", "menu", "options"]
+    KEYWORD_FAQ = ["faq", "faqs", "frequently asked", "question", "questions"]
     KEYWORD_CANCEL = ["cancel", "stop", "reset", "clear"]
 
     @staticmethod
@@ -213,14 +214,22 @@ class MessageRouter:
                     {"id": "homework", "title": "📝 Homework"},
                     {"id": "pay", "title": "💳 Subscribe"},
                     {"id": "check", "title": "📊 Status"},
-                    {"id": "cancel", "title": "❌ Cancel"},
                 ]
             else:
                 return [
                     {"id": "register", "title": "👤 Register"},
                     {"id": "homework", "title": "📝 Homework"},
-                    {"id": "pay", "title": "💳 Subscribe"},
+                    {"id": "help", "title": "ℹ️ Help"},
                 ]
+
+        # FAQ menu buttons
+        if intent == "faq":
+            return [
+                {"id": "faq_register", "title": "📝 Registration"},
+                {"id": "faq_homework", "title": "📚 Homework"},
+                {"id": "faq_payment", "title": "💳 Payment"},
+                {"id": "faq_subscription", "title": "⭐ Subscription"},
+            ]
 
         # Idle/Initial state buttons
         if current_state in [ConversationState.INITIAL, ConversationState.IDLE]:
@@ -233,7 +242,7 @@ class MessageRouter:
             else:
                 return [
                     {"id": "register", "title": "👤 Register"},
-                    {"id": "homework", "title": "📝 Homework"},
+                    {"id": "faq", "title": "❓ FAQs"},
                     {"id": "help", "title": "ℹ️ Help"},
                 ]
 
@@ -290,6 +299,8 @@ class MessageRouter:
             return "pay"
         if any(kw in text_lower for kw in MessageRouter.KEYWORD_CHECK):
             return "check"
+        if any(kw in text_lower for kw in MessageRouter.KEYWORD_FAQ):
+            return "faq"
         if any(kw in text_lower for kw in MessageRouter.KEYWORD_HELP):
             return "help"
         if any(kw in text_lower for kw in MessageRouter.KEYWORD_CANCEL):
@@ -348,6 +359,58 @@ class MessageRouter:
                     f"accessing tutoring services. Choose an option below to get started."
                 )
             return (help_text, ConversationState.IDLE)
+
+        # Handle FAQ command
+        if intent == "faq":
+            faq_text = (
+                "❓ Frequently Asked Questions\n\n"
+                "Select a category below to view answers to common questions."
+            )
+            return (faq_text, ConversationState.IDLE)
+
+        # Handle specific FAQ categories
+        if intent in ["faq_register", "faq_homework", "faq_payment", "faq_subscription"]:
+            if "register" in intent:
+                faq_text = (
+                    "📝 Registration FAQs\n\n"
+                    "Q: How do I create an account?\n"
+                    "A: Tap 'Register' and follow the prompts. You'll need your name, email, and class/grade.\n\n"
+                    "Q: Is registration free?\n"
+                    "A: Yes! Creating an account is completely free.\n\n"
+                    "Q: Can I change my details later?\n"
+                    "A: Contact our support team for account changes."
+                )
+            elif "homework" in intent:
+                faq_text = (
+                    "📚 Homework FAQs\n\n"
+                    "Q: Can I submit homework as text or image?\n"
+                    "A: Yes! Choose text for typed answers or image for handwritten/picture submissions.\n\n"
+                    "Q: How long does it take to get solutions?\n"
+                    "A: A tutor will review and respond within 24 hours.\n\n"
+                    "Q: Is there a limit to submissions?\n"
+                    "A: Free users can submit with payment per homework. Subscribers have unlimited submissions."
+                )
+            elif "payment" in intent:
+                faq_text = (
+                    "💳 Payment FAQs\n\n"
+                    "Q: What payment methods do you accept?\n"
+                    "A: We accept Paystack payments (card, bank transfer, USSD).\n\n"
+                    "Q: Is my payment information secure?\n"
+                    "A: Yes! We use Paystack's secure payment gateway.\n\n"
+                    "Q: Can I get a refund?\n"
+                    "A: Refund requests are handled on a case-by-case basis."
+                )
+            elif "subscription" in intent:
+                faq_text = (
+                    "⭐ Subscription FAQs\n\n"
+                    "Q: How much is the monthly subscription?\n"
+                    "A: ₦5,000/month for unlimited homework submissions.\n\n"
+                    "Q: Can I cancel my subscription?\n"
+                    "A: Yes, you can cancel anytime without penalty.\n\n"
+                    "Q: Do I get tutor support with subscription?\n"
+                    "A: Yes! Subscribers get priority support from tutors."
+                )
+            return (faq_text, ConversationState.IDLE)
 
         # Initial state - user hasn't chosen action
         if current_state == ConversationState.INITIAL or current_state == ConversationState.IDLE:
