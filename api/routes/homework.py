@@ -2,7 +2,7 @@
 Homework submission endpoint.
 """
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, FileResponse
 from sqlalchemy.orm import Session
 import os
 import time
@@ -484,4 +484,62 @@ async def upload_homework_image(
                 "status": "error",
                 "error": f"Upload failed: {str(e)}"
             }
+        )
+
+
+@router.get("/{student_id}/image/{filename}")
+async def get_homework_image(student_id: int, filename: str):
+    """
+    Serve uploaded homework images.
+    
+    Access images at: /api/homework/{student_id}/image/{filename}
+    Example: /api/homework/6/image/homework_1767891852097.png
+    """
+    try:
+        logger.info(f"📸 Image request: student_id={student_id}, filename={filename}")
+        
+        # Validate filename to prevent directory traversal attacks
+        if ".." in filename or "/" in filename or "\\" in filename:
+            logger.warning(f"❌ Invalid filename: {filename}")
+            return JSONResponse(
+                status_code=400,
+                content={"status": "error", "error": "Invalid filename"}
+            )
+        
+        # Check both Railway and local paths
+        railway_path = f"/app/uploads/homework/{student_id}/{filename}"
+        local_path = f"uploads/homework/{student_id}/{filename}"
+        
+        # Use Railway path if it exists, otherwise try local
+        if os.path.exists(railway_path):
+            file_path = railway_path
+            location = "Railway"
+        elif os.path.exists(local_path):
+            file_path = local_path
+            location = "Local"
+        else:
+            logger.warning(f"❌ Image not found: {railway_path} or {local_path}")
+            return JSONResponse(
+                status_code=404,
+                content={"status": "error", "error": "Image not found"}
+            )
+        
+        logger.info(f"✓ Serving image from {location}: {file_path}")
+        
+        # Get file size
+        file_size = os.path.getsize(file_path)
+        logger.info(f"   File size: {file_size} bytes")
+        
+        # Return file with proper MIME type
+        return FileResponse(
+            path=file_path,
+            media_type="image/jpeg",  # or detect from extension
+            headers={"Content-Disposition": f"inline; filename={filename}"}
+        )
+        
+    except Exception as e:
+        logger.error(f"❌ Error serving image: {str(e)}")
+        return JSONResponse(
+            status_code=500,
+            content={"status": "error", "error": f"Error serving image: {str(e)}"}
         )
