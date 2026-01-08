@@ -152,6 +152,10 @@ async def whatsapp_webhook(request: Request, db: Session = Depends(get_db)):
         elif next_state and next_state.value == "homework_submitted":
             if student:
                 homework_data = ConversationService.get_homework_data(phone_number)
+                logger.info(f"Processing homework submission for {phone_number}")
+                logger.info(f"  Subject: {homework_data.get('subject')}")
+                logger.info(f"  Type: {homework_data.get('submission_type')}")
+                logger.info(f"  Content length: {len(str(homework_data.get('content', '')))}")
                 
                 # Download image if image submission
                 file_path = None
@@ -181,6 +185,12 @@ async def whatsapp_webhook(request: Request, db: Session = Depends(get_db)):
                 try:
                     from services.homework_service import HomeworkService
 
+                    logger.info(f"Submitting homework with:")
+                    logger.info(f"  student_id: {student.id}")
+                    logger.info(f"  subject: {homework_data.get('subject')}")
+                    logger.info(f"  submission_type: {homework_data.get('submission_type')}")
+                    logger.info(f"  file_path: {file_path}")
+                    
                     homework = HomeworkService.submit_homework(
                         db,
                         student_id=student.id,
@@ -190,6 +200,8 @@ async def whatsapp_webhook(request: Request, db: Session = Depends(get_db)):
                         file_path=file_path,
                         payment_required=False,  # Disabled for now
                     )
+                    
+                    logger.info(f"✓ Homework created: {homework.id}")
 
                     # Auto-assign to tutor (no payment needed)
                     from services.tutor_service import TutorService
@@ -210,7 +222,7 @@ async def whatsapp_webhook(request: Request, db: Session = Depends(get_db)):
                     ConversationService.reset_homework_state(phone_number)
 
                 except Exception as e:
-                    logger.error(f"Error submitting homework: {str(e)}")
+                    logger.error(f"Error submitting homework: {str(e)}", exc_info=True)
                     response_text = "❌ Error submitting homework. Please try again."
             else:
                 response_text = "❌ You need to register first!"

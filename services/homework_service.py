@@ -23,6 +23,7 @@ class HomeworkService:
         file_path: Optional[str] = None,
         payment_type: str = "ONE_TIME",
         payment_id: Optional[int] = None,
+        payment_required: bool = False,
     ) -> Homework:
         """
         Submit homework.
@@ -36,6 +37,7 @@ class HomeworkService:
             file_path: File path (for IMAGE submissions)
             payment_type: ONE_TIME or SUBSCRIPTION
             payment_id: Payment ID (for one-time payments)
+            payment_required: Whether payment is required (default False)
         
         Returns:
             Created Homework object
