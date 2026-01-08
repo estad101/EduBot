@@ -8,9 +8,12 @@ import { apiClient } from '../lib/api-client';
 interface Homework {
   id: number;
   student_id: number;
+  student_name: string;
+  student_class: string;
   subject: string;
   submission_type: string;
   content: string;
+  file_path?: string;
   created_at: string;
 }
 
@@ -67,7 +70,8 @@ export default function HomeworkPage() {
             <table className="w-full">
               <thead className="bg-gray-50 border-b">
                 <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase">Student ID</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase">Student Name</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase">Class</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase">Subject</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase">Type</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase">Content</th>
@@ -77,7 +81,8 @@ export default function HomeworkPage() {
               <tbody>
                 {homeworks.map((hw) => (
                   <tr key={hw.id} className="border-b hover:bg-gray-50 transition">
-                    <td className="px-6 py-4 text-sm font-medium text-gray-900">{hw.student_id}</td>
+                    <td className="px-6 py-4 text-sm font-medium text-gray-900">{hw.student_name}</td>
+                    <td className="px-6 py-4 text-sm text-gray-600">{hw.student_class}</td>
                     <td className="px-6 py-4 text-sm text-gray-600">{hw.subject}</td>
                     <td className="px-6 py-4 text-sm">
                       <span

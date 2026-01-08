@@ -559,7 +559,12 @@ async def list_homework(
             {
                 "id": h.id,
                 "student_id": h.student_id,
+                "student_name": h.student.full_name if h.student else "Unknown",
+                "student_class": h.student.class_grade if h.student else "Unknown",
+                "subject": h.subject,
                 "submission_type": h.submission_type.value if h.submission_type else "text",
+                "content": h.content,
+                "file_path": h.file_path,
                 "status": "submitted",
                 "created_at": h.created_at.isoformat() if h.created_at else None
             }
