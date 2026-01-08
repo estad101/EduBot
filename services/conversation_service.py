@@ -555,6 +555,14 @@ class MessageRouter:
                     ConversationState.REGISTERED,
                 )
 
+        # Main menu - show welcome and main options
+        elif intent == "main_menu":
+            greeting = f"Welcome back, {first_name}! 👋" if first_name else "Welcome back! 👋"
+            return (
+                f"{greeting}\n\nWhat would you like to do?",
+                ConversationState.REGISTERED,
+            )
+
         # Homework flow
         elif current_state == ConversationState.HOMEWORK_SUBJECT:
             ConversationService.set_data(phone_number, "homework_subject", message_text)
