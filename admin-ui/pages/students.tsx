@@ -61,10 +61,15 @@ export default function StudentsPage() {
         // Remove student from list
         setStudents(students.filter(s => s.id !== studentId));
         setTotalCount(totalCount - 1);
-        alert('Student deleted successfully');
+        alert(`✓ ${studentName} has been deleted successfully`);
+      } else {
+        alert(`Failed to delete student: ${response.message || 'Unknown error'}`);
       }
     } catch (err: any) {
-      setError(err.message || 'Failed to delete student');
+      console.error('Delete error:', err);
+      const errorMsg = err.response?.data?.detail || err.message || 'Failed to delete student';
+      alert(`❌ Error: ${errorMsg}`);
+      setError(errorMsg);
     }
   };
 

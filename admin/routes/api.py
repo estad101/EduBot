@@ -465,26 +465,40 @@ async def get_student(student_id: int, db: Session = Depends(get_db)):
 
 @router.delete("/students/{student_id}")
 async def delete_student(student_id: int, db: Session = Depends(get_db)):
-    """Hard delete a student from the database."""
+    """Hard delete a student from the database (cascades to related records)."""
     student = db.query(Student).filter_by(id=student_id).first()
     if not student:
         raise HTTPException(status_code=404, detail="Student not found")
     
     try:
-        # Delete the student (hard delete)
+        student_name = student.full_name
+        student_phone = student.phone_number
+        
+        # Delete related records will be cascaded automatically by SQLAlchemy
+        # This includes:
+        # - Homeworks (student_id) - CASCADE
+        # - Subscriptions (student_id) - CASCADE
+        # - Payments (student_id) - CASCADE
+        
+        logger.info(f"🗑️ Deleting student: {student_id} ({student_name})")
         db.delete(student)
         db.commit()
         
-        logger.info(f"✓ Student deleted: {student_id} ({student.full_name})")
+        logger.info(f"✓ Student successfully deleted: {student_id} ({student_name}) - {student_phone}")
         
         return {
             "status": "success",
-            "message": f"Student {student.full_name} has been permanently deleted"
+            "message": f"Student {student_name} and all related records have been permanently deleted"
         }
     except Exception as e:
         db.rollback()
-        logger.error(f"Error deleting student {student_id}: {str(e)}")
-        raise HTTPException(status_code=500, detail="Failed to delete student")
+        logger.error(f"❌ Error deleting student {student_id}: {str(e)}")
+        import traceback
+        logger.error(traceback.format_exc())
+        raise HTTPException(
+            status_code=500, 
+            detail=f"Failed to delete student: {str(e)}"
+        )
 
 
 # ==================== PAYMENTS ENDPOINTS ====================
@@ -676,25 +690,6 @@ async def update_student_status(
         }
     except ValueError:
         raise HTTPException(status_code=400, detail="Invalid status")
-
-
-@router.delete("/students/{student_id}")
-async def delete_student(student_id: int, db: Session = Depends(get_db)):
-    """Soft delete a student (mark as inactive)."""
-    student = db.query(Student).filter_by(id=student_id).first()
-    if not student:
-        raise HTTPException(status_code=404, detail="Student not found")
-    
-    student.is_active = False
-    student.updated_at = datetime.utcnow()
-    db.commit()
-    
-    logger.info(f"Deactivated student {student_id}")
-    
-    return {
-        "status": "success",
-        "message": "Student deactivated"
-    }
 
 
 # ==================== PAYMENTS API ====================
