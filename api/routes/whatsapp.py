@@ -113,6 +113,18 @@ async def whatsapp_webhook(request: Request, db: Session = Depends(get_db)):
                         class_grade=reg_data["class_grade"],
                     )
                     logger.info(f"Registered new student: {phone_number}")
+                    
+                    # Mark the lead as converted
+                    try:
+                        LeadService.convert_lead_to_student(
+                            db,
+                            phone_number=phone_number,
+                            student_id=student.id
+                        )
+                        logger.info(f"Lead {phone_number} marked as converted to student {student.id}")
+                    except ValueError:
+                        # Lead might not exist if user registered through webhook
+                        logger.info(f"No existing lead for {phone_number} - direct webhook registration")
                 except Exception as e:
                     logger.error(f"Error registering student: {str(e)}")
                     response_text = "❌ Error during registration. Please try again."

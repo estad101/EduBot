@@ -6,6 +6,7 @@ from sqlalchemy.orm import Session
 from schemas.student import StudentRegistrationRequest
 from schemas.response import StudentRegistrationResponse, StandardResponse
 from services.student_service import StudentService
+from services.lead_service import LeadService
 from config.database import get_db
 from utils.logger import get_logger
 
@@ -65,6 +66,21 @@ async def register_student(
         )
 
         logger.info(f"Student registered: {student.id} - {student.phone_number}")
+
+        # Mark the lead as converted to student
+        try:
+            LeadService.convert_lead_to_student(
+                db, 
+                phone_number=request.phone_number, 
+                student_id=student.id
+            )
+            logger.info(f"Lead {request.phone_number} marked as converted to student {student.id}")
+        except ValueError:
+            # Lead might not exist if user registered directly without texting first
+            logger.info(f"No lead found for {request.phone_number} - that's okay, direct registration")
+        except Exception as e:
+            logger.warning(f"Failed to mark lead as converted: {str(e)}")
+            # Don't fail registration if lead conversion fails
 
         return StandardResponse(
             status="success",
