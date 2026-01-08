@@ -253,20 +253,11 @@ class MessageRouter:
 
         # Homework submitted - what's next
         if current_state == ConversationState.HOMEWORK_SUBMITTED:
-            menu_state = ConversationService.get_data(phone_number, "menu_state") or "faq_menu" if phone_number else "faq_menu"
-            
-            if menu_state == "homework_menu":
-                return [
-                    {"id": "homework", "title": "📝 Homework"},
-                    {"id": "pay", "title": "💳 Subscribe"},
-                    {"id": "help", "title": "ℹ️ Help"},
-                ]
-            else:  # faq_menu (default)
-                return [
-                    {"id": "faq", "title": "❓ FAQs"},
-                    {"id": "support", "title": "💬 Chat Support"},
-                    {"id": "cancel", "title": "❌ Back"},
-                ]
+            return [
+                {"id": "faq", "title": "❓ FAQs"},
+                {"id": "support", "title": "💬 Chat Support"},
+                {"id": "help", "title": "ℹ️ Help"},
+            ]
 
         # Registration flows - collect info with cancel option
         if current_state in [ConversationState.REGISTERING_NAME, ConversationState.REGISTERING_EMAIL, ConversationState.REGISTERING_CLASS]:
