@@ -114,22 +114,6 @@ export default function DashboardPage() {
 
   return (
     <Layout>
-      {/* Support Alert */}
-      <div className="mb-6 bg-yellow-50 border-l-4 border-yellow-400 rounded-lg p-4">
-        <div className="flex items-start gap-4">
-          <div className="text-2xl text-yellow-600 mt-1">
-            <i className="fas fa-bell"></i>
-          </div>
-          <div className="flex-1">
-            <h3 className="text-yellow-800 font-bold text-lg">🔔 Support Alert</h3>
-            <p className="text-yellow-700 text-sm mt-1">Active support team ready. Users can reach out via Chat Support feature. Monitor conversations for incoming support requests.</p>
-          </div>
-          <Link href="/conversations" className="bg-yellow-600 hover:bg-yellow-700 text-white px-4 py-2 rounded font-medium transition whitespace-nowrap">
-            Check Now
-          </Link>
-        </div>
-      </div>
-
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
         {/* Total Students Card */}
         <div className="bg-white rounded-lg shadow p-6">
