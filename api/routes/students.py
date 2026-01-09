@@ -127,9 +127,8 @@ async def get_all_students(db: Session = Depends(get_db)):
                 "email": student.email,
                 "class_grade": student.class_grade,
                 "status": student.status.value if student.status else "UNKNOWN",
-                "has_active_subscription": student.has_active_subscription,
+                "has_active_subscription": student.status.value == "ACTIVE_SUBSCRIBER" if student.status else False,
                 "created_at": student.created_at.isoformat() if student.created_at else None,
-                "last_message_at": student.last_activity_at.isoformat() if hasattr(student, 'last_activity_at') and student.last_activity_at else None,
             })
         
         logger.info(f"Retrieved {len(students)} students")
@@ -152,7 +151,7 @@ async def get_students_stats(db: Session = Depends(get_db)):
     Returns counts of registered, active, and subscribed students.
     """
     try:
-        from models.student import Student
+        from models.student import Student, UserStatus
         from models.subscription import Subscription
         
         total_students = db.query(Student).count()
@@ -160,9 +159,9 @@ async def get_students_stats(db: Session = Depends(get_db)):
             Subscription.is_active == True
         ).count()
         
-        # Get unique students with active subscriptions
+        # Get unique students with ACTIVE_SUBSCRIBER status
         unique_students_with_subs = db.query(Student).filter(
-            Student.has_active_subscription == True
+            Student.status == UserStatus.ACTIVE_SUBSCRIBER
         ).count()
         
         return StandardResponse(
