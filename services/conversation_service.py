@@ -263,11 +263,9 @@ class MessageRouter:
                 {"id": "main_menu", "title": "📍 Main Menu"},
             ]
 
-        # Registration flows - collect info with main menu option
+        # Registration flows - collect info without menu option
         if current_state in [ConversationState.REGISTERING_NAME, ConversationState.REGISTERING_EMAIL, ConversationState.REGISTERING_CLASS]:
-            return [
-                {"id": "main_menu", "title": "📍 Main Menu"},
-            ]
+            return None
 
         # Homework input flows - collect info with main menu option
         if current_state in [ConversationState.HOMEWORK_SUBJECT, ConversationState.HOMEWORK_CONTENT]:
