@@ -70,10 +70,31 @@ export default function SupportTicketsPage() {
 
   useEffect(() => {
     fetchTickets();
-    // Auto-refresh every 10 seconds
+    // Auto-refresh tickets list every 10 seconds
     const interval = setInterval(fetchTickets, 10000);
     return () => clearInterval(interval);
   }, [router]);
+
+  // Auto-refresh selected ticket every 5 seconds if one is selected
+  useEffect(() => {
+    if (!selectedTicket) return;
+
+    const refreshSelectedTicket = async () => {
+      try {
+        const response = await apiClient.getSupportTicket(selectedTicket.id);
+        if (response.id) {
+          setSelectedTicket(response);
+        } else if (response.data && response.data.id) {
+          setSelectedTicket(response.data);
+        }
+      } catch (err) {
+        console.error('Error auto-refreshing selected ticket:', err);
+      }
+    };
+
+    const interval = setInterval(refreshSelectedTicket, 5000);
+    return () => clearInterval(interval);
+  }, [selectedTicket?.id]);
 
   const handleSelectTicket = async (ticket: SupportTicket) => {
     try {
