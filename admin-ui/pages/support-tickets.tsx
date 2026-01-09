@@ -46,11 +46,23 @@ export default function SupportTicketsPage() {
       }
 
       const response = await apiClient.getOpenSupportTickets(0, 50);
-      if (response.status === 'success') {
-        setTickets(response.data || []);
+      // Handle both response structures
+      if (response.tickets) {
+        // Response has tickets array
+        setTickets(response.tickets);
+      } else if (Array.isArray(response)) {
+        // Response is directly an array
+        setTickets(response);
+      } else if (response.data && Array.isArray(response.data)) {
+        // Response has data property with array
+        setTickets(response.data);
+      } else {
+        setTickets([]);
       }
+      setError(null);
     } catch (err: any) {
       setError(err.message || 'Failed to load support tickets');
+      console.error('Error fetching tickets:', err);
     } finally {
       setLoading(false);
     }
@@ -66,12 +78,18 @@ export default function SupportTicketsPage() {
   const handleSelectTicket = async (ticket: SupportTicket) => {
     try {
       const response = await apiClient.getSupportTicket(ticket.id);
-      if (response.status === 'success') {
+      // Handle different response structures
+      if (response.id) {
+        // Response is the ticket directly
+        setSelectedTicket(response);
+      } else if (response.data && response.data.id) {
+        // Response has data property
         setSelectedTicket(response.data);
-        setNewMessage('');
       }
+      setNewMessage('');
     } catch (err) {
       console.error('Error loading ticket:', err);
+      setError('Failed to load ticket details');
     }
   };
 
@@ -82,16 +100,17 @@ export default function SupportTicketsPage() {
       setSendingMessage(true);
       const response = await apiClient.addSupportMessage(selectedTicket.id, newMessage.trim());
       
-      if (response.status === 'success') {
-        setNewMessage('');
-        // Refresh the selected ticket
-        const ticketResponse = await apiClient.getSupportTicket(selectedTicket.id);
-        if (ticketResponse.status === 'success') {
-          setSelectedTicket(ticketResponse.data);
-        }
+      setNewMessage('');
+      // Refresh the selected ticket regardless of response structure
+      const ticketResponse = await apiClient.getSupportTicket(selectedTicket.id);
+      if (ticketResponse.id) {
+        setSelectedTicket(ticketResponse);
+      } else if (ticketResponse.data && ticketResponse.data.id) {
+        setSelectedTicket(ticketResponse.data);
       }
     } catch (err) {
       console.error('Error sending message:', err);
+      setError('Failed to send message');
     } finally {
       setSendingMessage(false);
     }
