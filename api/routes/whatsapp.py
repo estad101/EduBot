@@ -143,10 +143,9 @@ async def whatsapp_webhook(request: Request, db: Session = Depends(get_db)):
         logger.info(f"  Response text: {response_text[:150] if response_text else 'NONE'}")
         logger.info(f"  Next state: {next_state}")
         
-        # Validate response text
+        # Validate response text - don't use a default message
         if not response_text:
-            logger.error("❌ No response text from MessageRouter - using default message")
-            response_text = "👋 Thanks for your message! Choose an option above to continue."
+            logger.info("ℹ️ No response text from MessageRouter - will send buttons only")
         
         # Update conversation state for next message
         if next_state:
