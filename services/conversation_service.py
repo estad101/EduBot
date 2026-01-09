@@ -370,11 +370,11 @@ class MessageRouter:
             except Exception as e:
                 logger.warning(f"Could not close support ticket: {str(e)}")
             
-            greeting = f"Hey {first_name}!" if first_name else "Hey there!"
+            # Return to welcome page
             return (
-                f"{greeting}\n\n✅ Chat ended. What would you like to do?",
-                ConversationState.IDLE if not student_data else ConversationState.REGISTERED,
-            )
+                "👋 Welcome! I'm EduBot, your AI tutor assistant.\n\nTo get started, let's create your free account!\n\n👤 What is your full name?",
+                ConversationState.INITIAL,
+            )            )
 
         # Handle cancel command - Toggle menu state
         if intent == "cancel":
