@@ -1473,6 +1473,7 @@ async def get_conversations(limit: int = Query(20, ge=1, le=100), db: Session = 
                 # Get conversation state to find last message
                 conv_state = ConversationService.get_state(student.phone_number)
                 messages = conv_state.get("data", {}).get("messages", [])
+                is_chat_support = conv_state.get("data", {}).get("chat_support_active", False)
                 
                 # Determine if fully registered
                 is_fully_registered = (
@@ -1502,7 +1503,8 @@ async def get_conversations(limit: int = Query(20, ge=1, le=100), db: Session = 
                     "last_message_time": last_message_time,
                     "message_count": len(messages),
                     "is_active": True,
-                    "type": "student" if is_fully_registered else "lead"
+                    "type": "student" if is_fully_registered else "lead",
+                    "is_chat_support": is_chat_support
                 })
                 
                 conversation_phones.add(student.phone_number)
@@ -1524,6 +1526,7 @@ async def get_conversations(limit: int = Query(20, ge=1, le=100), db: Session = 
                 try:
                     conv_state = ConversationService.get_state(lead.phone_number)
                     messages = conv_state.get("data", {}).get("messages", [])
+                    is_chat_support = conv_state.get("data", {}).get("chat_support_active", False)
                     
                     conversations.append({
                         "phone_number": lead.phone_number,
@@ -1532,7 +1535,8 @@ async def get_conversations(limit: int = Query(20, ge=1, le=100), db: Session = 
                         "last_message_time": lead.last_message_time.isoformat(),
                         "message_count": lead.message_count,
                         "is_active": True,
-                        "type": "lead"
+                        "type": "lead",
+                        "is_chat_support": is_chat_support
                     })
                     
                     conversation_phones.add(lead.phone_number)
