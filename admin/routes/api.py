@@ -1634,3 +1634,152 @@ async def get_conversation_messages(phone_number: str, db: Session = Depends(get
             "status": "success",
             "data": []
         }
+
+
+@router.post("/conversations/{phone_number}/chat-support/send")
+async def send_chat_support_message(
+    phone_number: str,
+    request_body: dict = Body(...),
+    db: Session = Depends(get_db)
+):
+    """
+    Admin sends a message to a user in active chat support.
+    
+    Request body:
+    {
+        "message": "Your support message here"
+    }
+    """
+    try:
+        from services.conversation_service import ConversationService
+        from services.whatsapp_service import WhatsAppService
+        
+        message_text = request_body.get("message", "").strip()
+        
+        if not message_text:
+            return {
+                "status": "error",
+                "message": "Message cannot be empty"
+            }
+        
+        # Check if user is in active chat support
+        conv_state = ConversationService.get_state(phone_number)
+        is_in_chat = conv_state.get("data", {}).get("chat_support_active", False)
+        
+        if not is_in_chat:
+            return {
+                "status": "error",
+                "message": "User is not in an active chat support session"
+            }
+        
+        # Send message via WhatsApp
+        result = await WhatsAppService.send_message(
+            phone_number=phone_number,
+            message_text=f"🎧 Support Team: {message_text}",
+            buttons=None
+        )
+        
+        if result.get("status") == "success":
+            # Store admin message in conversation
+            chat_messages = ConversationService.get_data(phone_number, "chat_messages") or []
+            if isinstance(chat_messages, str):
+                chat_messages = []
+            
+            chat_messages.append({
+                "text": message_text,
+                "timestamp": datetime.now().isoformat(),
+                "sender": "admin"
+            })
+            ConversationService.set_data(phone_number, "chat_messages", chat_messages)
+            
+            logger.info(f"Admin sent chat support message to {phone_number}")
+            
+            return {
+                "status": "success",
+                "message": "Message sent to user",
+                "data": {
+                    "phone_number": phone_number,
+                    "message_sent": message_text,
+                    "timestamp": datetime.now().isoformat()
+                }
+            }
+        else:
+            logger.warning(f"Failed to send chat message to {phone_number}: {result.get('error')}")
+            return {
+                "status": "error",
+                "message": f"Failed to send message: {result.get('error')}"
+            }
+    
+    except Exception as e:
+        logger.error(f"Error sending chat support message: {str(e)}")
+        return {
+            "status": "error",
+            "message": f"Error sending message: {str(e)}"
+        }
+
+
+@router.post("/conversations/{phone_number}/chat-support/end")
+async def end_chat_support(
+    phone_number: str,
+    request_body: dict = Body(...) ,
+    db: Session = Depends(get_db)
+):
+    """
+    Admin ends a chat support session with a user.
+    
+    Request body:
+    {
+        "message": "Optional closing message to send to user"
+    }
+    """
+    try:
+        from services.conversation_service import ConversationService, ConversationState
+        from services.whatsapp_service import WhatsAppService
+        
+        closing_message = request_body.get("message", "Thank you for contacting support. Chat session ended.")
+        
+        # Check if user is in active chat support
+        conv_state = ConversationService.get_state(phone_number)
+        is_in_chat = conv_state.get("data", {}).get("chat_support_active", False)
+        
+        if not is_in_chat:
+            return {
+                "status": "error",
+                "message": "User is not in an active chat support session"
+            }
+        
+        # Send closing message to user
+        try:
+            await WhatsAppService.send_message(
+                phone_number=phone_number,
+                message_text=closing_message,
+                buttons=[
+                    {"id": "main_menu", "title": "📍 Main Menu"}
+                ]
+            )
+        except Exception as msg_err:
+            logger.warning(f"Could not send closing message: {str(msg_err)}")
+        
+        # Update conversation state
+        ConversationService.set_data(phone_number, "chat_support_active", False)
+        ConversationService.set_data(phone_number, "in_chat_support", False)
+        ConversationService.set_data(phone_number, "chat_messages", None)
+        ConversationService.set_state(phone_number, ConversationState.IDLE)
+        
+        logger.info(f"Admin ended chat support session with {phone_number}")
+        
+        return {
+            "status": "success",
+            "message": "Chat support session ended",
+            "data": {
+                "phone_number": phone_number,
+                "session_ended": datetime.now().isoformat()
+            }
+        }
+    
+    except Exception as e:
+        logger.error(f"Error ending chat support: {str(e)}")
+        return {
+            "status": "error",
+            "message": f"Error ending chat: {str(e)}"
+        }
