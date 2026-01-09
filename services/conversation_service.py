@@ -580,13 +580,9 @@ class MessageRouter:
                 # This is handled above
                 pass
             else:
-                # User is still chatting - add message to support ticket
-                response = (
-                    "💬 Your message has been sent to our support team.\n\n"
-                    "They'll respond as soon as possible.\n\n"
-                    "Reply anytime or tap 'End Chat' when done."
-                )
-                return (response, ConversationState.CHAT_SUPPORT)
+                # User is still chatting - no automatic message
+                # Only the customer rep response will be sent
+                return ("", ConversationState.CHAT_SUPPORT)
 
         # Main menu - show welcome and main options (CHECK BEFORE REGISTERED STATE)
         elif intent == "main_menu":

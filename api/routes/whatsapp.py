@@ -10,7 +10,7 @@ import json
 import logging
 import time
 
-from config.database import get_db
+from config.database import get_db, SessionLocal
 from services.whatsapp_service import WhatsAppService
 from services.conversation_service import ConversationService, MessageRouter, ConversationState
 from services.student_service import StudentService
@@ -365,6 +365,43 @@ async def whatsapp_webhook(request: Request, db: Session = Depends(get_db)):
                         sender_name=sender_name,
                     )
                     logger.info(f"✓ User message added to ticket #{ticket_id}")
+                    
+                    # Schedule a delayed notification if no admin response within 1 minute
+                    import asyncio
+                    import threading
+                    
+                    def send_delayed_notification():
+                        import time
+                        time.sleep(60)  # Wait 1 minute
+                        
+                        # Check if admin has responded
+                        try:
+                            db_check = SessionLocal()
+                            messages = SupportService.get_ticket_messages(db_check, ticket_id)
+                            db_check.close()
+                            
+                            # Check if there's any admin message after this user message
+                            admin_responded = False
+                            for msg in messages:
+                                if msg.sender_type == "admin":
+                                    admin_responded = True
+                                    break
+                            
+                            if not admin_responded:
+                                # Send notification
+                                asyncio.run(WhatsAppService.send_message(
+                                    phone_number=phone_number,
+                                    message_type="text",
+                                    text="💬 Your message has been sent to our support team.\n\nThey'll respond as soon as possible."
+                                ))
+                                logger.info(f"✓ Delayed notification sent to {phone_number}")
+                        except Exception as e:
+                            logger.warning(f"⚠️ Could not send delayed notification: {str(e)}")
+                    
+                    # Start background thread
+                    thread = threading.Thread(target=send_delayed_notification, daemon=True)
+                    thread.start()
+                    
             except Exception as e:
                 logger.warning(f"⚠️ Could not add message to support ticket: {str(e)}")
 
@@ -376,27 +413,29 @@ async def whatsapp_webhook(request: Request, db: Session = Depends(get_db)):
             phone_number=phone_number
         )
 
-        # Send response message
+        # Send response message (only if there's content)
         try:
             logger.info(f"📤 Sending message to {phone_number}")
-            logger.info(f"   Message text: {response_text[:100]}...")
+            logger.info(f"   Message text: {response_text[:100] if response_text else 'EMPTY'}...")
             logger.info(f"   Has buttons: {buttons is not None and len(buttons) > 0}")
             
-            # Send interactive message if buttons available, otherwise text
-            if buttons and len(buttons) > 0:
-                logger.info(f"   Sending with {len(buttons)} buttons")
-                result = await WhatsAppService.send_interactive_message(
-                    phone_number=phone_number,
-                    body_text=response_text,
-                    buttons=buttons,
-                )
-            else:
-                logger.info(f"   Sending as text message")
-                result = await WhatsAppService.send_message(
-                    phone_number=phone_number,
-                    message_type="text",
-                    text=response_text,
-                )
+            # Only send if response has content
+            if response_text:
+                # Send interactive message if buttons available, otherwise text
+                if buttons and len(buttons) > 0:
+                    logger.info(f"   Sending with {len(buttons)} buttons")
+                    result = await WhatsAppService.send_interactive_message(
+                        phone_number=phone_number,
+                        body_text=response_text,
+                        buttons=buttons,
+                    )
+                else:
+                    logger.info(f"   Sending as text message")
+                    result = await WhatsAppService.send_message(
+                        phone_number=phone_number,
+                        message_type="text",
+                        text=response_text,
+                    )
             
             logger.info(f"   Result: {result.get('status')}")
             
