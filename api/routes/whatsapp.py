@@ -119,10 +119,6 @@ async def whatsapp_webhook(request: Request, db: Session = Depends(get_db)):
             logger.info(f"Prompting unregistered user {phone_number} to register")
             response_text = (
                 "👋 Welcome! I'm EduBot, your AI tutor assistant.\n\n"
-                "I can help you with:\n"
-                "📝 Homework submissions\n"
-                "💳 Premium subscription\n"
-                "❓ FAQs and support\n\n"
                 "To get started, let's create your free account!\n\n"
                 "👤 What is your full name?"
             )
