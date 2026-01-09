@@ -32,6 +32,8 @@ async def lifespan(app: FastAPI):
     """Manage application lifespan."""
     # Startup
     logger.info("Starting WhatsApp Chatbot API")
+    logger.info(f"Environment: {settings.environment}")
+    logger.info(f"Database URL: {settings.database_url.split('@')[0]}...{settings.database_url.split('/')[-1] if '/' in settings.database_url else 'invalid'}")
     
     # Initialize Sentry for error tracking (non-blocking)
     try:
