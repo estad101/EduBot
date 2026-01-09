@@ -114,20 +114,18 @@ export default function DashboardPage() {
 
   return (
     <Layout>
-      {/* Chat Support Notification Banner */}
-      <div className="mb-6 bg-gradient-to-r from-blue-500 to-blue-600 rounded-lg shadow-lg p-4">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <div className="text-3xl text-white">
-              <i className="fas fa-comments"></i>
-            </div>
-            <div>
-              <h3 className="text-white font-bold text-lg">💬 Chat Support Active</h3>
-              <p className="text-blue-100 text-sm">Users can now chat with support. Check the Conversations page to manage active chats.</p>
-            </div>
+      {/* Support Alert */}
+      <div className="mb-6 bg-yellow-50 border-l-4 border-yellow-400 rounded-lg p-4">
+        <div className="flex items-start gap-4">
+          <div className="text-2xl text-yellow-600 mt-1">
+            <i className="fas fa-bell"></i>
           </div>
-          <Link href="/conversations" className="bg-white text-blue-600 hover:bg-blue-50 px-4 py-2 rounded-lg font-medium transition whitespace-nowrap ml-4">
-            View Chats
+          <div className="flex-1">
+            <h3 className="text-yellow-800 font-bold text-lg">🔔 Support Alert</h3>
+            <p className="text-yellow-700 text-sm mt-1">Active support team ready. Users can reach out via Chat Support feature. Monitor conversations for incoming support requests.</p>
+          </div>
+          <Link href="/conversations" className="bg-yellow-600 hover:bg-yellow-700 text-white px-4 py-2 rounded font-medium transition whitespace-nowrap">
+            Check Now
           </Link>
         </div>
       </div>
