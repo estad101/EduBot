@@ -43,6 +43,13 @@ Name: DEBUG
 Value: False
 ```
 
+#### Variable 6 (IMPORTANT - For file uploads):
+```
+Name: UPLOADS_DIR
+Value: /app/uploads
+```
+⚠️ **This MUST match the Railway volume mount path exactly!**
+
 ### Step 3: Save
 - Each variable should auto-save
 - Watch for the service to redeploy

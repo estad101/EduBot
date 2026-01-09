@@ -68,12 +68,13 @@
 
 ---
 
-### Phase 7: Optional/Legacy
-**Usually can leave these as-is:**
+### Phase 7: File Uploads & Storage
+**Critical for image uploads (Railway volume attached):**
 
-- [ ] **DATABASE_HOST** = `localhost` (not used with DATABASE_URL)
-- [ ] **UPLOADS_DIR** = `uploads`
+- [ ] **UPLOADS_DIR** = `/app/uploads` (⚠️ MUST use this path - Railway volume is mounted here!)
 - [ ] **ALLOWED_IMAGE_TYPES** = `image/jpeg,image/png,image/webp`
+- [ ] **MAX_FILE_SIZE_MB** = `5`
+- [ ] **DATABASE_HOST** = `localhost` (not used with DATABASE_URL)
 - [ ] **SENTRY_DSN** = (leave blank)
 
 ---
@@ -109,6 +110,9 @@ Expected:
 3. **Copy-Paste Carefully** - Values must be exact
 4. **Test Between Phases** - Don't set everything at once
 5. **Use Provided Values** - Don't guess on DATABASE_URL or SECRET_KEY
+6. **⚠️ Volume Critical** - UPLOADS_DIR MUST be `/app/uploads` (the exact mount path)
+7. **File Persistence** - Homework images and uploads persist across deployments via volume
+8. **Test File Upload** - After login, try submitting homework with image to verify uploads work
 
 ---
 
