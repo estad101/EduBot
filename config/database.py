@@ -12,17 +12,23 @@ logger = logging.getLogger(__name__)
 # Create database engine with improved connection handling
 # Use NullPool for Railway to avoid connection pooling issues
 # Railway's MySQL service has its own connection management
-engine = create_engine(
-    settings.database_url,
-    poolclass=NullPool,  # Don't pool connections on Railway
-    echo=settings.debug,
-    connect_args={
-        "charset": "utf8mb4",
-        "use_unicode": True,
-        "autocommit": True,
-        "connect_timeout": 10,
-    },
-)
+try:
+    logger.info(f"Creating database engine with URL: {settings.database_url}")
+    engine = create_engine(
+        settings.database_url,
+        poolclass=NullPool,  # Don't pool connections on Railway
+        echo=settings.debug,
+        connect_args={
+            "charset": "utf8mb4",
+            "use_unicode": True,
+            "autocommit": True,
+            "connect_timeout": 10,
+        },
+    )
+    logger.info("✓ Database engine created successfully (lazy connection)")
+except Exception as e:
+    logger.error(f"✗ Failed to create database engine: {e}")
+    raise
 
 # Don't test connection at startup - it will fail if database is offline
 # Connection will be established when first query is made

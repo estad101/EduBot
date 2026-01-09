@@ -82,6 +82,7 @@ class Settings(BaseSettings):
             db_url = os.getenv("DATABASE_URL")
             if db_url:
                 self.database_url = db_url
+                print(f"[Settings] Using DATABASE_URL from environment")
             else:
                 # Check MYSQL_URL from Railway
                 mysql_url = os.getenv("MYSQL_URL")
@@ -91,9 +92,18 @@ class Settings(BaseSettings):
                         self.database_url = mysql_url.replace("mysql://", "mysql+pymysql://", 1)
                     else:
                         self.database_url = mysql_url
+                    print(f"[Settings] Using MYSQL_URL from Railway environment")
                 else:
                     # Fallback for local development
                     self.database_url = "mysql+pymysql://root:password@localhost:3306/edubot"
+                    print(f"[Settings] WARNING: No DATABASE_URL or MYSQL_URL found. Using local fallback.")
+                    print(f"[Settings] DATABASE_URL: {self.database_url}")
+        
+        # Validate database URL format
+        if not self.database_url:
+            raise ValueError("DATABASE_URL is required but not configured")
+        
+        print(f"[Settings] Database URL configured: {self.database_url.split('@')[0]}...{self.database_url.split('/')[-1]}")
 
 
 # Load settings
