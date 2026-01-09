@@ -77,33 +77,40 @@ class Settings(BaseSettings):
         super().__init__(**data)
         
         # Convert Railway MYSQL_URL to SQLAlchemy format if needed
-        if not self.database_url:
-            # Check DATABASE_URL first
+        if not self.database_url or self.database_url == "":
+            # Priority 1: Check explicit DATABASE_URL
             db_url = os.getenv("DATABASE_URL")
-            if db_url:
+            if db_url and db_url.strip():
                 self.database_url = db_url
-                print(f"[Settings] Using DATABASE_URL from environment")
+                print(f"[Settings] ✓ Using DATABASE_URL from explicit environment variable")
             else:
-                # Check MYSQL_URL from Railway
+                # Priority 2: Check MYSQL_URL from Railway MySQL plugin
                 mysql_url = os.getenv("MYSQL_URL")
-                if mysql_url:
+                if mysql_url and mysql_url.strip():
                     # Railway: mysql://user:pass@host:port/database -> mysql+pymysql://
                     if mysql_url.startswith("mysql://"):
                         self.database_url = mysql_url.replace("mysql://", "mysql+pymysql://", 1)
                     else:
                         self.database_url = mysql_url
-                    print(f"[Settings] Using MYSQL_URL from Railway environment")
+                    print(f"[Settings] ✓ Using MYSQL_URL from Railway MySQL plugin")
                 else:
                     # Fallback for local development
                     self.database_url = "mysql+pymysql://root:password@localhost:3306/edubot"
-                    print(f"[Settings] WARNING: No DATABASE_URL or MYSQL_URL found. Using local fallback.")
-                    print(f"[Settings] DATABASE_URL: {self.database_url}")
+                    print(f"[Settings] ⚠ WARNING: No DATABASE_URL or MYSQL_URL set.")
+                    print(f"[Settings] ⚠ Using LOCAL DEVELOPMENT fallback.")
+                    print(f"[Settings] ⚠ On Railway, add DATABASE_URL to Variables tab")
         
         # Validate database URL format
-        if not self.database_url:
-            raise ValueError("DATABASE_URL is required but not configured")
+        if not self.database_url or not self.database_url.strip():
+            raise ValueError("[ERROR] DATABASE_URL is required but not configured. Cannot initialize application.")
         
-        print(f"[Settings] Database URL configured: {self.database_url.split('@')[0]}...{self.database_url.split('/')[-1]}")
+        # Log final database URL (masked for security)
+        try:
+            url_parts = self.database_url.split('@')
+            safe_url = f"{url_parts[0]}...{self.database_url.split('/')[-1]}"
+            print(f"[Settings] ✓ Database URL configured: {safe_url}")
+        except:
+            print(f"[Settings] ✓ Database URL configured")
 
 
 # Load settings
