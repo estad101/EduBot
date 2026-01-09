@@ -12,7 +12,8 @@ class StandardResponse(BaseModel):
     """
     status: str  # "success", "error", "validation_error"
     message: str
-    data: Optional[Dict[str, Any]] = None
+    data: Optional[Any] = None  # Can be dict, list, or any other type
+    count: Optional[int] = None  # For paginated responses
     error_code: Optional[str] = None
 
     class Config:
