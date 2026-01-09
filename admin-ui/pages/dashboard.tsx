@@ -36,6 +36,7 @@ interface RecentConversation {
   last_message: string;
   last_message_time: string;
   is_active: boolean;
+  is_chat_support?: boolean;
 }
 
 export default function DashboardPage() {
@@ -46,6 +47,7 @@ export default function DashboardPage() {
   const [conversations, setConversations] = useState<RecentConversation[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [unresolvedChats, setUnresolvedChats] = useState(0);
   const { setStats: setDashboardStats } = useDashboardStore();
 
   useEffect(() => {
@@ -81,9 +83,14 @@ export default function DashboardPage() {
         }
 
         // Fetch recent conversations
-        const convResponse = await apiClient.get('/api/admin/conversations?limit=5');
+        const convResponse = await apiClient.get('/api/admin/conversations?limit=100');
         if (convResponse.status === 'success') {
           setConversations(convResponse.data);
+          // Count unresolved chat support requests
+          const unresolved = (convResponse.data as RecentConversation[]).filter(
+            (conv: RecentConversation) => conv.is_chat_support === true
+          ).length;
+          setUnresolvedChats(unresolved);
         }
 
         // Fetch support notifications
@@ -114,6 +121,26 @@ export default function DashboardPage() {
 
   return (
     <Layout>
+      {/* Unresolved Chat Support Notification */}
+      {unresolvedChats > 0 && (
+        <div className="mb-6 bg-red-50 border-l-4 border-red-500 rounded-lg p-4">
+          <div className="flex items-start gap-4">
+            <div className="text-2xl text-red-600 mt-1">
+              <i className="fas fa-exclamation-circle"></i>
+            </div>
+            <div className="flex-1">
+              <h3 className="text-red-800 font-bold text-lg">⚠️ Unresolved Chat Support Requests</h3>
+              <p className="text-red-700 text-sm mt-1">
+                You have <span className="font-bold text-lg">{unresolvedChats}</span> active chat support request{unresolvedChats !== 1 ? 's' : ''} waiting for response.
+              </p>
+            </div>
+            <Link href="/conversations" className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded font-medium transition whitespace-nowrap mt-1">
+              View Chats
+            </Link>
+          </div>
+        </div>
+      )}
+
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
         {/* Total Students Card */}
         <div className="bg-white rounded-lg shadow p-6">
