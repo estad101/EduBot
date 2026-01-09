@@ -413,13 +413,13 @@ async def upload_homework_image(
         logger.info(f"   Location: {location_info}")
         logger.info(f"   Path: {file_path}")
         
-        # Store relative path for database
-        path_parts = file_path.replace('\\', '/').split('/')
-        relative_path = "{}/{}".format(path_parts[-2], path_parts[-1])
-        logger.info(f"   Database path: {relative_path}")
+        # Store ONLY the filename in database (not the full path)
+        # Use homework.student_id to locate directory when serving
+        filename_only = os.path.basename(file_path)
+        logger.info(f"   Database filename: {filename_only}")
         
         # Update homework record
-        homework.file_path = relative_path
+        homework.file_path = filename_only
         homework.submission_type = homework.submission_type  # Keep existing type (should be IMAGE)
         homework.content = f"Image submission uploaded"
         db.commit()
@@ -470,7 +470,8 @@ async def upload_homework_image(
                 "status": "success",
                 "message": "Image uploaded successfully",
                 "homework_id": homework.id,
-                "file_path": relative_path
+                "file_path": homework.file_path,
+                "student_id": homework.student_id
             }
         )
         

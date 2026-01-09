@@ -33,6 +33,7 @@ export default function HomeworkPage() {
   const [error, setError] = useState<string | null>(null);
   const [selectedHomework, setSelectedHomework] = useState<Homework | null>(null);
   const [showModal, setShowModal] = useState(false);
+  const [imageError, setImageError] = useState(false);
 
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
@@ -42,6 +43,9 @@ export default function HomeworkPage() {
   // Filter state
   const [submissionTypeFilter, setSubmissionTypeFilter] = useState('');
   const [subjectFilter, setSubjectFilter] = useState('');
+
+  // Get API URL for image serving
+  const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'https://edubot-production-cf26.up.railway.app';
 
   const totalPages = Math.ceil(totalCount / pageSize);
 
@@ -89,6 +93,7 @@ export default function HomeworkPage() {
   const closeModal = () => {
     setShowModal(false);
     setSelectedHomework(null);
+    setImageError(false);
   };
 
   const handlePreviousPage = () => {
@@ -382,31 +387,60 @@ export default function HomeworkPage() {
                   <h4 className="text-gray-700 font-semibold mb-4">📷 Image Submission</h4>
                   {selectedHomework.file_path ? (
                     <div className="bg-gray-50 rounded-lg p-4">
-                      <div className="flex items-center justify-center min-h-[300px] mb-4">
-                        <img
-                          src={`/uploads/${selectedHomework.file_path}`}
-                          alt="Homework submission"
-                          className="max-w-full max-h-[500px] rounded"
-                          onError={(e) => {
-                            console.error('Failed to load image:', selectedHomework.file_path);
-                            (e.currentTarget as HTMLImageElement).style.display = 'none';
-                          }}
-                        />
-                      </div>
-                      <div className="mt-4 p-4 bg-white rounded border border-gray-300">
-                        <p className="text-sm text-gray-600 mb-2">📁 File Path:</p>
-                        <p className="text-sm font-mono text-gray-900 mb-3 break-all">
-                          {selectedHomework.file_path}
-                        </p>
-                        <a
-                          href={`/uploads/${selectedHomework.file_path}`}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="inline-block px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded text-sm font-medium transition"
-                        >
-                          <i className="fas fa-external-link-alt mr-1"></i>Open Image in New Tab
-                        </a>
-                      </div>
+                      {/* Extract filename from path like "6/homework_1767...png" */}
+                      {(() => {
+                        const filename = selectedHomework.file_path.includes('/') 
+                          ? selectedHomework.file_path.split('/').pop() 
+                          : selectedHomework.file_path;
+                        const imageUrl = `${apiUrl}/api/homework/${selectedHomework.student_id}/image/${filename}`;
+                        
+                        return (
+                          <>
+                            <div className="flex items-center justify-center min-h-[300px] mb-4">
+                              {imageError ? (
+                                <div className="text-center">
+                                  <div className="w-20 h-20 bg-gray-200 rounded-full flex items-center justify-center mx-auto mb-4">
+                                    <i className="fas fa-image text-4xl text-gray-400"></i>
+                                  </div>
+                                  <p className="text-gray-600 font-medium">Unable to load image</p>
+                                  <p className="text-sm text-gray-500 mt-2">The image file may have been deleted or moved.</p>
+                                </div>
+                              ) : (
+                                <img
+                                  src={imageUrl}
+                                  alt="Homework submission"
+                                  className="max-w-full max-h-[500px] rounded"
+                                  onError={() => {
+                                    console.error('Failed to load image from:', imageUrl);
+                                    setImageError(true);
+                                  }}
+                                />
+                              )}
+                            </div>
+                            <div className="mt-4 p-4 bg-white rounded border border-gray-300">
+                              <p className="text-sm text-gray-600 mb-2">📁 File Details:</p>
+                              <div className="grid grid-cols-2 gap-4 text-sm mb-4">
+                                <div>
+                                  <p className="text-gray-500 text-xs uppercase tracking-wide">Filename</p>
+                                  <p className="text-gray-900 font-mono mt-1 break-all">{filename}</p>
+                                </div>
+                                <div>
+                                  <p className="text-gray-500 text-xs uppercase tracking-wide">Student ID</p>
+                                  <p className="text-gray-900 font-mono mt-1">{selectedHomework.student_id}</p>
+                                </div>
+                              </div>
+                              <a
+                                href={imageUrl}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="inline-block px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded text-sm font-medium transition"
+                              >
+                                <i className="fas fa-external-link-alt mr-1"></i>Open Image in New Tab
+                              </a>
+                            </div>
+                          </>
+                        );
+                      })()}
                     </div>
                   ) : (
                     <div className="bg-gray-50 rounded-lg p-6 text-center text-gray-500">
