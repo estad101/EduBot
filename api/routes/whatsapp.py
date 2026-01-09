@@ -16,7 +16,6 @@ from services.conversation_service import ConversationService, MessageRouter, Co
 from services.student_service import StudentService
 from services.lead_service import LeadService
 from services.payment_service import PaymentService
-from services.support_service import SupportService
 from schemas.response import StandardResponse
 
 logger = logging.getLogger(__name__)
@@ -314,68 +313,6 @@ async def whatsapp_webhook(request: Request, background_tasks: BackgroundTasks, 
         # Store last message for preview
         ConversationService.set_data(phone_number, "last_message", message_text)
 
-        # Handle chat support ticket creation
-        if next_state and next_state.value == "chat_support":
-            try:
-                # Check if ticket already exists
-                existing_ticket = SupportService.get_ticket_by_phone(db, phone_number)
-                
-                if not existing_ticket or existing_ticket.status != "OPEN":
-                    # Create new support ticket
-                    ticket = SupportService.create_ticket(
-                        db,
-                        phone_number=phone_number,
-                        sender_name=sender_name,
-                        issue_description=message_text,  # First message is the issue
-                        student_id=student.id if student else None,
-                    )
-                    logger.info(f"📞 Support ticket created: #{ticket.id}")
-                else:
-                    ticket = existing_ticket
-                    logger.info(f"📞 Using existing support ticket: #{ticket.id}")
-                
-                # Add user's message to support ticket
-                if message_text:
-                    SupportService.add_message(
-                        db,
-                        ticket_id=ticket.id,
-                        sender_type="user",
-                        message=message_text,
-                        sender_name=sender_name,
-                    )
-                    logger.info(f"✓ User message added to ticket #{ticket.id}")
-                
-                # Store ticket ID in conversation
-                ConversationService.set_data(phone_number, "support_ticket_id", ticket.id)
-                
-            except Exception as e:
-                logger.error(f"❌ Error creating support ticket: {str(e)}")
-        
-        # If user is in chat support and sends new message, add to ticket
-        elif next_state and next_state.value == "chat_support":
-            try:
-                ticket_id = ConversationService.get_data(phone_number, "support_ticket_id")
-                if ticket_id and message_text:
-                    SupportService.add_message(
-                        db,
-                        ticket_id=ticket_id,
-                        sender_type="user",
-                        message=message_text,
-                        sender_name=sender_name,
-                    )
-                    logger.info(f"✓ User message added to ticket #{ticket_id}")
-                    
-                    # Schedule a delayed notification if no admin response within 1 minute
-                    # Using FastAPI BackgroundTasks instead of threading for better async support
-                    background_tasks.add_task(
-                        send_delayed_notification_async,
-                        phone_number=phone_number,
-                        ticket_id=ticket_id
-                    )
-                    
-            except Exception as e:
-                logger.warning(f"⚠️ Could not add message to support ticket: {str(e)}")
-
         # Get buttons for interactive message
         buttons = MessageRouter.get_buttons(
             intent=MessageRouter.extract_intent(message_text),
@@ -476,43 +413,6 @@ async def whatsapp_webhook(request: Request, background_tasks: BackgroundTasks, 
             status="success",
             message="Webhook received",
         )
-
-
-async def send_delayed_notification_async(phone_number: str, ticket_id: int):
-    """
-    Send a delayed notification after 60 seconds if admin hasn't responded.
-    This runs as a background task via FastAPI BackgroundTasks.
-    Properly async - doesn't block thread pool.
-    """
-    import asyncio
-    await asyncio.sleep(60)  # Wait 1 minute (non-blocking)
-    
-    # Check if admin has responded
-    try:
-        db_check = SessionLocal()
-        messages = SupportService.get_ticket_messages(db_check, ticket_id)
-        db_check.close()
-        
-        # Check if there's any admin message
-        admin_responded = False
-        for msg in messages:
-            if msg.sender_type == "admin":
-                admin_responded = True
-                break
-        
-        if not admin_responded:
-            # Send notification
-            result = await WhatsAppService.send_message(
-                phone_number=phone_number,
-                message_type="text",
-                text="💬 Your message has been sent to our support team.\n\nThey'll respond as soon as possible."
-            )
-            if result.get('status') == 'success':
-                logger.info(f"✓ Delayed notification sent to {phone_number}")
-            else:
-                logger.warning(f"⚠️ Failed to send delayed notification to {phone_number}")
-    except Exception as e:
-        logger.warning(f"⚠️ Could not send delayed notification: {str(e)}")
 
 
 @router.get("/whatsapp")

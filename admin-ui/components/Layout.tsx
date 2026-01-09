@@ -40,13 +40,6 @@ export default function Layout({ children }: LayoutProps) {
               <span>Conversations</span>
             </a>
             <a
-              href="/support-tickets"
-              className="flex items-center px-6 py-3 hover:bg-blue-800 transition"
-            >
-              <i className="fas fa-headset mr-3 w-5"></i>
-              <span>Support Tickets</span>
-            </a>
-            <a
               href="/leads"
               className="flex items-center px-6 py-3 hover:bg-blue-800 transition"
             >

@@ -50,11 +50,11 @@
 ### Phase 5: WhatsApp (Optional)
 **Only set if you have WhatsApp Business account:**
 
-- [ ] **WHATSAPP_API_KEY** = `EAAckpQFzzTUBQT...` (your actual key)
-- [ ] **WHATSAPP_PHONE_NUMBER_ID** = `797467203457022`
-- [ ] **WHATSAPP_BUSINESS_ACCOUNT_ID** = `1516305056071819`
-- [ ] **WHATSAPP_PHONE_NUMBER** = `+15551610271`
-- [ ] **WHATSAPP_WEBHOOK_TOKEN** = `change-me-to-secure-token`
+- [x] **WHATSAPP_API_KEY** = `EAAckpQFzzTUBQT...` (your actual key)
+- [x] **WHATSAPP_PHONE_NUMBER_ID** = `797467203457022`
+- [x] **WHATSAPP_BUSINESS_ACCOUNT_ID** = `1516305056071819`
+- [x] **WHATSAPP_PHONE_NUMBER** = `+15551610271` (Bot receives messages at this number)
+- [x] **WHATSAPP_WEBHOOK_TOKEN** = `iloveGOD2020!` (Set in Railway - CRITICAL!)
 
 ---
 

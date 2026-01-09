@@ -28,7 +28,6 @@ class ConversationState(str, Enum):
     HOMEWORK_SUBMITTED = "homework_submitted"
     PAYMENT_PENDING = "payment_pending"
     PAYMENT_CONFIRMED = "payment_confirmed"
-    CHAT_SUPPORT = "chat_support"  # User is in chat support conversation
     IDLE = "idle"  # Idle state waiting for input
 
 
@@ -274,12 +273,6 @@ class MessageRouter:
                 {"id": "main_menu", "title": "📍 Main Menu"},
             ]
 
-        # Chat support - show end chat option
-        if current_state == ConversationState.CHAT_SUPPORT:
-            return [
-                {"id": "end_chat", "title": "🛑 End Chat"},
-            ]
-
         # INTENT-BASED MENUS (CHECKED SECOND - Only when intent is explicit)
         
         return None
@@ -413,7 +406,7 @@ class MessageRouter:
             )
             # Store that user wants support so we can create ticket
             ConversationService.set_data(phone_number, "requesting_support", True)
-            return (support_text, ConversationState.CHAT_SUPPORT)
+            return (support_text, ConversationState.IDLE)
 
         # Handle FAQ command
         if intent == "faq":
@@ -573,16 +566,6 @@ class MessageRouter:
                 f"What would you like to do?",
                 ConversationState.REGISTERED,
             )
-
-        # Chat support - keep user in chat support unless they end chat
-        elif current_state == ConversationState.CHAT_SUPPORT:
-            if intent == "end_chat":
-                # This is handled above
-                pass
-            else:
-                # User is still chatting - no automatic message
-                # Only the customer rep response will be sent
-                return ("", ConversationState.CHAT_SUPPORT)
 
         # Main menu - show welcome and main options (CHECK BEFORE REGISTERED STATE)
         elif intent == "main_menu":
