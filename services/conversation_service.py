@@ -195,6 +195,7 @@ class MessageRouter:
     KEYWORD_FAQ = ["faq", "faqs", "frequently asked", "question", "questions"]
     KEYWORD_SUPPORT = ["support", "chat", "help me", "agent", "human", "talk to someone"]
     KEYWORD_MAIN_MENU = ["main_menu", "main menu"]
+    KEYWORD_END_CHAT = ["end chat", "end_chat", "close", "done", "quit chat", "exit"]
     KEYWORD_IMAGE = ["image", "📷", "photo", "picture", "img"]
     KEYWORD_TEXT = ["text", "📄", "write", "type", "message"]
     KEYWORD_CANCEL = ["cancel", "stop", "reset", "clear", "menu"]
@@ -273,6 +274,12 @@ class MessageRouter:
                 {"id": "main_menu", "title": "📍 Main Menu"},
             ]
 
+        # Chat support - show end chat option
+        if current_state == ConversationState.CHAT_SUPPORT:
+            return [
+                {"id": "end_chat", "title": "🛑 End Chat"},
+            ]
+
         # INTENT-BASED MENUS (CHECKED SECOND - Only when intent is explicit)
         
         return None
@@ -311,6 +318,8 @@ class MessageRouter:
             return "faq"
         if any(kw in text_lower for kw in MessageRouter.KEYWORD_SUPPORT):
             return "support"
+        if any(kw in text_lower for kw in MessageRouter.KEYWORD_END_CHAT):
+            return "end_chat"
         if any(kw in text_lower for kw in MessageRouter.KEYWORD_HELP):
             return "help"
         if any(kw in text_lower for kw in MessageRouter.KEYWORD_CANCEL):
@@ -341,6 +350,31 @@ class MessageRouter:
         first_name = None
         if student_data and student_data.get("name"):
             first_name = student_data.get("name").split()[0]
+
+        # Handle end chat command
+        if intent == "end_chat":
+            try:
+                # Close the support ticket if one is open
+                ticket_id = ConversationService.get_data(phone_number, "support_ticket_id")
+                if ticket_id:
+                    from services.support_service import SupportService
+                    from config.database import SessionLocal
+                    db = SessionLocal()
+                    try:
+                        SupportService.update_ticket_status(db, ticket_id, "CLOSED")
+                    finally:
+                        db.close()
+                # Clear support data
+                ConversationService.set_data(phone_number, "requesting_support", False)
+                ConversationService.set_data(phone_number, "support_ticket_id", None)
+            except Exception as e:
+                logger.warning(f"Could not close support ticket: {str(e)}")
+            
+            greeting = f"Hey {first_name}!" if first_name else "Hey there!"
+            return (
+                f"{greeting}\n\n✅ Chat ended. What would you like to do?",
+                ConversationState.IDLE if not student_data else ConversationState.REGISTERED,
+            )
 
         # Handle cancel command - Toggle menu state
         if intent == "cancel":
@@ -539,6 +573,20 @@ class MessageRouter:
                 f"What would you like to do?",
                 ConversationState.REGISTERED,
             )
+
+        # Chat support - keep user in chat support unless they end chat
+        elif current_state == ConversationState.CHAT_SUPPORT:
+            if intent == "end_chat":
+                # This is handled above
+                pass
+            else:
+                # User is still chatting - add message to support ticket
+                response = (
+                    "💬 Your message has been sent to our support team.\n\n"
+                    "They'll respond as soon as possible.\n\n"
+                    "Reply anytime or tap 'End Chat' when done."
+                )
+                return (response, ConversationState.CHAT_SUPPORT)
 
         # Main menu - show welcome and main options (CHECK BEFORE REGISTERED STATE)
         elif intent == "main_menu":
