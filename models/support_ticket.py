@@ -51,14 +51,13 @@ class SupportTicket(Base):
     issue_description = Column(Text, nullable=True)
     status = Column(Enum(TicketStatus), default=TicketStatus.OPEN, nullable=False)
     priority = Column(Enum(TicketPriority), default=TicketPriority.MEDIUM, nullable=False)
-    assigned_admin_id = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
+    assigned_admin_id = Column(Integer, nullable=True)  # Admin ID stored but no relationship
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
     resolved_at = Column(DateTime, nullable=True)
 
     # Relationships
     student = relationship("Student", backref="support_tickets")
-    assigned_admin = relationship("User", backref="assigned_tickets", foreign_keys=[assigned_admin_id])
     messages = relationship("SupportMessage", back_populates="ticket", cascade="all, delete-orphan")
 
     # Indexes for faster queries

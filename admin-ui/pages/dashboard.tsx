@@ -38,12 +38,20 @@ interface RecentConversation {
   is_active: boolean;
 }
 
+interface SupportNotifications {
+  open_tickets: number;
+  in_progress_tickets: number;
+  unassigned_tickets: number;
+  has_alerts: boolean;
+}
+
 export default function DashboardPage() {
   const router = useRouter();
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [leadsStats, setLeadsStats] = useState<LeadsStats | null>(null);
   const [homeworkStats, setHomeworkStats] = useState<HomeworkStats | null>(null);
   const [conversations, setConversations] = useState<RecentConversation[]>([]);
+  const [supportNotifications, setSupportNotifications] = useState<SupportNotifications | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const { setStats: setDashboardStats } = useDashboardStore();
@@ -85,6 +93,12 @@ export default function DashboardPage() {
         if (convResponse.status === 'success') {
           setConversations(convResponse.data);
         }
+
+        // Fetch support notifications
+        const supportResponse = await apiClient.getSupportNotifications();
+        if (supportResponse.status === 'success') {
+          setSupportNotifications(supportResponse.data);
+        }
       } catch (err: any) {
         setError(err.message || 'Failed to load dashboard data');
       } finally {
@@ -112,6 +126,30 @@ export default function DashboardPage() {
 
   return (
     <Layout>
+      {/* Support Alert Banner */}
+      {supportNotifications?.has_alerts && (
+        <div className="bg-yellow-50 border-l-4 border-yellow-400 rounded-lg p-4 mb-6">
+          <div className="flex items-start justify-between">
+            <div className="flex items-start">
+              <i className="fas fa-exclamation-circle text-yellow-600 text-xl mr-4 mt-0.5"></i>
+              <div>
+                <h3 className="font-semibold text-yellow-800">
+                  📞 {supportNotifications.open_tickets} Support Request{supportNotifications.open_tickets !== 1 ? 's' : ''}
+                </h3>
+                <p className="text-sm text-yellow-700 mt-1">
+                  {supportNotifications.unassigned_tickets} unassigned • {supportNotifications.in_progress_tickets} in progress
+                </p>
+              </div>
+            </div>
+            <Link href="/support-tickets">
+              <button className="px-4 py-2 bg-yellow-600 hover:bg-yellow-700 text-white rounded font-medium text-sm transition">
+                View Support
+              </button>
+            </Link>
+          </div>
+        </div>
+      )}
+
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
         {/* Total Students Card */}
         <div className="bg-white rounded-lg shadow p-6">

@@ -211,6 +211,32 @@ class APIClient {
     return response.data;
   }
 
+  // Support ticket endpoints
+  async getSupportNotifications() {
+    const response = await this.client.get("/api/support/notifications");
+    return response.data;
+  }
+
+  async getOpenSupportTickets(skip: number = 0, limit: number = 50) {
+    const response = await this.client.get("/api/support/open-tickets", {
+      params: { skip, limit },
+    });
+    return response.data;
+  }
+
+  async getSupportTicket(ticketId: number) {
+    const response = await this.client.get(`/api/support/tickets/${ticketId}`);
+    return response.data;
+  }
+
+  async addSupportMessage(ticketId: number, message: string) {
+    const response = await this.client.post(
+      `/api/support/tickets/${ticketId}/messages?sender_type=admin`,
+      { message }
+    );
+    return response.data;
+  }
+
   // WhatsApp testing endpoint
   async testWhatsAppMessage(phoneNumber: string, message: string) {
     const response = await this.client.post('/api/admin/whatsapp/test', {

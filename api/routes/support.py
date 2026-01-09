@@ -74,7 +74,7 @@ async def create_support_ticket(
 async def add_message_to_ticket(
     ticket_id: int,
     request: SupportMessageCreate,
-    sender_type: str = Query("user", regex="^(user|admin)$"),
+    sender_type: str = Query("user", pattern="^(user|admin)$"),
     db: Session = Depends(get_db)
 ):
     """
