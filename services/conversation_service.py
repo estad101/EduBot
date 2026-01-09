@@ -374,7 +374,7 @@ class MessageRouter:
             return (
                 "👋 Welcome! I'm EduBot, your AI tutor assistant.\n\nTo get started, let's create your free account!\n\n👤 What is your full name?",
                 ConversationState.INITIAL,
-            )            )
+            )
 
         # Handle cancel command - Toggle menu state
         if intent == "cancel":
