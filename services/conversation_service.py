@@ -28,6 +28,7 @@ class ConversationState(str, Enum):
     HOMEWORK_SUBMITTED = "homework_submitted"
     PAYMENT_PENDING = "payment_pending"
     PAYMENT_CONFIRMED = "payment_confirmed"
+    CHAT_SUPPORT = "chat_support"  # User is in chat support conversation
     IDLE = "idle"  # Idle state waiting for input
 
 
@@ -378,7 +379,9 @@ class MessageRouter:
                 f"Please describe your issue and we'll help you as soon as possible!\n\n"
                 f"(Note: Type your message naturally - a support agent will respond to you)"
             )
-            return (support_text, ConversationState.IDLE)
+            # Store that user wants support so we can create ticket
+            ConversationService.set_data(phone_number, "requesting_support", True)
+            return (support_text, ConversationState.CHAT_SUPPORT)
 
         # Handle FAQ command
         if intent == "faq":

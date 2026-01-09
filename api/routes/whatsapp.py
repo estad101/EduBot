@@ -16,6 +16,7 @@ from services.conversation_service import ConversationService, MessageRouter, Co
 from services.student_service import StudentService
 from services.lead_service import LeadService
 from services.payment_service import PaymentService
+from services.support_service import SupportService
 from schemas.response import StandardResponse
 
 logger = logging.getLogger(__name__)
@@ -317,6 +318,59 @@ async def whatsapp_webhook(request: Request, db: Session = Depends(get_db)):
         
         # Store last message for preview
         ConversationService.set_data(phone_number, "last_message", message_text)
+
+        # Handle chat support ticket creation
+        if next_state and next_state.value == "chat_support":
+            try:
+                # Check if ticket already exists
+                existing_ticket = SupportService.get_ticket_by_phone(db, phone_number)
+                
+                if not existing_ticket or existing_ticket.status != "OPEN":
+                    # Create new support ticket
+                    ticket = SupportService.create_ticket(
+                        db,
+                        phone_number=phone_number,
+                        sender_name=sender_name,
+                        issue_description=message_text,  # First message is the issue
+                        student_id=student.id if student else None,
+                    )
+                    logger.info(f"📞 Support ticket created: #{ticket.id}")
+                else:
+                    ticket = existing_ticket
+                    logger.info(f"📞 Using existing support ticket: #{ticket.id}")
+                
+                # Add user's message to support ticket
+                if message_text:
+                    SupportService.add_message(
+                        db,
+                        ticket_id=ticket.id,
+                        sender_type="user",
+                        message=message_text,
+                        sender_name=sender_name,
+                    )
+                    logger.info(f"✓ User message added to ticket #{ticket.id}")
+                
+                # Store ticket ID in conversation
+                ConversationService.set_data(phone_number, "support_ticket_id", ticket.id)
+                
+            except Exception as e:
+                logger.error(f"❌ Error creating support ticket: {str(e)}")
+        
+        # If user is in chat support and sends new message, add to ticket
+        elif next_state and next_state.value == "chat_support":
+            try:
+                ticket_id = ConversationService.get_data(phone_number, "support_ticket_id")
+                if ticket_id and message_text:
+                    SupportService.add_message(
+                        db,
+                        ticket_id=ticket_id,
+                        sender_type="user",
+                        message=message_text,
+                        sender_name=sender_name,
+                    )
+                    logger.info(f"✓ User message added to ticket #{ticket_id}")
+            except Exception as e:
+                logger.warning(f"⚠️ Could not add message to support ticket: {str(e)}")
 
         # Get buttons for interactive message
         buttons = MessageRouter.get_buttons(
