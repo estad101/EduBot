@@ -79,6 +79,12 @@ def init_db():
         from models.tutor_assignment import TutorAssignment
         logger.info("[OK] Imported TutorAssignment model")
         
+        from models.settings import AdminSetting
+        logger.info("[OK] Imported AdminSetting model")
+        
+        from models.support_ticket import SupportTicket
+        logger.info("[OK] Imported SupportTicket model")
+        
         logger.info(f"\nStep 2: Creating tables...")
         logger.info(f"Tables to create: {list(Base.metadata.tables.keys())}")
         
