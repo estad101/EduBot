@@ -19,6 +19,8 @@ interface SupportTicket {
   id: number;
   phone_number: string;
   sender_name: string;
+  student_id?: number;
+  student_name?: string;
   issue_description: string;
   status: string;
   priority: string;
@@ -191,7 +193,7 @@ export default function SupportTicketsPage() {
                 >
                   <div className="flex items-start justify-between gap-2">
                     <div className="flex-1 min-w-0">
-                      <p className="font-medium text-gray-900 truncate">{ticket.sender_name || 'Anonymous'}</p>
+                      <p className="font-medium text-gray-900 truncate">{ticket.student_name || ticket.sender_name || 'Anonymous'}</p>
                       <p className="text-xs text-gray-600 mt-1 line-clamp-2">{ticket.issue_description}</p>
                       <p className="text-xs text-gray-400 mt-2">
                         {new Date(ticket.created_at).toLocaleDateString()}
@@ -220,7 +222,10 @@ export default function SupportTicketsPage() {
                 <div className="flex justify-between items-start gap-4">
                   <div>
                     <h3 className="text-2xl font-bold">Ticket #{selectedTicket.id}</h3>
-                    <p className="text-yellow-100 text-sm mt-2">
+                    <p className="text-yellow-100 text-sm mt-1">
+                      {selectedTicket.student_name || selectedTicket.sender_name || 'Anonymous'}
+                    </p>
+                    <p className="text-yellow-100 text-sm mt-1">
                       <i className="fas fa-phone mr-2"></i>{selectedTicket.phone_number}
                     </p>
                   </div>
