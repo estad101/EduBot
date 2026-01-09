@@ -301,6 +301,10 @@ class MessageRouter:
         if any(kw in text_lower for kw in MessageRouter.KEYWORD_MAIN_MENU):
             return "main_menu"
         
+        # Check for end_chat BEFORE support (to prevent "chat" from being caught by support)
+        if any(kw in text_lower for kw in MessageRouter.KEYWORD_END_CHAT):
+            return "end_chat"
+        
         # Check for other keywords
         if any(kw in text_lower for kw in MessageRouter.KEYWORD_REGISTER):
             return "register"
@@ -318,8 +322,6 @@ class MessageRouter:
             return "faq"
         if any(kw in text_lower for kw in MessageRouter.KEYWORD_SUPPORT):
             return "support"
-        if any(kw in text_lower for kw in MessageRouter.KEYWORD_END_CHAT):
-            return "end_chat"
         if any(kw in text_lower for kw in MessageRouter.KEYWORD_HELP):
             return "help"
         if any(kw in text_lower for kw in MessageRouter.KEYWORD_CANCEL):
