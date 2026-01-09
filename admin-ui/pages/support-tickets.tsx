@@ -38,6 +38,8 @@ export default function SupportTicketsPage() {
   const [error, setError] = useState<string | null>(null);
   const [newMessage, setNewMessage] = useState('');
   const [sendingMessage, setSendingMessage] = useState(false);
+  const [retryCount, setRetryCount] = useState(0);
+  const [lastUpdated, setLastUpdated] = useState<Date>(new Date());
 
   const fetchTickets = async () => {
     try {
@@ -47,23 +49,40 @@ export default function SupportTicketsPage() {
         return;
       }
 
+      // ✅ Ensure token is set in API client
+      if (typeof window !== 'undefined') {
+        const existingAuth = apiClient.client?.defaults?.headers?.common?.['Authorization'];
+        if (!existingAuth || !existingAuth.includes(token)) {
+          if (apiClient.client?.defaults?.headers) {
+            apiClient.client.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+          }
+        }
+      }
+
       const response = await apiClient.getOpenSupportTickets(0, 50);
-      // Handle both response structures
-      if (response.tickets) {
-        // Response has tickets array
-        setTickets(response.tickets);
-      } else if (Array.isArray(response)) {
-        // Response is directly an array
-        setTickets(response);
-      } else if (response.data && Array.isArray(response.data)) {
-        // Response has data property with array
+      
+      // ✅ Backend returns: { status: "success", data: [...], count: N }
+      if (response.status === "success" && response.data) {
+        setTickets(Array.isArray(response.data) ? response.data : []);
+      } else if (Array.isArray(response.data)) {
         setTickets(response.data);
+      } else if (Array.isArray(response)) {
+        // Fallback for direct array response
+        setTickets(response);
       } else {
+        console.warn('Unexpected response format:', response);
         setTickets([]);
       }
+      
       setError(null);
+      setRetryCount(0);  // Reset on success
+      setLastUpdated(new Date());
     } catch (err: any) {
-      setError(err.message || 'Failed to load support tickets');
+      const newRetryCount = retryCount + 1;
+      setRetryCount(newRetryCount);
+      
+      const errorMsg = err.response?.data?.message || err.message || 'Failed to load support tickets';
+      setError(`${errorMsg} (Retrying...)`);
       console.error('Error fetching tickets:', err);
     } finally {
       setLoading(false);
@@ -71,73 +90,126 @@ export default function SupportTicketsPage() {
   };
 
   useEffect(() => {
-    fetchTickets();
-    // Auto-refresh tickets list every 10 seconds
-    const interval = setInterval(fetchTickets, 10000);
-    return () => clearInterval(interval);
+    let isMounted = true;
+
+    const initialFetch = async () => {
+      if (isMounted) {
+        await fetchTickets();
+      }
+    };
+
+    initialFetch();
+
+    // Auto-refresh tickets list every 10 seconds with exponential backoff
+    const interval = setInterval(() => {
+      if (isMounted) {
+        fetchTickets();
+      }
+    }, 10000);
+
+    return () => {
+      isMounted = false;
+      clearInterval(interval);
+    };
   }, [router]);
 
   // Auto-refresh selected ticket every 5 seconds if one is selected
   useEffect(() => {
-    if (!selectedTicket) return;
+    if (!selectedTicket?.id) return;
+
+    let isMounted = true;
 
     const refreshSelectedTicket = async () => {
+      if (!isMounted) return;
+      
       try {
         const response = await apiClient.getSupportTicket(selectedTicket.id);
-        if (response.id) {
-          setSelectedTicket(response);
-        } else if (response.data && response.data.id) {
-          setSelectedTicket(response.data);
+        
+        // ✅ Backend returns: { status: "success", data: {...} }
+        const ticket = response.id ? response : response.data;
+        
+        if (isMounted && ticket) {
+          setSelectedTicket(ticket);
         }
       } catch (err) {
-        console.error('Error auto-refreshing selected ticket:', err);
+        if (isMounted) {
+          console.error('Error auto-refreshing ticket:', err);
+          // Don't clear selected ticket on error - keep displaying it
+        }
       }
     };
 
+    // Refresh immediately, then every 5 seconds
+    refreshSelectedTicket();
     const interval = setInterval(refreshSelectedTicket, 5000);
-    return () => clearInterval(interval);
+    
+    return () => {
+      isMounted = false;
+      clearInterval(interval);
+    };
   }, [selectedTicket?.id]);
 
   const handleSelectTicket = async (ticket: SupportTicket) => {
     try {
+      setSelectedTicket(null);  // Show loading state
+      
       const response = await apiClient.getSupportTicket(ticket.id);
-      // Handle different response structures
-      if (response.id) {
-        // Response is the ticket directly
-        setSelectedTicket(response);
-      } else if (response.data && response.data.id) {
-        // Response has data property
-        setSelectedTicket(response.data);
+      const fullTicket = response.id ? response : response.data;
+      
+      if (fullTicket) {
+        setSelectedTicket(fullTicket);
+        setNewMessage('');
+        setError(null);
+      } else {
+        throw new Error('Invalid ticket data received');
       }
-      setNewMessage('');
     } catch (err) {
       console.error('Error loading ticket:', err);
       setError('Failed to load ticket details');
+      // Restore previous ticket selection on error
+      setSelectedTicket(ticket);
     }
   };
 
   const handleSendMessage = async () => {
     if (!selectedTicket || !newMessage.trim()) return;
 
+    const messageToSend = newMessage.trim();
+    
     try {
       setSendingMessage(true);
-      const response = await apiClient.addSupportMessage(selectedTicket.id, newMessage.trim());
+      setError(null);
       
-      setNewMessage('');
+      // Send message to backend
+      const response = await apiClient.addSupportMessage(
+        selectedTicket.id, 
+        messageToSend
+      );
       
-      // Refresh both the selected ticket and the tickets list
-      const ticketResponse = await apiClient.getSupportTicket(selectedTicket.id);
-      if (ticketResponse.id) {
-        setSelectedTicket(ticketResponse);
-      } else if (ticketResponse.data && ticketResponse.data.id) {
-        setSelectedTicket(ticketResponse.data);
+      if (!response || response.status === "error") {
+        throw new Error(response?.message || 'Failed to send message');
       }
       
-      // Also refresh the tickets list to update the preview
+      // ✅ Clear input immediately after confirmation
+      setNewMessage('');
+      
+      // Refresh ticket details to show new message
+      const ticketResponse = await apiClient.getSupportTicket(selectedTicket.id);
+      const updatedTicket = ticketResponse.id ? ticketResponse : ticketResponse.data;
+      
+      if (updatedTicket) {
+        setSelectedTicket(updatedTicket);
+      }
+      
+      // Also update the list preview
       await fetchTickets();
+      
     } catch (err) {
       console.error('Error sending message:', err);
-      setError('Failed to send message');
+      // ✅ Show detailed error
+      const errorMsg = err instanceof Error ? err.message : String(err);
+      setError(`Failed to send message: ${errorMsg}`);
+      // Don't clear message on error - let user retry
     } finally {
       setSendingMessage(false);
     }
@@ -175,6 +247,22 @@ export default function SupportTicketsPage() {
               <p className="text-red-700 text-sm">{error}</p>
             </div>
           )}
+
+          {/* Connection Status */}
+          <div className="bg-blue-50 border-l-4 border-blue-500 p-3 text-xs text-blue-700">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center">
+                <i className="fas fa-signal mr-2"></i>
+                <span>Last updated: {lastUpdated.toLocaleTimeString()}</span>
+              </div>
+              {retryCount > 0 && (
+                <span className="text-orange-600 font-semibold">
+                  <i className="fas fa-exclamation-triangle mr-1"></i>
+                  Retry {retryCount}
+                </span>
+              )}
+            </div>
+          </div>
 
           <div className="flex-1 overflow-y-auto divide-y">
             {tickets.length === 0 ? (
