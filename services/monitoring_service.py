@@ -8,6 +8,7 @@ import logging
 from datetime import datetime
 from typing import Dict, Any, Optional
 from dataclasses import dataclass, asdict
+from sqlalchemy import text
 from config.settings import settings
 from utils.logger import get_logger
 
@@ -251,7 +252,7 @@ class MonitoringService:
         """Check database health."""
         try:
             start = time.time()
-            db.execute("SELECT 1")
+            db.execute(text("SELECT 1"))
             response_time = (time.time() - start) * 1000
             return "healthy", "Database connection OK", response_time
         except Exception as e:

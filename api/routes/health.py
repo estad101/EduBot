@@ -3,6 +3,7 @@ Health check routes - Monitor system health and performance.
 """
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
+from sqlalchemy import text
 import time
 from typing import Dict, Any
 from config.database import get_db
@@ -123,7 +124,7 @@ async def readiness(db: Session = Depends(get_db)):
     """
     try:
         # Quick database check
-        db.execute("SELECT 1")
+        db.execute(text("SELECT 1"))
         
         return {
             "ready": True,
