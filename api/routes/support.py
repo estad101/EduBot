@@ -107,14 +107,13 @@ async def add_message_to_ticket(
         # If admin message, send WhatsApp notification to user
         if sender_type == "admin":
             try:
-                await WhatsAppService.send_message(
+                # Send message with End Chat button
+                await WhatsAppService.send_interactive_message(
                     phone_number=ticket.phone_number,
-                    message_type="text",
-                    text=(
-                        f"💬 Support Response\n\n"
-                        f"{request.message}\n\n"
-                        f"Reply to continue the conversation."
-                    )
+                    body_text=request.message,
+                    buttons=[
+                        {"id": "end_chat", "title": "🛑 End Chat"},
+                    ]
                 )
                 logger.info(f"✓ WhatsApp notification sent to {ticket.phone_number}")
             except Exception as e:
