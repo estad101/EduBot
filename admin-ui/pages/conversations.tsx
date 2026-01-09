@@ -13,6 +13,7 @@ interface Conversation {
   message_count: number;
   is_active: boolean;
   type?: 'student' | 'lead' | 'memory';
+  is_chat_support?: boolean;
 }
 
 interface Message {
@@ -31,6 +32,9 @@ export default function ConversationsPage() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [messageInput, setMessageInput] = useState('');
+  const [sendingMessage, setSendingMessage] = useState(false);
+  const [isChatSupport, setIsChatSupport] = useState(false);
 
   useEffect(() => {
     const fetchConversations = async () => {
@@ -76,9 +80,71 @@ export default function ConversationsPage() {
     };
 
     fetchMessages();
+    
+    // Check if this is a chat support conversation
+    const conv = conversations.find(c => c.phone_number === selectedPhone);
+    setIsChatSupport(conv?.is_chat_support || false);
+    
     const interval = setInterval(fetchMessages, 5000); // Refresh every 5 seconds
     return () => clearInterval(interval);
-  }, [selectedPhone]);
+  }, [selectedPhone, conversations]);
+
+  const handleSendMessage = async () => {
+    if (!messageInput.trim() || !selectedPhone) return;
+
+    setSendingMessage(true);
+    try {
+      const response = await apiClient.post(
+        `/api/admin/conversations/${selectedPhone}/chat-support/send`,
+        { message: messageInput }
+      );
+
+      if (response.status === 'success') {
+        setMessageInput('');
+        // Refresh messages
+        const messagesResponse = await apiClient.get(
+          `/api/admin/conversations/${selectedPhone}/messages`
+        );
+        if (messagesResponse.status === 'success') {
+          setMessages(messagesResponse.data);
+        }
+      } else {
+        setError(response.message || 'Failed to send message');
+      }
+    } catch (err: any) {
+      setError(err.message || 'Error sending message');
+    } finally {
+      setSendingMessage(false);
+    }
+  };
+
+  const handleEndChat = async () => {
+    if (!selectedPhone) return;
+
+    if (!window.confirm('Are you sure you want to end this chat support session?')) return;
+
+    try {
+      const response = await apiClient.post(
+        `/api/admin/conversations/${selectedPhone}/chat-support/end`,
+        { message: 'Chat support session has been ended by admin.' }
+      );
+
+      if (response.status === 'success') {
+        setIsChatSupport(false);
+        setMessageInput('');
+        setError(null);
+        // Refresh conversations
+        const convResponse = await apiClient.get('/api/admin/conversations');
+        if (convResponse.status === 'success') {
+          setConversations(convResponse.data);
+        }
+      } else {
+        setError(response.message || 'Failed to end chat');
+      }
+    } catch (err: any) {
+      setError(err.message || 'Error ending chat');
+    }
+  };
 
   // Component to format message text
   const MessageContent = ({ text }: { text: string }) => {
@@ -159,6 +225,11 @@ export default function ConversationsPage() {
                         <p className="font-bold text-gray-800">
                           {conv.student_name || conv.phone_number}
                         </p>
+                        {conv.is_chat_support && (
+                          <span className="inline-block px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded font-semibold">
+                            💬 Chat Support
+                          </span>
+                        )}
                         {conv.type === 'student' && (
                           <span className="inline-block px-2 py-1 bg-green-100 text-green-800 text-xs rounded font-semibold">
                             Student
@@ -253,23 +324,69 @@ export default function ConversationsPage() {
 
               {/* Message Input */}
               <div className="p-4 border-t bg-gray-50">
-                <div className="flex items-center space-x-3">
-                  <button className="text-green-600 hover:text-green-700 text-xl">
-                    <i className="fas fa-plus-circle"></i>
-                  </button>
-                  <input
-                    type="text"
-                    placeholder="Type a message..."
-                    disabled
-                    className="flex-1 px-4 py-2 border border-gray-300 rounded-full bg-white"
-                  />
-                  <button className="text-green-600 hover:text-green-700 text-xl">
-                    <i className="fas fa-microphone"></i>
-                  </button>
-                </div>
-                <p className="text-xs text-gray-500 mt-2">
-                  Messages are read-only for admin dashboard
-                </p>
+                {isChatSupport ? (
+                  <div className="space-y-3">
+                    <div className="flex items-center space-x-3">
+                      <button className="text-green-600 hover:text-green-700 text-xl">
+                        <i className="fas fa-plus-circle"></i>
+                      </button>
+                      <input
+                        type="text"
+                        placeholder="Type a message..."
+                        value={messageInput}
+                        onChange={(e) => setMessageInput(e.target.value)}
+                        onKeyPress={(e) => {
+                          if (e.key === 'Enter' && !e.shiftKey) {
+                            e.preventDefault();
+                            handleSendMessage();
+                          }
+                        }}
+                        disabled={sendingMessage}
+                        className="flex-1 px-4 py-2 border border-gray-300 rounded-full bg-white focus:outline-none focus:ring-2 focus:ring-green-500"
+                      />
+                      <button
+                        onClick={handleSendMessage}
+                        disabled={sendingMessage || !messageInput.trim()}
+                        className="bg-green-600 hover:bg-green-700 disabled:bg-gray-400 text-white rounded-full px-4 py-2 font-medium transition"
+                      >
+                        {sendingMessage ? (
+                          <i className="fas fa-spinner fa-spin"></i>
+                        ) : (
+                          <i className="fas fa-paper-plane"></i>
+                        )}
+                      </button>
+                    </div>
+                    <button
+                      onClick={handleEndChat}
+                      className="w-full bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded font-medium transition"
+                    >
+                      <i className="fas fa-times mr-2"></i>End Chat Support
+                    </button>
+                    <p className="text-xs text-green-700">
+                      ✓ Chat support is active - You can send and receive messages
+                    </p>
+                  </div>
+                ) : (
+                  <>
+                    <div className="flex items-center space-x-3">
+                      <button className="text-green-600 hover:text-green-700 text-xl">
+                        <i className="fas fa-plus-circle"></i>
+                      </button>
+                      <input
+                        type="text"
+                        placeholder="Type a message..."
+                        disabled
+                        className="flex-1 px-4 py-2 border border-gray-300 rounded-full bg-white"
+                      />
+                      <button className="text-green-600 hover:text-green-700 text-xl">
+                        <i className="fas fa-microphone"></i>
+                      </button>
+                    </div>
+                    <p className="text-xs text-gray-500 mt-2">
+                      Messages are read-only - This conversation is not in active chat support
+                    </p>
+                  </>
+                )}
               </div>
             </>
           ) : (
