@@ -101,13 +101,17 @@ export default function SupportTicketsPage() {
       const response = await apiClient.addSupportMessage(selectedTicket.id, newMessage.trim());
       
       setNewMessage('');
-      // Refresh the selected ticket regardless of response structure
+      
+      // Refresh both the selected ticket and the tickets list
       const ticketResponse = await apiClient.getSupportTicket(selectedTicket.id);
       if (ticketResponse.id) {
         setSelectedTicket(ticketResponse);
       } else if (ticketResponse.data && ticketResponse.data.id) {
         setSelectedTicket(ticketResponse.data);
       }
+      
+      // Also refresh the tickets list to update the preview
+      await fetchTickets();
     } catch (err) {
       console.error('Error sending message:', err);
       setError('Failed to send message');
@@ -226,6 +230,11 @@ export default function SupportTicketsPage() {
                           {msg.sender_type === 'user' && (
                             <p className="text-xs font-semibold mb-1 opacity-75">
                               {msg.sender_name}
+                            </p>
+                          )}
+                          {msg.sender_type === 'admin' && (
+                            <p className="text-xs font-semibold mb-1 opacity-90">
+                              👨‍💼 Customer Rep
                             </p>
                           )}
                           <p className="text-sm whitespace-pre-wrap break-words">{msg.message}</p>
