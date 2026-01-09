@@ -32,36 +32,52 @@ async def lifespan(app: FastAPI):
     """Manage application lifespan."""
     # Startup
     logger.info("Starting WhatsApp Chatbot API")
-    init_sentry()  # Initialize error tracking
     
-    # Initialize database - don't timeout, let it connect naturally
+    # Initialize Sentry for error tracking (non-blocking)
     try:
-        # Initialize database in background thread without blocking startup
+        init_sentry()
+    except Exception as e:
+        logger.warning(f"Sentry initialization failed: {e}")
+    
+    # Initialize database in background - DON'T WAIT
+    try:
         import asyncio
         db_task = asyncio.create_task(
             asyncio.to_thread(init_db)
         )
-        # Don't wait for it - it will complete in background
         logger.info("Database initialization started in background")
     except Exception as e:
-        logger.warning(f"[WARN] Could not start database initialization: {e}")
+        logger.warning(f"Could not start database initialization: {e}")
     
-    # Initialize settings from database
+    # Initialize settings from database in background - DON'T WAIT
+    # App will use environment variables as fallback until settings load
     try:
-        db = SessionLocal()
-        try:
-            if init_settings_from_db(db):
-                logger.info("[OK] WhatsApp settings loaded from database")
-            else:
-                logger.warning("[WARN] Using environment variables as fallback for settings")
-        except Exception as e:
-            logger.error(f"Error loading settings from database: {e}")
-            logger.warning("[WARN] Using environment variables as fallback for settings")
-        finally:
-            db.close()
+        import asyncio
+        async def load_settings_async():
+            try:
+                from threading import Thread
+                def load_settings():
+                    try:
+                        db = SessionLocal()
+                        try:
+                            if init_settings_from_db(db):
+                                logger.info("WhatsApp settings loaded from database")
+                            else:
+                                logger.info("Using environment variables as fallback for settings")
+                        finally:
+                            db.close()
+                    except Exception as e:
+                        logger.warning(f"Settings load failed, using env vars: {e}")
+                
+                thread = Thread(target=load_settings, daemon=True)
+                thread.start()
+            except Exception as e:
+                logger.warning(f"Could not start settings load: {e}")
+        
+        asyncio.create_task(load_settings_async())
+        logger.info("Settings initialization started in background")
     except Exception as e:
-        logger.error(f"Settings initialization failed: {e}")
-        logger.warning("[WARN] Using environment variables as fallback for settings")
+        logger.warning(f"Could not start settings initialization: {e}")
     
     logger.info("=== APPLICATION READY ===")
     yield
