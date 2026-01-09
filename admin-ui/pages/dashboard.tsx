@@ -114,6 +114,24 @@ export default function DashboardPage() {
 
   return (
     <Layout>
+      {/* Chat Support Notification Banner */}
+      <div className="mb-6 bg-gradient-to-r from-blue-500 to-blue-600 rounded-lg shadow-lg p-4">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            <div className="text-3xl text-white">
+              <i className="fas fa-comments"></i>
+            </div>
+            <div>
+              <h3 className="text-white font-bold text-lg">💬 Chat Support Active</h3>
+              <p className="text-blue-100 text-sm">Users can now chat with support. Check the Conversations page to manage active chats.</p>
+            </div>
+          </div>
+          <Link href="/conversations" className="bg-white text-blue-600 hover:bg-blue-50 px-4 py-2 rounded-lg font-medium transition whitespace-nowrap ml-4">
+            View Chats
+          </Link>
+        </div>
+      </div>
+
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
         {/* Total Students Card */}
         <div className="bg-white rounded-lg shadow p-6">
