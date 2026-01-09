@@ -3,7 +3,7 @@ WhatsApp Webhook Routes.
 
 Handles incoming WhatsApp messages and sends responses.
 """
-from fastapi import APIRouter, Request, HTTPException, Depends, Header, Query
+from fastapi import APIRouter, Request, HTTPException, Depends, Header, Query, BackgroundTasks
 from sqlalchemy.orm import Session
 from typing import Optional
 import json
@@ -25,7 +25,7 @@ router = APIRouter(prefix="/api/webhook", tags=["webhooks"])
 
 
 @router.post("/whatsapp", response_model=StandardResponse)
-async def whatsapp_webhook(request: Request, db: Session = Depends(get_db)):
+async def whatsapp_webhook(request: Request, background_tasks: BackgroundTasks, db: Session = Depends(get_db)):
     """
     Receive WhatsApp Cloud API webhooks.
 
@@ -366,40 +366,12 @@ async def whatsapp_webhook(request: Request, db: Session = Depends(get_db)):
                     logger.info(f"✓ User message added to ticket #{ticket_id}")
                     
                     # Schedule a delayed notification if no admin response within 1 minute
-                    import asyncio
-                    import threading
-                    
-                    def send_delayed_notification():
-                        import time
-                        time.sleep(60)  # Wait 1 minute
-                        
-                        # Check if admin has responded
-                        try:
-                            db_check = SessionLocal()
-                            messages = SupportService.get_ticket_messages(db_check, ticket_id)
-                            db_check.close()
-                            
-                            # Check if there's any admin message after this user message
-                            admin_responded = False
-                            for msg in messages:
-                                if msg.sender_type == "admin":
-                                    admin_responded = True
-                                    break
-                            
-                            if not admin_responded:
-                                # Send notification
-                                asyncio.run(WhatsAppService.send_message(
-                                    phone_number=phone_number,
-                                    message_type="text",
-                                    text="💬 Your message has been sent to our support team.\n\nThey'll respond as soon as possible."
-                                ))
-                                logger.info(f"✓ Delayed notification sent to {phone_number}")
-                        except Exception as e:
-                            logger.warning(f"⚠️ Could not send delayed notification: {str(e)}")
-                    
-                    # Start background thread
-                    thread = threading.Thread(target=send_delayed_notification, daemon=True)
-                    thread.start()
+                    # Using FastAPI BackgroundTasks instead of threading for better async support
+                    background_tasks.add_task(
+                        send_delayed_notification_async,
+                        phone_number=phone_number,
+                        ticket_id=ticket_id
+                    )
                     
             except Exception as e:
                 logger.warning(f"⚠️ Could not add message to support ticket: {str(e)}")
@@ -489,6 +461,43 @@ async def whatsapp_webhook(request: Request, db: Session = Depends(get_db)):
             status="success",
             message="Webhook received",
         )
+
+
+async def send_delayed_notification_async(phone_number: str, ticket_id: int):
+    """
+    Send a delayed notification after 60 seconds if admin hasn't responded.
+    This runs as a background task via FastAPI BackgroundTasks.
+    Properly async - doesn't block thread pool.
+    """
+    import asyncio
+    await asyncio.sleep(60)  # Wait 1 minute (non-blocking)
+    
+    # Check if admin has responded
+    try:
+        db_check = SessionLocal()
+        messages = SupportService.get_ticket_messages(db_check, ticket_id)
+        db_check.close()
+        
+        # Check if there's any admin message
+        admin_responded = False
+        for msg in messages:
+            if msg.sender_type == "admin":
+                admin_responded = True
+                break
+        
+        if not admin_responded:
+            # Send notification
+            result = await WhatsAppService.send_message(
+                phone_number=phone_number,
+                message_type="text",
+                text="💬 Your message has been sent to our support team.\n\nThey'll respond as soon as possible."
+            )
+            if result.get('status') == 'success':
+                logger.info(f"✓ Delayed notification sent to {phone_number}")
+            else:
+                logger.warning(f"⚠️ Failed to send delayed notification to {phone_number}")
+    except Exception as e:
+        logger.warning(f"⚠️ Could not send delayed notification: {str(e)}")
 
 
 @router.get("/whatsapp")
