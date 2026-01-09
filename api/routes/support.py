@@ -109,7 +109,8 @@ async def add_message_to_ticket(
             try:
                 await WhatsAppService.send_message(
                     phone_number=ticket.phone_number,
-                    message=(
+                    message_type="text",
+                    text=(
                         f"💬 Support Response\n\n"
                         f"{request.message}\n\n"
                         f"Reply to continue the conversation."
