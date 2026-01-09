@@ -16,92 +16,94 @@ export default function Layout({ children }: LayoutProps) {
       <aside
         className={`${
           sidebarOpen ? "w-64" : "w-0"
-        } bg-blue-900 text-white shadow-lg transition-all duration-300 overflow-hidden`}
+        } bg-blue-900 text-white shadow-lg transition-all duration-300 overflow-hidden flex flex-col`}
       >
         <div className="p-6">
           <h1 className="text-2xl font-bold">WhatsApp Bot</h1>
           <p className="text-blue-200 text-sm">Admin Panel</p>
         </div>
 
-        <nav className="mt-8">
-          <a
-            href="/dashboard"
-            className="flex items-center px-6 py-3 hover:bg-blue-800 transition"
-          >
-            <i className="fas fa-chart-line mr-3 w-5"></i>
-            <span>Dashboard</span>
-          </a>
-          <a
-            href="/conversations"
-            className="flex items-center px-6 py-3 hover:bg-blue-800 transition"
-          >
-            <i className="fab fa-whatsapp mr-3 w-5"></i>
-            <span>Conversations</span>
-          </a>
-          <a
-            href="/support-tickets"
-            className="flex items-center px-6 py-3 hover:bg-blue-800 transition"
-          >
-            <i className="fas fa-headset mr-3 w-5"></i>
-            <span>Support Tickets</span>
-          </a>
-          <a
-            href="/leads"
-            className="flex items-center px-6 py-3 hover:bg-blue-800 transition"
-          >
-            <i className="fas fa-list mr-3 w-5"></i>
-            <span>Leads</span>
-          </a>
-          <a
-            href="/students"
-            className="flex items-center px-6 py-3 hover:bg-blue-800 transition"
-          >
-            <i className="fas fa-users mr-3 w-5"></i>
-            <span>Students</span>
-          </a>
-          <a
-            href="/payments"
-            className="flex items-center px-6 py-3 hover:bg-blue-800 transition"
-          >
-            <i className="fas fa-credit-card mr-3 w-5"></i>
-            <span>Payments</span>
-          </a>
-          <a
-            href="/subscriptions"
-            className="flex items-center px-6 py-3 hover:bg-blue-800 transition"
-          >
-            <i className="fas fa-calendar-alt mr-3 w-5"></i>
-            <span>Subscriptions</span>
-          </a>
-          <a
-            href="/homework"
-            className="flex items-center px-6 py-3 hover:bg-blue-800 transition"
-          >
-            <i className="fas fa-book mr-3 w-5"></i>
-            <span>Homework</span>
-          </a>
-          <a
-            href="/reports"
-            className="flex items-center px-6 py-3 hover:bg-blue-800 transition"
-          >
-            <i className="fas fa-chart-bar mr-3 w-5"></i>
-            <span>Reports</span>
-          </a>
-          <a
-            href="/settings"
-            className="flex items-center px-6 py-3 hover:bg-blue-800 transition"
-          >
-            <i className="fas fa-cog mr-3 w-5"></i>
-            <span>Settings</span>
-          </a>
-        </nav>
+        <nav className="mt-8 flex flex-col h-[calc(100vh-200px)]">
+          <div>
+            <a
+              href="/dashboard"
+              className="flex items-center px-6 py-3 hover:bg-blue-800 transition"
+            >
+              <i className="fas fa-chart-line mr-3 w-5"></i>
+              <span>Dashboard</span>
+            </a>
+            <a
+              href="/conversations"
+              className="flex items-center px-6 py-3 hover:bg-blue-800 transition"
+            >
+              <i className="fab fa-whatsapp mr-3 w-5"></i>
+              <span>Conversations</span>
+            </a>
+            <a
+              href="/support-tickets"
+              className="flex items-center px-6 py-3 hover:bg-blue-800 transition"
+            >
+              <i className="fas fa-headset mr-3 w-5"></i>
+              <span>Support Tickets</span>
+            </a>
+            <a
+              href="/leads"
+              className="flex items-center px-6 py-3 hover:bg-blue-800 transition"
+            >
+              <i className="fas fa-list mr-3 w-5"></i>
+              <span>Leads</span>
+            </a>
+            <a
+              href="/students"
+              className="flex items-center px-6 py-3 hover:bg-blue-800 transition"
+            >
+              <i className="fas fa-users mr-3 w-5"></i>
+              <span>Students</span>
+            </a>
+            <a
+              href="/payments"
+              className="flex items-center px-6 py-3 hover:bg-blue-800 transition"
+            >
+              <i className="fas fa-credit-card mr-3 w-5"></i>
+              <span>Payments</span>
+            </a>
+            <a
+              href="/subscriptions"
+              className="flex items-center px-6 py-3 hover:bg-blue-800 transition"
+            >
+              <i className="fas fa-calendar-alt mr-3 w-5"></i>
+              <span>Subscriptions</span>
+            </a>
+            <a
+              href="/homework"
+              className="flex items-center px-6 py-3 hover:bg-blue-800 transition"
+            >
+              <i className="fas fa-book mr-3 w-5"></i>
+              <span>Homework</span>
+            </a>
+            <a
+              href="/reports"
+              className="flex items-center px-6 py-3 hover:bg-blue-800 transition"
+            >
+              <i className="fas fa-chart-bar mr-3 w-5"></i>
+              <span>Reports</span>
+            </a>
+          </div>
 
-        <div className="absolute bottom-0 w-64 border-t border-blue-800 p-6">
-          <a href="/logout" className="flex items-center text-blue-200 hover:text-white">
-            <i className="fas fa-sign-out-alt mr-3 w-5"></i>
-            <span>Logout</span>
-          </a>
-        </div>
+          <div className="mt-auto pt-4 border-t border-blue-800">
+            <a
+              href="/settings"
+              className="flex items-center px-6 py-3 hover:bg-blue-800 transition"
+            >
+              <i className="fas fa-cog mr-3 w-5"></i>
+              <span>Settings</span>
+            </a>
+            <a href="/logout" className="flex items-center px-6 py-3 text-blue-200 hover:text-white hover:bg-blue-800 transition">
+              <i className="fas fa-sign-out-alt mr-3 w-5"></i>
+              <span>Logout</span>
+            </a>
+          </div>
+        </nav>
       </aside>
 
       {/* Main Content */}
