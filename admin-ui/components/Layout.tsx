@@ -98,10 +98,6 @@ export default function Layout({ children }: LayoutProps) {
               <i className="fas fa-cog mr-3 w-5"></i>
               <span>Settings</span>
             </a>
-            <a href="/logout" className="flex items-center px-6 py-3 text-blue-200 hover:text-white hover:bg-blue-800 transition">
-              <i className="fas fa-sign-out-alt mr-3 w-5"></i>
-              <span>Logout</span>
-            </a>
           </div>
         </nav>
       </aside>
@@ -128,6 +124,12 @@ export default function Layout({ children }: LayoutProps) {
               <button className="text-gray-600 hover:text-gray-900">
                 <i className="fas fa-bell text-lg"></i>
               </button>
+              <div className="border-l border-gray-300 pl-6">
+                <a href="/logout" className="text-gray-600 hover:text-red-600 transition flex items-center">
+                  <i className="fas fa-sign-out-alt mr-2"></i>
+                  <span className="text-sm font-medium">Logout</span>
+                </a>
+              </div>
             </div>
           </div>
         </div>
