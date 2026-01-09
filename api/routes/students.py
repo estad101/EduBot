@@ -9,6 +9,8 @@ from services.student_service import StudentService
 from services.lead_service import LeadService
 from config.database import get_db
 from utils.logger import get_logger
+from models.student import Student, UserStatus
+from models.subscription import Subscription
 
 router = APIRouter(prefix="/api/students", tags=["students"])
 logger = get_logger("students_route")
@@ -114,8 +116,6 @@ async def get_all_students(db: Session = Depends(get_db)):
     Returns a list of all students registered in the system with their details.
     """
     try:
-        from models.student import Student
-        
         students = db.query(Student).all()
         
         students_data = []
@@ -151,9 +151,6 @@ async def get_students_stats(db: Session = Depends(get_db)):
     Returns counts of registered, active, and subscribed students.
     """
     try:
-        from models.student import Student, UserStatus
-        from models.subscription import Subscription
-        
         total_students = db.query(Student).count()
         active_subscriptions = db.query(Subscription).filter(
             Subscription.is_active == True
