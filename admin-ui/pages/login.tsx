@@ -18,29 +18,41 @@ export default function LoginPage() {
   useEffect(() => {
     const fetchBotName = async () => {
       try {
+        // Get the API URL from environment
+        const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+        const settingsUrl = `${apiUrl}/api/admin/settings`;
+        
+        console.log('Fetching bot name from:', settingsUrl);
+        
         // Fetch from admin_settings API endpoint
-        const response = await fetch('/api/admin/settings', {
+        const response = await fetch(settingsUrl, {
           method: 'GET',
           headers: {
             'Content-Type': 'application/json',
           },
         });
 
+        console.log('Response status:', response.status);
+
         if (response.ok) {
           const data = await response.json();
+          console.log('Settings data received:', data);
+          
           // Get bot_name from settings response (from admin_settings table)
           if (data?.data?.bot_name && data.data.bot_name.trim()) {
+            console.log('Setting bot name to:', data.data.bot_name);
             setBotName(data.data.bot_name);
           } else {
-            // Fallback to default if not set in database
+            console.log('No bot_name in response, using default: EduBot');
             setBotName('EduBot');
           }
         } else {
-          console.warn('Failed to fetch bot name:', response.status);
+          const errorText = await response.text();
+          console.warn('Failed to fetch bot name. Status:', response.status, 'Response:', errorText);
           setBotName('EduBot');
         }
       } catch (err) {
-        console.warn('Error fetching bot name from admin_settings:', err);
+        console.error('Error fetching bot name from admin_settings:', err);
         setBotName('EduBot');
       }
     };
