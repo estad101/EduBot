@@ -34,6 +34,7 @@ interface BotTemplate {
   template_name: string;
   template_content: string;
   variables: string[];
+  menu_items?: string[];
   is_default: boolean;
 }
 
@@ -130,6 +131,7 @@ export default function SettingsPage() {
         template_name: editingTemplate.template_name,
         template_content: editingTemplate.template_content,
         variables: editingTemplate.variables || [],
+        menu_items: editingTemplate.menu_items || [],
         is_default: editingTemplate.is_default
       });
       
@@ -931,6 +933,23 @@ export default function SettingsPage() {
                           </div>
                         </div>
 
+                        {/* Menu Items - Display */}
+                        {template.menu_items && template.menu_items.length > 0 && (
+                          <div className="mb-4">
+                            <p className="text-xs font-bold text-gray-700 mb-2 flex items-center gap-1">
+                              <i className="fas fa-bars text-orange-600"></i>MENU BUTTONS
+                            </p>
+                            <div className="space-y-2">
+                              {template.menu_items.map((item, idx) => (
+                                <div key={idx} className="bg-orange-50 border border-orange-200 rounded-lg p-3 flex items-center gap-2">
+                                  <i className="fas fa-button text-orange-600"></i>
+                                  <span className="text-sm font-mono text-gray-700">{item}</span>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+
                         {/* Variables - Better Display */}
                         {template.variables && template.variables.length > 0 && (
                           <div>
@@ -1005,6 +1024,85 @@ export default function SettingsPage() {
                     />
                     <p className="text-xs text-gray-600 mt-2 flex items-center gap-1">
                       <i className="fas fa-info-circle"></i> Use curly braces for variables: {'{variable_name}'}
+                    </p>
+                  </div>
+
+                  {/* Menu Items Management */}
+                  <div>
+                    <label className="block text-sm font-bold text-gray-800 mb-3 uppercase tracking-wide">
+                      <i className="fas fa-bars text-orange-600 mr-2"></i>Menu Buttons (Optional)
+                    </label>
+                    <div className="space-y-3 mb-4 p-4 bg-orange-50 rounded-lg border border-orange-100 min-h-20">
+                      {editingTemplate.menu_items && editingTemplate.menu_items.length > 0 ? (
+                        editingTemplate.menu_items.map((item, idx) => (
+                          <div key={idx} className="flex gap-2 items-center bg-white border border-orange-200 rounded-lg p-3">
+                            <div className="flex-1">
+                              <input
+                                type="text"
+                                value={item}
+                                onChange={(e) => {
+                                  const newMenuItems = [...(editingTemplate.menu_items || [])];
+                                  newMenuItems[idx] = e.target.value;
+                                  setEditingTemplate({ ...editingTemplate, menu_items: newMenuItems });
+                                }}
+                                placeholder="Button text"
+                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent text-sm"
+                              />
+                            </div>
+                            <button
+                              onClick={() => {
+                                setEditingTemplate({
+                                  ...editingTemplate,
+                                  menu_items: editingTemplate.menu_items?.filter((_, i) => i !== idx) || []
+                                });
+                              }}
+                              className="px-3 py-2 bg-red-100 text-red-600 rounded-lg hover:bg-red-200 transition font-bold"
+                              title="Remove menu button"
+                            >
+                              <i className="fas fa-trash"></i>
+                            </button>
+                          </div>
+                        ))
+                      ) : (
+                        <span className="text-gray-500 text-sm italic">No menu buttons added yet</span>
+                      )}
+                    </div>
+                    <div className="flex gap-2">
+                      <input
+                        type="text"
+                        placeholder="Add new menu button (e.g., Click Here, Learn More, etc.)"
+                        onKeyPress={(e) => {
+                          if (e.key === 'Enter' && e.currentTarget.value.trim()) {
+                            const buttonText = e.currentTarget.value.trim();
+                            setEditingTemplate({
+                              ...editingTemplate,
+                              menu_items: [...(editingTemplate.menu_items || []), buttonText]
+                            });
+                            e.currentTarget.value = '';
+                          }
+                        }}
+                        className="flex-1 px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent text-sm transition"
+                      />
+                      <button
+                        onClick={(e) => {
+                          const input = (e.target as HTMLElement).previousElementSibling as HTMLInputElement;
+                          if (input?.value.trim()) {
+                            const buttonText = input.value.trim();
+                            setEditingTemplate({
+                              ...editingTemplate,
+                              menu_items: [...(editingTemplate.menu_items || []), buttonText]
+                            });
+                            input.value = '';
+                          }
+                        }}
+                        className="px-4 py-3 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition font-bold flex items-center gap-2"
+                        title="Add menu button"
+                      >
+                        <i className="fas fa-plus"></i>Add
+                      </button>
+                    </div>
+                    <p className="text-xs text-gray-600 mt-2 flex items-center gap-1">
+                      <i className="fas fa-info-circle"></i> Add menu buttons that will appear below the message (optional)
                     </p>
                   </div>
 
