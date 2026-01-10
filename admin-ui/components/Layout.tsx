@@ -22,7 +22,7 @@ export default function Layout({ children }: LayoutProps) {
   ];
 
   return (
-    <div className="flex flex-col lg:flex-row h-screen bg-gray-100">
+    <div className="flex h-screen bg-gray-100 w-full">
       {/* Mobile Overlay */}
       {sidebarOpen && (
         <div
@@ -33,18 +33,18 @@ export default function Layout({ children }: LayoutProps) {
 
       {/* Sidebar */}
       <aside
-        className={`fixed lg:static inset-y-0 left-0 w-64 bg-blue-900 text-white shadow-lg transition-transform duration-300 ease-in-out transform lg:transform-none z-40 ${
-          sidebarOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"
-        } flex flex-col overflow-y-auto lg:overflow-visible`}
+        className={`fixed lg:static inset-y-0 left-0 w-64 bg-blue-900 text-white shadow-lg transition-transform duration-300 ease-in-out transform z-40 ${
+          sidebarOpen ? "translate-x-0" : "-translate-x-full"
+        } lg:translate-x-0 h-screen overflow-y-auto flex flex-col`}
       >
         {/* Logo Section */}
-        <div className="p-6 border-b border-blue-800">
+        <div className="p-6 border-b border-blue-800 flex-shrink-0">
           <h1 className="text-2xl font-bold">WhatsApp Bot</h1>
           <p className="text-blue-200 text-sm">Admin Panel</p>
         </div>
 
         {/* Navigation Menu */}
-        <nav className="flex-1 py-6">
+        <nav className="flex-1 py-6 overflow-y-auto">
           <div className="space-y-2">
             {menuItems.map((item) => (
               <a
@@ -74,45 +74,41 @@ export default function Layout({ children }: LayoutProps) {
       </aside>
 
       {/* Main Content */}
-      <main className="flex-1 flex flex-col overflow-hidden">
+      <main className="flex-1 flex flex-col w-full min-w-0">
         {/* Top Bar */}
-        <div className="bg-white shadow-sm z-20">
-          <div className="px-4 sm:px-6 lg:px-8 py-3 sm:py-4 flex justify-between items-center gap-2 sm:gap-4">
+        <div className="bg-white shadow-sm z-20 flex-shrink-0">
+          <div className="px-3 sm:px-6 lg:px-8 py-3 sm:py-4 flex justify-between items-center gap-2 sm:gap-4 min-h-16">
             {/* Mobile Menu Button */}
             <button
               onClick={() => setSidebarOpen(!sidebarOpen)}
-              className="lg:hidden p-2 hover:bg-gray-100 rounded transition"
+              className="lg:hidden p-2 hover:bg-gray-100 rounded transition flex-shrink-0"
               aria-label="Toggle sidebar"
             >
               <i className={`fas ${sidebarOpen ? "fa-times" : "fa-bars"} text-lg text-gray-700`}></i>
             </button>
 
             {/* Title */}
-            <h2 className="hidden sm:block text-xl sm:text-2xl font-bold text-gray-800 truncate">
-              Admin Dashboard
+            <h2 className="text-lg sm:text-xl lg:text-2xl font-bold text-gray-800 truncate flex-1">
+              Admin
             </h2>
 
             {/* Right Section */}
-            <div className="flex items-center gap-3 sm:gap-6 ml-auto">
-              <div className="hidden sm:flex items-center gap-3 sm:gap-6">
+            <div className="flex items-center gap-2 sm:gap-4 flex-shrink-0">
+              <div className="hidden md:flex items-center gap-2 sm:gap-4">
                 <StatusIndicator />
                 <WhatsAppIndicator />
-                <span className="text-xs sm:text-sm text-gray-600 hidden md:inline-flex items-center">
-                  <i className="far fa-clock mr-2"></i>
-                  <span id="current-time"></span>
-                </span>
               </div>
 
               {/* Notifications */}
-              <button className="p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded transition">
+              <button className="p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded transition flex-shrink-0">
                 <i className="fas fa-bell text-lg"></i>
               </button>
 
               {/* Logout */}
-              <div className="border-l border-gray-300 pl-3 sm:pl-6">
+              <div className="border-l border-gray-300 pl-2 sm:pl-4 flex-shrink-0">
                 <a
                   href="/logout"
-                  className="text-gray-600 hover:text-red-600 transition flex items-center gap-1 sm:gap-2"
+                  className="text-gray-600 hover:text-red-600 transition flex items-center gap-1"
                 >
                   <i className="fas fa-sign-out-alt text-lg"></i>
                   <span className="hidden sm:inline text-sm font-medium">Logout</span>
@@ -123,8 +119,8 @@ export default function Layout({ children }: LayoutProps) {
         </div>
 
         {/* Page Content */}
-        <div className="flex-1 overflow-auto">
-          <div className="p-4 sm:p-6 lg:p-8">{children}</div>
+        <div className="flex-1 overflow-auto w-full">
+          <div className="p-3 sm:p-6 lg:p-8 w-full h-full">{children}</div>
         </div>
       </main>
     </div>
