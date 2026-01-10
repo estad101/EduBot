@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import StatusIndicator from "./StatusIndicator";
 import WhatsAppIndicator from "./WhatsAppIndicator";
 
@@ -7,7 +7,36 @@ interface LayoutProps {
 }
 
 export default function Layout({ children }: LayoutProps) {
-  const [sidebarOpen, setSidebarOpen] = React.useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [appName, setAppName] = useState('WhatsApp Bot');
+
+  // Fetch app name from admin_settings table on component mount
+  useEffect(() => {
+    const fetchAppName = async () => {
+      try {
+        const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+        const settingsUrl = `${apiUrl}/api/admin/settings`;
+        
+        const response = await fetch(settingsUrl, {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          if (data?.data?.bot_name && data.data.bot_name.trim()) {
+            setAppName(data.data.bot_name);
+          }
+        }
+      } catch (err) {
+        console.error('Error fetching app name:', err);
+      }
+    };
+
+    fetchAppName();
+  }, []);
 
   const menuItems = [
     { href: "/dashboard", icon: "fa-chart-line", label: "Dashboard" },
@@ -40,7 +69,7 @@ export default function Layout({ children }: LayoutProps) {
         >
           {/* Logo Section */}
           <div className="p-6 border-b border-blue-800 flex-shrink-0">
-            <h1 className="text-2xl font-bold">WhatsApp Bot</h1>
+            <h1 className="text-2xl font-bold">{appName}</h1>
             <p className="text-blue-200 text-sm">Admin Panel</p>
           </div>
 
