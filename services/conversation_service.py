@@ -24,6 +24,7 @@ class ConversationState(str, Enum):
     UPDATING_NAME = "updating_name"
     UPDATING_EMAIL = "updating_email"
     UPDATING_CLASS = "updating_class"
+    ALREADY_REGISTERED = "already_registered"  # User tried to register but already has account
     REGISTERED = "registered"
     HOMEWORK_SUBJECT = "homework_subject"
     HOMEWORK_TYPE = "homework_type"
@@ -221,6 +222,13 @@ class MessageRouter:
             List of buttons if 3 or fewer options, None for text-based lists
         """
         # Show buttons for states with limited options (3 or fewer)
+        
+        # Already registered - user tried to register but has account - 2 options
+        if current_state == ConversationState.ALREADY_REGISTERED:
+            return [
+                {"id": "update", "title": "📝 Update"},
+                {"id": "home", "title": "↩️ Home"},
+            ]
         
         # Homework type selection - 2 options
         if current_state == ConversationState.HOMEWORK_TYPE:
@@ -519,11 +527,8 @@ class MessageRouter:
                         f"👤 Name: {student_data.get('name')}\n"
                         f"📧 Email: {user_email}\n"
                         f"🎓 Class: {user_class}\n\n"
-                        f"Would you like to:\n\n"
-                        f"📝 **Update** - Change your information\n"
-                        f"↩️ **Home** - Return to main menu\n\n"
-                        f"Type a command above to continue!",
-                        ConversationState.IDLE,
+                        f"What would you like to do?",
+                        ConversationState.ALREADY_REGISTERED,
                     )
                 # Not registered - proceed with registration
                 return (
@@ -638,6 +643,47 @@ class MessageRouter:
                         f"{greeting}\n\nWelcome to Study Bot! Get started below.",
                         ConversationState.IDLE,
                     )
+
+        # Already registered state - user tried to register but has account
+        elif current_state == ConversationState.ALREADY_REGISTERED:
+            if intent == "update":
+                # User chose to update profile
+                current_name = student_data.get("name", "Not provided")
+                return (
+                    f"✏️ Update Your Profile\n\n"
+                    f"Current Name: {current_name}\n\n"
+                    f"Enter your new full name (or type 'skip' to keep current name):",
+                    ConversationState.UPDATING_NAME,
+                )
+            elif intent == "home" or intent == "main_menu":
+                # User chose to return to main menu
+                greeting = f"Welcome back, {first_name}! 👋" if first_name else "Welcome back! 👋"
+                return (
+                    f"{greeting}\n\n"
+                    f"📚 **AVAILABLE FEATURES** 📚\n\n"
+                    f"🏠 **Home** - Return to home menu\n"
+                    f"❓ **FAQ** - Get answers to common questions\n"
+                    f"📝 **Homework** - Submit your homework\n"
+                    f"💬 **Support** - Chat with our team\n"
+                    f"💳 **Subscribe** - View subscription plans\n"
+                    f"📊 **Status** - Check your account details\n"
+                    f"ℹ️ **Help** - Get help with the bot\n\n"
+                    f"Just type a command above to get started!",
+                    ConversationState.IDLE,
+                )
+            else:
+                # User sent unexpected input - show options again
+                user_email = student_data.get("email", "Not provided") if student_data else "Not provided"
+                user_class = student_data.get("class_grade", "Not provided") if student_data else "Not provided"
+                return (
+                    f"✅ You are already registered!\n\n"
+                    f"📋 **Your Information:**\n\n"
+                    f"👤 Name: {student_data.get('name') if student_data else 'N/A'}\n"
+                    f"📧 Email: {user_email}\n"
+                    f"🎓 Class: {user_class}\n\n"
+                    f"What would you like to do?",
+                    ConversationState.ALREADY_REGISTERED,
+                )
 
         # Registration flow
         elif current_state == ConversationState.REGISTERING_NAME:
