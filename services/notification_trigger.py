@@ -327,3 +327,120 @@ class NotificationTrigger:
             
         except Exception as e:
             logger.error(f"Error triggering system_alert notification: {str(e)}")
+    
+    @staticmethod
+    def on_chat_support_initiated_admin(
+        phone_number: str,
+        user_name: Optional[str] = None,
+        admin_phone: str = "admin",
+        db: Optional[Session] = None
+    ):
+        """Trigger notification to admins when user initiates chat support."""
+        try:
+            message = f"💬 New Chat Support Request\n\n"
+            if user_name:
+                message += f"From: {user_name}\n"
+            message += f"Phone: {phone_number}\n\n"
+            message += "Click to view conversation and respond."
+            
+            NotificationService.create_notification(
+                phone_number=admin_phone,  # Send to admin
+                notification_type=NotificationType.CHAT_SUPPORT_STARTED,
+                title="New Chat Support Request",
+                message=message,
+                priority=NotificationPriority.HIGH,
+                channel=NotificationChannel.BOTH,  # Notify admin via WhatsApp + In-App
+                data={
+                    "user_phone": phone_number,
+                    "user_name": user_name
+                },
+                related_entity_type="chat_support",
+                related_entity_id=phone_number,
+                db=db
+            )
+            
+            logger.info(f"Admin notified: Chat support initiated by {phone_number}")
+            
+        except Exception as e:
+            logger.error(f"Error triggering admin chat_support notification: {str(e)}")
+    
+    @staticmethod
+    def on_chat_user_message_admin(
+        phone_number: str,
+        user_name: Optional[str] = None,
+        message_preview: str = "",
+        admin_phone: str = "admin",
+        db: Optional[Session] = None
+    ):
+        """Trigger notification to admins when user sends message in chat."""
+        try:
+            message = f"💬 New Message from User\n\n"
+            if user_name:
+                message += f"From: {user_name}\n"
+            message += f"Phone: {phone_number}\n\n"
+            message += f"Message: {message_preview[:80]}"
+            if len(message_preview) > 80:
+                message += "..."
+            
+            NotificationService.create_notification(
+                phone_number=admin_phone,  # Send to admin
+                notification_type=NotificationType.CHAT_MESSAGE,
+                title="New Chat Message",
+                message=message,
+                priority=NotificationPriority.NORMAL,
+                channel=NotificationChannel.IN_APP,  # In-app for admins
+                data={
+                    "user_phone": phone_number,
+                    "user_name": user_name,
+                    "message_preview": message_preview
+                },
+                related_entity_type="chat_support",
+                related_entity_id=phone_number,
+                db=db
+            )
+            
+            logger.info(f"Admin notified: Chat message from {phone_number}")
+            
+        except Exception as e:
+            logger.error(f"Error triggering admin chat_message notification: {str(e)}")
+    
+    @staticmethod
+    def on_chat_support_ended_admin(
+        phone_number: str,
+        user_name: Optional[str] = None,
+        admin_phone: str = "admin",
+        duration_minutes: Optional[int] = None,
+        db: Optional[Session] = None
+    ):
+        """Trigger notification to admins when chat support session ends."""
+        try:
+            message = f"↩️ Chat Support Ended\n\n"
+            if user_name:
+                message += f"User: {user_name}\n"
+            message += f"Phone: {phone_number}\n"
+            if duration_minutes:
+                message += f"Duration: {duration_minutes} minutes\n"
+            message += "\nConversation has been archived."
+            
+            NotificationService.create_notification(
+                phone_number=admin_phone,
+                notification_type=NotificationType.CHAT_SUPPORT_ENDED,
+                title="Chat Support Ended",
+                message=message,
+                priority=NotificationPriority.NORMAL,
+                channel=NotificationChannel.IN_APP,
+                data={
+                    "user_phone": phone_number,
+                    "user_name": user_name,
+                    "duration": duration_minutes
+                },
+                related_entity_type="chat_support",
+                related_entity_id=phone_number,
+                db=db
+            )
+            
+            logger.info(f"Admin notified: Chat support ended with {phone_number}")
+            
+        except Exception as e:
+            logger.error(f"Error triggering admin chat_support_ended notification: {str(e)}")
+

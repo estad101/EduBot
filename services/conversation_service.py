@@ -12,6 +12,12 @@ from enum import Enum
 
 logger = logging.getLogger(__name__)
 
+# Import NotificationTrigger for chat notifications
+try:
+    from services.notification_trigger import NotificationTrigger
+except ImportError:
+    NotificationTrigger = None
+
 # Conversation states
 class ConversationState(str, Enum):
     """User conversation states."""
@@ -295,7 +301,7 @@ class MessageRouter:
 
     @staticmethod
     def get_next_response(
-        phone_number: str, message_text: str, student_data: Optional[Dict] = None
+        phone_number: str, message_text: str, student_data: Optional[Dict] = None, db: Any = None
     ) -> tuple[str, Optional[ConversationState]]:
         """
         Get the next response based on conversation state and message.
@@ -304,6 +310,7 @@ class MessageRouter:
             phone_number: User's phone number
             message_text: User's message text
             student_data: Optional student data from database (includes name, status, etc.)
+            db: Optional database session for notification triggers
 
         Returns:
             Tuple of (response_message, next_state)
@@ -336,6 +343,21 @@ class MessageRouter:
             })
             ConversationService.set_data(phone_number, "chat_messages", chat_messages)
             
+            # Trigger admin notification for user message
+            if NotificationTrigger and db:
+                try:
+                    user_name = student_data.get("name") if student_data else "Unknown User"
+                    message_preview = message_text[:100]
+                    NotificationTrigger.on_chat_user_message_admin(
+                        phone_number=phone_number,
+                        user_name=user_name,
+                        message_preview=message_preview,
+                        admin_phone="admin",
+                        db=db
+                    )
+                except Exception as e:
+                    logger.warning(f"Could not send admin message notification: {str(e)}")
+            
             # Acknowledge message to user
             ack_message = (
                 "✓ Your message has been sent to support.\n\n"
@@ -351,11 +373,37 @@ class MessageRouter:
                 if ticket_id:
                     from services.support_service import SupportService
                     from config.database import SessionLocal
-                    db = SessionLocal()
+                    db_temp = SessionLocal()
                     try:
-                        SupportService.update_ticket_status(db, ticket_id, "CLOSED")
+                        SupportService.update_ticket_status(db_temp, ticket_id, "CLOSED")
                     finally:
-                        db.close()
+                        db_temp.close()
+                
+                # Calculate chat duration
+                duration_minutes = None
+                chat_start_time = ConversationService.get_data(phone_number, "chat_start_time")
+                if chat_start_time:
+                    try:
+                        start_dt = datetime.fromisoformat(chat_start_time)
+                        duration = datetime.now() - start_dt
+                        duration_minutes = int(duration.total_seconds() / 60)
+                    except:
+                        pass
+                
+                # Trigger notification that user ended chat
+                if NotificationTrigger and db:
+                    try:
+                        user_name = student_data.get("name") if student_data else "User"
+                        NotificationTrigger.on_chat_support_ended_admin(
+                            phone_number=phone_number,
+                            user_name=user_name,
+                            admin_phone="admin",
+                            duration_minutes=duration_minutes,
+                            db=db
+                        )
+                    except Exception as e:
+                        logger.warning(f"Could not send chat ended notification: {str(e)}")
+                
                 # Clear support data
                 ConversationService.set_data(phone_number, "requesting_support", False)
                 ConversationService.set_data(phone_number, "support_ticket_id", None)
@@ -508,6 +556,20 @@ class MessageRouter:
             ConversationService.set_data(phone_number, "in_chat_support", True)
             ConversationService.set_data(phone_number, "chat_support_active", True)
             ConversationService.set_data(phone_number, "chat_start_time", datetime.now().isoformat())
+            
+            # Trigger admin notification
+            if NotificationTrigger and db:
+                try:
+                    user_name = student_data.get("name") if student_data else "Unknown User"
+                    NotificationTrigger.on_chat_support_initiated_admin(
+                        phone_number=phone_number,
+                        user_name=user_name,
+                        admin_phone="admin",
+                        db=db
+                    )
+                except Exception as e:
+                    logger.warning(f"Could not send admin chat notification: {str(e)}")
+            
             return (support_text, ConversationState.CHAT_SUPPORT_ACTIVE)
 
         # Handle FAQ command

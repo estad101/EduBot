@@ -146,6 +146,7 @@ async def whatsapp_webhook(request: Request, background_tasks: BackgroundTasks, 
                     phone_number,
                     message_text,
                     student_data=student_data,  # Pass actual student data if registered
+                    db=db  # Pass database session for notifications
                 )
             except Exception as e:
                 logger.error(f"❌ Error in MessageRouter.get_next_response: {str(e)}", exc_info=True)

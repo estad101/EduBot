@@ -18,6 +18,7 @@ from models.homework import Homework, SubmissionType
 from models.subscription import Subscription
 from models.settings import AdminSetting
 from services.lead_service import LeadService
+from services.notification_trigger import NotificationTrigger
 from schemas.response import StandardResponse
 from utils.logger import get_logger
 from utils.security import (
@@ -1977,6 +1978,19 @@ async def send_chat_support_message(
             })
             ConversationService.set_data(phone_number, "chat_messages", chat_messages)
             
+            # Trigger notification to user for admin message
+            try:
+                student = db.query(Student).filter(Student.phone_number == phone_number).first()
+                user_name = student.name if student else "Support Team"
+                NotificationTrigger.on_chat_message_received(
+                    phone_number=phone_number,
+                    sender_name="Support Team",
+                    message_preview=message_text[:100],
+                    db=db
+                )
+            except Exception as e:
+                logger.warning(f"Could not send user chat notification: {str(e)}")
+            
             logger.info(f"Admin sent chat support message to {phone_number}")
             
             return {
@@ -2048,8 +2062,33 @@ async def end_chat_support(
         # Update conversation state
         ConversationService.set_data(phone_number, "chat_support_active", False)
         ConversationService.set_data(phone_number, "in_chat_support", False)
+        chat_start_time = ConversationService.get_data(phone_number, "chat_start_time")
         ConversationService.set_data(phone_number, "chat_messages", None)
         ConversationService.set_state(phone_number, ConversationState.IDLE)
+        
+        # Calculate chat duration
+        duration_minutes = None
+        if chat_start_time:
+            try:
+                start_dt = datetime.fromisoformat(chat_start_time)
+                duration = datetime.now() - start_dt
+                duration_minutes = int(duration.total_seconds() / 60)
+            except:
+                pass
+        
+        # Trigger notification that chat has ended
+        try:
+            student = db.query(Student).filter(Student.phone_number == phone_number).first()
+            user_name = student.name if student else "User"
+            NotificationTrigger.on_chat_support_ended_admin(
+                phone_number=phone_number,
+                user_name=user_name,
+                admin_phone="admin",
+                duration_minutes=duration_minutes,
+                db=db
+            )
+        except Exception as e:
+            logger.warning(f"Could not send chat ended notification: {str(e)}")
         
         logger.info(f"Admin ended chat support session with {phone_number}")
         
