@@ -1189,13 +1189,22 @@ async def get_settings(db: Session = Depends(get_db)):
             settings_dict["template_welcome"] = "👋 {name}, welcome to {bot_name}!"
         if not settings_dict.get("template_status"):
             settings_dict["template_status"] = "📋 Status: Awaiting registration\n\nPlease provide:\n1. Your full name\n2. Your class/grade\n3. Email address"
+        if not settings_dict.get("template_greeting"):
+            settings_dict["template_greeting"] = "Hi {name}! What would you like to do?"
+        if not settings_dict.get("template_help"):
+            settings_dict["template_help"] = "📚 Help & Features\n\n🎓 I can help you with:\n📝 Homework - Submit assignments and get feedback\n💳 Subscribe - Unlimited submissions\n❓ FAQs - Quick answers\n💬 Support - Chat with our team"
+        if not settings_dict.get("template_faq"):
+            settings_dict["template_faq"] = "❓ Frequently Asked Questions\n\nChoose a category for more info."
+        if not settings_dict.get("template_error"):
+            settings_dict["template_error"] = "❓ I didn't quite understand that.\n\nChoose an option above to continue."
         
         # Ensure all expected keys exist
         expected_keys = [
             "whatsapp_api_key", "whatsapp_phone_number_id", "whatsapp_business_account_id",
             "whatsapp_phone_number", "whatsapp_webhook_token", "paystack_public_key",
             "paystack_secret_key", "paystack_webhook_secret", "database_url", "bot_name",
-            "template_welcome", "template_status"
+            "template_welcome", "template_status", "template_greeting", "template_help", 
+            "template_faq", "template_error"
         ]
         for key in expected_keys:
             if key not in settings_dict:
@@ -1220,7 +1229,13 @@ async def get_settings(db: Session = Depends(get_db)):
                 "paystack_secret_key": "",
                 "paystack_webhook_secret": "",
                 "database_url": settings.database_url or "",
-                "bot_name": "EduBot"
+                "bot_name": "EduBot",
+                "template_welcome": "👋 {name}, welcome to {bot_name}!",
+                "template_status": "📋 Status: Awaiting registration\n\nPlease provide:\n1. Your full name\n2. Your class/grade\n3. Email address",
+                "template_greeting": "Hi {name}! What would you like to do?",
+                "template_help": "📚 Help & Features\n\n🎓 I can help you with:\n📝 Homework - Submit assignments and get feedback\n💳 Subscribe - Unlimited submissions\n❓ FAQs - Quick answers\n💬 Support - Chat with our team",
+                "template_faq": "❓ Frequently Asked Questions\n\nChoose a category for more info.",
+                "template_error": "❓ I didn't quite understand that.\n\nChoose an option above to continue."
             }
         }
 
