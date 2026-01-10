@@ -359,7 +359,13 @@ export default function SettingsPage() {
           </div>
         </div>
 
+        {/* Messages Management Tab - Outside Form */}
+        {activeTab === 'messages' && (
+          <MessageManagementTab />
+        )}
+
         {/* Settings Form */}
+        {activeTab !== 'messages' && (
         <form onSubmit={handleSave} className="space-y-6">
 
           {/* Conversation Templates Tab */}
@@ -947,11 +953,6 @@ export default function SettingsPage() {
             </div>
           )}
 
-          {/* Messages Management Tab */}
-          {activeTab === 'messages' && (
-            <MessageManagementTab />
-          )}
-
           {/* Action Buttons */}
           <div className="bg-white rounded-lg shadow p-6 flex gap-4 justify-end">
             <button
@@ -985,6 +986,7 @@ export default function SettingsPage() {
             </button>
           </div>
         </form>
+        )}
       </div>
     </Layout>
   );
