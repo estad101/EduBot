@@ -29,6 +29,14 @@ interface ValidationError {
   [key: string]: string;
 }
 
+interface BotTemplate {
+  id: number;
+  template_name: string;
+  template_content: string;
+  variables: string[];
+  is_default: boolean;
+}
+
 export default function SettingsPage() {
   const router = useRouter();
   const [settings, setSettings] = useState<SettingsData>({});
@@ -41,6 +49,8 @@ export default function SettingsPage() {
   const [validationErrors, setValidationErrors] = useState<ValidationError>({});
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
   const [showTokens, setShowTokens] = useState(false);
+  const [templates, setTemplates] = useState<BotTemplate[]>([]);
+  const [loadingTemplates, setLoadingTemplates] = useState(false);
 
   const isDirty = JSON.stringify(settings) !== JSON.stringify(originalSettings);
 
@@ -69,6 +79,43 @@ export default function SettingsPage() {
 
     fetchSettings();
   }, [router]);
+
+  // Fetch templates from bot_message_templates table
+  useEffect(() => {
+    const fetchTemplates = async () => {
+      try {
+        setLoadingTemplates(true);
+        const token = localStorage.getItem('admin_token');
+        if (!token) {
+          return;
+        }
+        
+        const response = await fetch('/api/bot-messages/templates/list', {
+          method: 'GET',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          }
+        });
+        
+        if (!response.ok) {
+          console.warn(`Templates API returned ${response.status}`);
+          return;
+        }
+        
+        const data = await response.json();
+        if (data.status === 'success' && data.data?.templates) {
+          setTemplates(data.data.templates);
+        }
+      } catch (err: any) {
+        console.error('Failed to fetch templates:', err.message);
+      } finally {
+        setLoadingTemplates(false);
+      }
+    };
+
+    fetchTemplates();
+  }, []);
 
   const validatePhoneNumber = (phone: string): boolean => {
     return /^\+\d{1,15}$/.test(phone);
@@ -607,71 +654,84 @@ export default function SettingsPage() {
           {activeTab === 'templates' && (
             <div className="bg-white rounded-lg shadow p-8 animate-in fade-in duration-300">
               <h2 className="text-2xl font-bold text-gray-900 mb-2 flex items-center">
-                <i className="fas fa-file-alt text-cyan-600 mr-3"></i>Message Templates
+                <i className="fas fa-file-alt text-cyan-600 mr-3"></i>Bot Message Templates
               </h2>
-              <p className="text-gray-600 mb-6">Pre-configured response templates</p>
+              <p className="text-gray-600 mb-6">Message templates stored in the bot_message_templates table</p>
 
-              <div className="space-y-6">
-                {/* Help Template */}
-                <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">
-                    <i className="fas fa-question-circle mr-2 text-cyan-600"></i>Help Template
-                  </label>
-                  <textarea
-                    name="template_help"
-                    value={settings.template_help || ''}
-                    onChange={handleInputChange}
-                    placeholder="Enter help template..."
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-cyan-500 focus:border-transparent transition font-mono text-sm h-24"
-                  />
-                  <p className="text-xs text-gray-500 mt-2">Help and features information</p>
+              {loadingTemplates ? (
+                <div className="flex justify-center items-center py-12">
+                  <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-cyan-600"></div>
+                  <span className="ml-3 text-gray-600">Loading templates...</span>
                 </div>
+              ) : templates.length === 0 ? (
+                <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-6 text-center">
+                  <i className="fas fa-inbox text-yellow-600 text-3xl mb-3"></i>
+                  <p className="text-gray-600">No templates found in the database.</p>
+                  <p className="text-sm text-gray-500 mt-2">Templates will appear here once they are seeded or created.</p>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {/* Summary Stats */}
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                    <div className="bg-cyan-50 border border-cyan-200 rounded-lg p-4">
+                      <p className="text-sm text-cyan-600 font-semibold">Total Templates</p>
+                      <p className="text-2xl font-bold text-cyan-900 mt-1">{templates.length}</p>
+                    </div>
+                    <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                      <p className="text-sm text-blue-600 font-semibold">Default Templates</p>
+                      <p className="text-2xl font-bold text-blue-900 mt-1">{templates.filter(t => t.is_default).length}</p>
+                    </div>
+                    <div className="bg-indigo-50 border border-indigo-200 rounded-lg p-4">
+                      <p className="text-sm text-indigo-600 font-semibold">Custom Templates</p>
+                      <p className="text-2xl font-bold text-indigo-900 mt-1">{templates.filter(t => !t.is_default).length}</p>
+                    </div>
+                  </div>
 
-                {/* FAQ Template */}
-                <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">
-                    <i className="fas fa-lightbulb mr-2 text-cyan-600"></i>FAQ Template
-                  </label>
-                  <textarea
-                    name="template_faq"
-                    value={settings.template_faq || ''}
-                    onChange={handleInputChange}
-                    placeholder="Enter FAQ template..."
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-cyan-500 focus:border-transparent transition font-mono text-sm h-20"
-                  />
-                  <p className="text-xs text-gray-500 mt-2">Frequently asked questions template</p>
-                </div>
+                  {/* Templates List */}
+                  <div className="space-y-3 max-h-[70vh] overflow-y-auto">
+                    {templates.map((template) => (
+                      <div key={template.id} className="bg-gray-50 border border-gray-200 rounded-lg p-4 hover:shadow-md transition">
+                        <div className="flex justify-between items-start mb-3">
+                          <div className="flex-1">
+                            <h3 className="font-semibold text-gray-900 flex items-center gap-2">
+                              <i className="fas fa-tag text-cyan-600 text-sm"></i>
+                              {template.template_name}
+                              {template.is_default && (
+                                <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
+                                  ⭐ Default
+                                </span>
+                              )}
+                            </h3>
+                            <p className="text-xs text-gray-500 mt-1">ID: {template.id}</p>
+                          </div>
+                        </div>
 
-                {/* Status Template */}
-                <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">
-                    <i className="fas fa-info-circle mr-2 text-cyan-600"></i>Status Template
-                  </label>
-                  <textarea
-                    name="template_status"
-                    value={settings.template_status || ''}
-                    onChange={handleInputChange}
-                    placeholder="Enter status template..."
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-cyan-500 focus:border-transparent transition font-mono text-sm h-20"
-                  />
-                  <p className="text-xs text-gray-500 mt-2">User status and registration status template</p>
-                </div>
+                        {/* Template Content */}
+                        <div className="bg-white border border-gray-200 rounded p-3 mb-3 font-mono text-sm max-h-32 overflow-y-auto whitespace-pre-wrap break-words">
+                          {template.template_content}
+                        </div>
 
-                {/* Error Template */}
-                <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">
-                    <i className="fas fa-exclamation-circle mr-2 text-cyan-600"></i>Error Template
-                  </label>
-                  <textarea
-                    name="template_error"
-                    value={settings.template_error || ''}
-                    onChange={handleInputChange}
-                    placeholder="Enter error template..."
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-cyan-500 focus:border-transparent transition font-mono text-sm h-20"
-                  />
-                  <p className="text-xs text-gray-500 mt-2">Error message template</p>
+                        {/* Variables */}
+                        {template.variables && template.variables.length > 0 && (
+                          <div>
+                            <p className="text-xs font-semibold text-gray-700 mb-2 flex items-center gap-1">
+                              <i className="fas fa-code text-purple-600"></i>
+                              Variables:
+                            </p>
+                            <div className="flex flex-wrap gap-2">
+                              {template.variables.map((variable, idx) => (
+                                <span key={idx} className="inline-block bg-purple-100 text-purple-700 px-2 py-1 rounded text-xs font-mono">
+                                  {typeof variable === 'string' ? variable : JSON.stringify(variable)}
+                                </span>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
                 </div>
-              </div>
+              )}
             </div>
           )}
 
