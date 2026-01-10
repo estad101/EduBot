@@ -37,6 +37,10 @@ interface BotTemplate {
   is_default: boolean;
 }
 
+interface EditingTemplate extends BotTemplate {
+  // For tracking edits
+}
+
 export default function SettingsPage() {
   const router = useRouter();
   const [settings, setSettings] = useState<SettingsData>({});
@@ -51,6 +55,10 @@ export default function SettingsPage() {
   const [showTokens, setShowTokens] = useState(false);
   const [templates, setTemplates] = useState<BotTemplate[]>([]);
   const [loadingTemplates, setLoadingTemplates] = useState(false);
+  const [editingTemplateId, setEditingTemplateId] = useState<number | null>(null);
+  const [editingTemplate, setEditingTemplate] = useState<EditingTemplate | null>(null);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [templateMenuId, setTemplateMenuId] = useState<number | null>(null);
 
   const isDirty = JSON.stringify(settings) !== JSON.stringify(originalSettings);
 
@@ -99,6 +107,46 @@ export default function SettingsPage() {
 
     fetchTemplates();
   }, []);
+
+  const openEditModal = (template: BotTemplate) => {
+    setEditingTemplate({ ...template });
+    setEditingTemplateId(template.id);
+    setShowEditModal(true);
+    setTemplateMenuId(null);
+  };
+
+  const closeEditModal = () => {
+    setShowEditModal(false);
+    setEditingTemplate(null);
+    setEditingTemplateId(null);
+  };
+
+  const saveTemplateChanges = async () => {
+    if (!editingTemplate) return;
+    
+    try {
+      setIsSaving(true);
+      const response = await apiClient.updateTemplate(editingTemplate.id, {
+        template_name: editingTemplate.template_name,
+        template_content: editingTemplate.template_content,
+        variables: editingTemplate.variables || [],
+        is_default: editingTemplate.is_default
+      });
+      
+      if (response.status === 'success') {
+        setSuccess('Template updated successfully!');
+        setTemplates(templates.map(t => t.id === editingTemplate.id ? editingTemplate : t));
+        closeEditModal();
+        setTimeout(() => setSuccess(null), 3000);
+      } else {
+        setError(response.message || 'Failed to update template');
+      }
+    } catch (err: any) {
+      setError(err.message || 'Failed to update template');
+    } finally {
+      setIsSaving(false);
+    }
+  };
 
   const validatePhoneNumber = (phone: string): boolean => {
     return /^\+\d{1,15}$/.test(phone);
@@ -673,7 +721,7 @@ export default function SettingsPage() {
                   {/* Templates List */}
                   <div className="space-y-3 max-h-[70vh] overflow-y-auto">
                     {templates.map((template) => (
-                      <div key={template.id} className="bg-gray-50 border border-gray-200 rounded-lg p-4 hover:shadow-md transition">
+                      <div key={template.id} className="bg-gray-50 border border-gray-200 rounded-lg p-4 hover:shadow-md transition relative">
                         <div className="flex justify-between items-start mb-3">
                           <div className="flex-1">
                             <h3 className="font-semibold text-gray-900 flex items-center gap-2">
@@ -686,6 +734,43 @@ export default function SettingsPage() {
                               )}
                             </h3>
                             <p className="text-xs text-gray-500 mt-1">ID: {template.id}</p>
+                          </div>
+                          {/* Template Menu */}
+                          <div className="relative">
+                            <button
+                              onClick={() => setTemplateMenuId(templateMenuId === template.id ? null : template.id)}
+                              className="p-2 hover:bg-gray-200 rounded-lg transition text-gray-600"
+                            >
+                              <i className="fas fa-ellipsis-v"></i>
+                            </button>
+                            {templateMenuId === template.id && (
+                              <div className="absolute right-0 mt-1 w-40 bg-white border border-gray-300 rounded-lg shadow-lg z-50">
+                                <button
+                                  onClick={() => openEditModal(template)}
+                                  className="w-full text-left px-4 py-2 hover:bg-blue-50 text-blue-600 font-semibold flex items-center gap-2 border-b"
+                                >
+                                  <i className="fas fa-edit"></i>Edit Template
+                                </button>
+                                <button
+                                  onClick={() => {
+                                    alert('Copy functionality coming soon');
+                                    setTemplateMenuId(null);
+                                  }}
+                                  className="w-full text-left px-4 py-2 hover:bg-green-50 text-green-600 font-semibold flex items-center gap-2 border-b"
+                                >
+                                  <i className="fas fa-copy"></i>Duplicate
+                                </button>
+                                <button
+                                  onClick={() => {
+                                    alert('Delete confirmation coming soon');
+                                    setTemplateMenuId(null);
+                                  }}
+                                  className="w-full text-left px-4 py-2 hover:bg-red-50 text-red-600 font-semibold flex items-center gap-2"
+                                >
+                                  <i className="fas fa-trash"></i>Delete
+                                </button>
+                              </div>
+                            )}
                           </div>
                         </div>
 
@@ -715,6 +800,144 @@ export default function SettingsPage() {
                   </div>
                 </div>
               )}
+            </div>
+          )}
+
+          {/* Edit Template Modal */}
+          {showEditModal && editingTemplate && (
+            <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+              <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+                <div className="sticky top-0 bg-white border-b p-6 flex justify-between items-center">
+                  <h3 className="text-xl font-bold text-gray-900 flex items-center gap-2">
+                    <i className="fas fa-edit text-cyan-600"></i>
+                    Edit Template
+                  </h3>
+                  <button
+                    onClick={closeEditModal}
+                    className="text-gray-500 hover:text-gray-700 text-2xl"
+                  >
+                    ×
+                  </button>
+                </div>
+
+                <div className="p-6 space-y-4">
+                  {/* Template Name */}
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-900 mb-2">
+                      <i className="fas fa-tag text-cyan-600 mr-2"></i>Template Name
+                    </label>
+                    <input
+                      type="text"
+                      value={editingTemplate.template_name}
+                      onChange={(e) => setEditingTemplate({ ...editingTemplate, template_name: e.target.value })}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-cyan-500 focus:border-transparent"
+                      placeholder="e.g., greeting_welcome_new_user"
+                    />
+                  </div>
+
+                  {/* Template Content */}
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-900 mb-2">
+                      <i className="fas fa-align-left text-cyan-600 mr-2"></i>Template Content
+                    </label>
+                    <textarea
+                      value={editingTemplate.template_content}
+                      onChange={(e) => setEditingTemplate({ ...editingTemplate, template_content: e.target.value })}
+                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-cyan-500 focus:border-transparent font-mono text-sm"
+                      placeholder="Enter template content with variables like {user_name}, {bot_name}, etc."
+                      rows={6}
+                    />
+                    <p className="text-xs text-gray-500 mt-2">
+                      Use curly braces for variables: {'{variable_name}'}
+                    </p>
+                  </div>
+
+                  {/* Variables */}
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-900 mb-2">
+                      <i className="fas fa-code text-purple-600 mr-2"></i>Variables
+                    </label>
+                    <div className="flex flex-wrap gap-2 mb-2 p-3 bg-gray-50 rounded-lg min-h-12">
+                      {editingTemplate.variables && editingTemplate.variables.length > 0 ? (
+                        editingTemplate.variables.map((variable, idx) => (
+                          <span key={idx} className="inline-flex items-center gap-2 bg-purple-100 text-purple-700 px-3 py-1 rounded-full text-sm font-mono">
+                            {variable}
+                            <button
+                              onClick={() => {
+                                setEditingTemplate({
+                                  ...editingTemplate,
+                                  variables: editingTemplate.variables?.filter((_, i) => i !== idx) || []
+                                });
+                              }}
+                              className="hover:text-purple-900 font-bold"
+                            >
+                              ×
+                            </button>
+                          </span>
+                        ))
+                      ) : (
+                        <span className="text-gray-500 text-sm">No variables added</span>
+                      )}
+                    </div>
+                    <input
+                      type="text"
+                      placeholder="Enter variable name and press Enter"
+                      onKeyPress={(e) => {
+                        if (e.key === 'Enter' && e.currentTarget.value.trim()) {
+                          const varName = e.currentTarget.value.trim();
+                          if (!editingTemplate.variables?.includes(varName)) {
+                            setEditingTemplate({
+                              ...editingTemplate,
+                              variables: [...(editingTemplate.variables || []), varName]
+                            });
+                          }
+                          e.currentTarget.value = '';
+                        }
+                      }}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-sm"
+                    />
+                  </div>
+
+                  {/* Is Default Toggle */}
+                  <div className="flex items-center gap-3 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+                    <input
+                      type="checkbox"
+                      checked={editingTemplate.is_default}
+                      onChange={(e) => setEditingTemplate({ ...editingTemplate, is_default: e.target.checked })}
+                      className="w-5 h-5 text-yellow-600 rounded focus:ring-2"
+                    />
+                    <label className="flex-1 text-sm font-semibold text-gray-900">
+                      <i className="fas fa-star text-yellow-600 mr-2"></i>Mark as Default Template
+                    </label>
+                  </div>
+                </div>
+
+                {/* Modal Footer */}
+                <div className="sticky bottom-0 bg-gray-50 border-t px-6 py-4 flex gap-3 justify-end">
+                  <button
+                    onClick={closeEditModal}
+                    className="px-6 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition font-semibold"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={saveTemplateChanges}
+                    disabled={isSaving}
+                    className="px-6 py-2 bg-cyan-600 text-white rounded-lg hover:bg-cyan-700 transition font-semibold disabled:opacity-50 flex items-center gap-2"
+                  >
+                    {isSaving ? (
+                      <>
+                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                        Saving...
+                      </>
+                    ) : (
+                      <>
+                        <i className="fas fa-save"></i>Save Changes
+                      </>
+                    )}
+                  </button>
+                </div>
+              </div>
             </div>
           )}
 

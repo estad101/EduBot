@@ -231,6 +231,10 @@ class APIClient {
     const response = await this.client.get("/api/bot-messages/templates/list");
     return response.data;
   }
-}
 
-export const apiClient = new APIClient();
+  // Update a bot message template
+  async updateTemplate(templateId: number, data: any) {
+    const response = await this.client.put(`/api/bot-messages/templates/${templateId}`, data);
+    return response.data;
+  }
+}

@@ -289,3 +289,45 @@ async def get_template(template_name: str, db: Session = Depends(get_db)):
         logger.error(f"Error fetching template: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
 
+
+@router.put("/templates/{template_id}", response_model=StandardResponse)
+async def update_template(template_id: int, data: dict, db: Session = Depends(get_db)):
+    """Update a bot message template."""
+    try:
+        template = db.query(BotMessageTemplate).filter(
+            BotMessageTemplate.id == template_id
+        ).first()
+
+        if not template:
+            raise HTTPException(status_code=404, detail="Template not found")
+
+        # Update fields
+        if "template_name" in data:
+            template.template_name = data["template_name"]
+        if "template_content" in data:
+            template.template_content = data["template_content"]
+        if "variables" in data:
+            template.variables = data["variables"]
+        if "is_default" in data:
+            template.is_default = data["is_default"]
+
+        db.commit()
+
+        return StandardResponse(
+            status="success",
+            message="Template updated successfully",
+            data={
+                "id": template.id,
+                "template_name": template.template_name,
+                "template_content": template.template_content,
+                "variables": template.variables or [],
+                "is_default": template.is_default
+            }
+        )
+    except HTTPException:
+        raise
+    except Exception as e:
+        db.rollback()
+        logger.error(f"Error updating template: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
