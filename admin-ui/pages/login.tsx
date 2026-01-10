@@ -26,7 +26,6 @@ export default function LoginPage() {
           }
         }
       } catch (err) {
-        // Silently fail - use default bot name
         console.warn('Could not fetch bot name:', err);
       }
     };
@@ -43,7 +42,6 @@ export default function LoginPage() {
       if (response.status === 'success') {
         localStorage.setItem('admin_token', response.token || 'authenticated');
         setAuthenticated(true);
-        // Small delay to ensure state is updated before navigation
         setTimeout(() => {
           router.push('/dashboard');
         }, 100);
@@ -60,74 +58,52 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-950 via-blue-900 to-slate-900 flex items-center justify-center p-4 relative overflow-hidden">
-      {/* Animated background elements */}
-      <div className="absolute top-0 left-0 w-96 h-96 bg-blue-500 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-blob"></div>
-      <div className="absolute top-0 right-0 w-96 h-96 bg-purple-500 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-blob animation-delay-2000"></div>
-      <div className="absolute -bottom-8 left-1/2 w-96 h-96 bg-pink-500 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-blob animation-delay-4000"></div>
+    <div className="min-h-screen w-full bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 flex items-center justify-center p-4">
+      {/* Background Animation Elements */}
+      <div className="fixed inset-0 overflow-hidden pointer-events-none">
+        <div className="absolute -top-40 -right-40 w-80 h-80 bg-gradient-to-br from-blue-500 to-blue-600 rounded-full mix-blend-screen filter blur-3xl opacity-20 animate-blob"></div>
+        <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-gradient-to-br from-purple-500 to-purple-600 rounded-full mix-blend-screen filter blur-3xl opacity-20 animate-blob animation-delay-2000"></div>
+        <div className="absolute top-1/2 left-1/2 w-80 h-80 bg-gradient-to-br from-pink-500 to-pink-600 rounded-full mix-blend-screen filter blur-3xl opacity-10 animate-blob animation-delay-4000"></div>
+      </div>
 
-      {/* Centered container */}
-      <div className="w-full max-w-md relative z-10">
-        {/* Main card */}
-        <div className="bg-white/10 backdrop-blur-xl rounded-2xl shadow-2xl p-8 border border-white/20 relative">
-          {/* Gradient border effect */}
-          <div className="absolute inset-0 bg-gradient-to-br from-white/10 to-transparent rounded-2xl opacity-0 hover:opacity-100 transition-opacity duration-500"></div>
-
-          <div className="relative z-10">
-            {/* Header */}
-            <div className="text-center mb-10">
-              <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-blue-400 to-purple-500 rounded-2xl mb-4 shadow-lg">
-                <i className="fas fa-robot text-3xl text-white"></i>
+      {/* Main Content */}
+      <div className="relative z-10 w-full max-w-md">
+        {/* Card Container */}
+        <div className="backdrop-blur-xl bg-white/10 border border-white/20 rounded-2xl shadow-2xl overflow-hidden">
+          {/* Card Content */}
+          <div className="p-8 sm:p-10">
+            {/* Header Section */}
+            <div className="text-center mb-8">
+              {/* Icon */}
+              <div className="w-16 h-16 mx-auto mb-6 rounded-xl bg-gradient-to-br from-blue-400 to-purple-500 flex items-center justify-center shadow-lg">
+                <i className="fas fa-shield-alt text-white text-3xl"></i>
               </div>
-              <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-200 via-purple-200 to-pink-200 bg-clip-text text-transparent mb-2">
-                {botName} Admin
+
+              {/* Title */}
+              <h1 className="text-3xl sm:text-4xl font-bold text-white mb-2">
+                {botName}
               </h1>
-              <p className="text-blue-100/70 text-sm font-medium tracking-wide">
-                Dashboard Login
-              </p>
+              <p className="text-sm text-gray-300">Admin Dashboard Login</p>
             </div>
 
-            {/* Error message */}
+            {/* Error Alert */}
             {error && (
-              <div className="bg-red-500/20 border border-red-400/50 rounded-xl p-4 mb-6 flex items-start gap-3 backdrop-blur-sm">
-                <i className="fas fa-circle-exclamation text-red-300 text-lg mt-1 flex-shrink-0"></i>
-                <div>
-                  <h3 className="font-semibold text-red-200 text-sm">Authentication Failed</h3>
-                  <p className="text-red-100/80 text-xs mt-1">{error}</p>
+              <div className="mb-6 p-4 bg-red-500/20 border border-red-500/50 rounded-lg backdrop-blur-sm">
+                <div className="flex items-start gap-3">
+                  <i className="fas fa-exclamation-circle text-red-400 text-lg mt-0.5 flex-shrink-0"></i>
+                  <div>
+                    <p className="text-red-200 text-sm font-semibold">Login Failed</p>
+                    <p className="text-red-100/80 text-xs mt-1">{error}</p>
+                  </div>
                 </div>
               </div>
             )}
 
-            {/* Security info */}
-            <div className="bg-blue-500/10 border border-blue-400/30 rounded-xl p-3 mb-6 backdrop-blur-sm">
-              <p className="text-blue-100 text-xs font-medium flex items-center gap-2">
-                <i className="fas fa-shield-halved"></i>
-                Secure Session • Expires after 60 minutes
-              </p>
-            </div>
-
-            {/* Demo credentials */}
-            <div className="bg-gradient-to-r from-amber-500/10 to-orange-500/10 border border-amber-400/30 rounded-xl p-4 mb-8 backdrop-blur-sm">
-              <p className="text-amber-200 text-xs font-bold mb-3 flex items-center gap-2">
-                <i className="fas fa-key"></i>
-                Demo Credentials
-              </p>
-              <div className="space-y-2">
-                <p className="text-amber-100/80 text-xs">
-                  <span className="font-semibold">Username:</span> <code className="bg-black/20 px-2 py-1 rounded text-amber-300">admin</code>
-                </p>
-                <p className="text-amber-100/80 text-xs">
-                  <span className="font-semibold">Password:</span> <code className="bg-black/20 px-2 py-1 rounded text-amber-300">marriage2020!</code>
-                </p>
-              </div>
-            </div>
-
             {/* Form */}
-            <form onSubmit={handleSubmit} className="space-y-5">
-              {/* Username field */}
-              <div className="group">
-                <label htmlFor="username" className="block text-sm font-semibold text-blue-100 mb-3 flex items-center gap-2">
-                  <i className="fas fa-user text-blue-300"></i>
+            <form onSubmit={handleSubmit} className="space-y-4">
+              {/* Username Field */}
+              <div>
+                <label htmlFor="username" className="block text-sm font-medium text-gray-200 mb-2">
                   Username
                 </label>
                 <input
@@ -135,16 +111,15 @@ export default function LoginPage() {
                   id="username"
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
-                  className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-lg text-white placeholder-white/40 focus:outline-none focus:border-blue-400 focus:bg-white/15 transition-all duration-200 backdrop-blur-sm"
                   placeholder="Enter your username"
+                  className="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-blue-500/50 focus:bg-white/10 transition-all duration-200 backdrop-blur-sm"
                   required
                 />
               </div>
 
-              {/* Password field */}
-              <div className="group">
-                <label htmlFor="password" className="block text-sm font-semibold text-blue-100 mb-3 flex items-center gap-2">
-                  <i className="fas fa-lock text-blue-300"></i>
+              {/* Password Field */}
+              <div>
+                <label htmlFor="password" className="block text-sm font-medium text-gray-200 mb-2">
                   Password
                 </label>
                 <input
@@ -152,56 +127,81 @@ export default function LoginPage() {
                   id="password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-lg text-white placeholder-white/40 focus:outline-none focus:border-blue-400 focus:bg-white/15 transition-all duration-200 backdrop-blur-sm"
                   placeholder="Enter your password"
+                  className="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-blue-500/50 focus:bg-white/10 transition-all duration-200 backdrop-blur-sm"
                   required
                 />
               </div>
 
-              {/* Submit button */}
+              {/* Submit Button */}
               <button
                 type="submit"
                 disabled={isLoading}
-                className="w-full px-4 py-3 mt-8 bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white font-bold rounded-lg transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg hover:shadow-blue-500/50 hover:shadow-2xl relative group overflow-hidden"
+                className="w-full mt-6 px-4 py-2.5 bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white font-semibold rounded-lg transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg hover:shadow-blue-500/50 relative group overflow-hidden"
               >
-                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white to-transparent opacity-0 group-hover:opacity-20 group-hover:translate-x-96 transition-all duration-500 -translate-x-96"></div>
-                {isLoading ? (
-                  <span className="flex items-center justify-center gap-2 relative z-10">
-                    <i className="fas fa-spinner fa-spin"></i>
-                    Authenticating...
-                  </span>
-                ) : (
-                  <span className="flex items-center justify-center gap-2 relative z-10">
-                    <i className="fas fa-arrow-right"></i>
-                    Sign In
-                  </span>
-                )}
+                <div className="absolute inset-0 bg-white/20 transform -translate-x-full group-hover:translate-x-full transition-transform duration-500"></div>
+                <div className="relative flex items-center justify-center gap-2">
+                  {isLoading ? (
+                    <>
+                      <i className="fas fa-spinner fa-spin"></i>
+                      <span>Signing in...</span>
+                    </>
+                  ) : (
+                    <>
+                      <span>Sign In</span>
+                      <i className="fas fa-arrow-right"></i>
+                    </>
+                  )}
+                </div>
               </button>
             </form>
 
-            {/* Footer */}
-            <p className="text-center text-white/40 text-xs mt-8 pt-6 border-t border-white/10">
-              Protected Admin Portal • All access logged and monitored
-            </p>
+            {/* Info Section */}
+            <div className="mt-8 pt-6 border-t border-white/10 space-y-3">
+              {/* Security Info */}
+              <div className="flex items-center gap-3 text-xs text-gray-300">
+                <i className="fas fa-lock text-green-400"></i>
+                <span>Secure authentication • 60-minute session</span>
+              </div>
+
+              {/* Support Info */}
+              <div className="flex items-center gap-3 text-xs text-gray-300">
+                <i className="fas fa-headset text-blue-400"></i>
+                <span>Need help? Contact support</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Footer Bar */}
+          <div className="bg-gradient-to-r from-blue-500/10 to-purple-500/10 border-t border-white/10 px-8 py-4 text-center text-xs text-gray-400">
+            Protected Admin Portal
+          </div>
+        </div>
+
+        {/* Demo Info Card */}
+        <div className="mt-6 p-4 bg-amber-500/10 border border-amber-500/30 rounded-lg backdrop-blur-sm">
+          <p className="text-xs font-semibold text-amber-200 mb-2 flex items-center gap-2">
+            <i className="fas fa-info-circle"></i>
+            Demo Credentials
+          </p>
+          <div className="space-y-1.5 text-xs text-amber-100/80">
+            <p><span className="font-medium">Username:</span> <code className="bg-black/30 px-2 py-1 rounded text-amber-300 font-mono">admin</code></p>
+            <p><span className="font-medium">Password:</span> <code className="bg-black/30 px-2 py-1 rounded text-amber-300 font-mono">marriage2020!</code></p>
           </div>
         </div>
       </div>
 
+      {/* Animations */}
       <style jsx>{`
         @keyframes blob {
-          0%, 100% {
-            transform: translate(0, 0) scale(1);
-          }
-          33% {
-            transform: translate(30px, -50px) scale(1.1);
-          }
-          66% {
-            transform: translate(-20px, 20px) scale(0.9);
-          }
+          0%, 100% { transform: translate(0, 0) scale(1); }
+          25% { transform: translate(20px, -30px) scale(1.1); }
+          50% { transform: translate(-20px, 20px) scale(0.9); }
+          75% { transform: translate(30px, 10px) scale(1.05); }
         }
 
         .animate-blob {
-          animation: blob 7s infinite;
+          animation: blob 8s infinite;
         }
 
         .animation-delay-2000 {
