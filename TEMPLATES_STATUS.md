@@ -59,7 +59,7 @@ Each template now has a [⋮] menu with:
 
 1. **Go to Settings Page**
    ```
-   https://nurturing-exploration-production.up.railway.app/settings
+   https://edubot-production-0701.up.railway.app/settings
    ```
 
 2. **Navigate to Templates Tab**

@@ -68,7 +68,7 @@ All commits pushed to `origin/main` and visible in GitHub.
 
 ## Testing After Deployment
 Once Railway redeploys (typically within 2-5 minutes):
-1. Check production: `https://nurturing-exploration-production.up.railway.app/api/bot-messages/templates/list`
+1. Check production: `https://edubot-production-0701.up.railway.app/api/bot-messages/templates/list`
 2. Should return: 21 templates with 200 OK status
 3. Settings page: Templates tab will automatically display all templates
 

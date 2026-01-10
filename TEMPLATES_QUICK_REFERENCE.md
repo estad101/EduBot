@@ -55,7 +55,7 @@ Bot Message Templates in the Settings page are now **fully editable** with a man
 
 ## 📍 Location
 
-**URL**: `https://nurturing-exploration-production.up.railway.app/settings`
+**URL**: `https://edubot-production-0701.up.railway.app/settings`
 
 **Navigation**: Settings → Templates Tab
 

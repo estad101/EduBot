@@ -3,7 +3,7 @@
 ## 🚀 Quick Start for Testing
 
 ### Access Settings Page
-**URL**: `https://nurturing-exploration-production.up.railway.app/settings`
+**URL**: `https://edubot-production-0701.up.railway.app/settings`
 
 **Requirements**:
 - Must be logged in as admin

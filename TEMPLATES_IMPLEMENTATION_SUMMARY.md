@@ -232,7 +232,7 @@ Template card updates instantly
 
 ### Next Steps
 - Railway auto-deploys within 2-5 minutes
-- Production URL: `https://nurturing-exploration-production.up.railway.app/settings`
+- Production URL: `https://edubot-production-0701.up.railway.app/settings`
 - Once deployed, users can immediately start editing templates
 
 ---

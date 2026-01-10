@@ -138,7 +138,7 @@ async updateTemplate(templateId: number, data: any) {
 
 ### Editing a Template
 
-1. **Open Settings Page**: Navigate to https://nurturing-exploration-production.up.railway.app/settings
+1. **Open Settings Page**: Navigate to https://edubot-production-0701.up.railway.app/settings
 2. **Go to Templates Tab**: Click the "Templates" tab
 3. **Find Template**: Locate the template you want to edit
 4. **Open Menu**: Click the three-dot menu (⋮) button
@@ -202,7 +202,7 @@ npm run dev
 ```
 
 Production Testing:
-Visit https://nurturing-exploration-production.up.railway.app/settings after Railway redeploy
+Visit https://edubot-production-0701.up.railway.app/settings after Railway redeploy
 
 ## Deployment
 

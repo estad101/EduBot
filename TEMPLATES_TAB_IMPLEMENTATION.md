@@ -85,7 +85,7 @@ Response format:
 ## User Interface
 
 ### Tab Location
-URL: `https://nurturing-exploration-production.up.railway.app/settings`
+URL: `https://edubot-production-0701.up.railway.app/settings`
 
 ### Tab Navigation
 Located in the settings page with tabs:
@@ -144,7 +144,7 @@ ID: 123
 
 To test the Templates tab:
 
-1. Navigate to https://nurturing-exploration-production.up.railway.app/settings
+1. Navigate to https://edubot-production-0701.up.railway.app/settings
 2. Click the **Templates** tab
 3. View all bot message templates from the database
 4. Verify template names, content, and variables are displayed correctly
