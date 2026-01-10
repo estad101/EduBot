@@ -17,8 +17,8 @@ class AdminAuth:
     """Admin authentication manager with rate limiting and security features."""
     
     ADMIN_USERNAME = "admin"
-    # Allow admin password to be set via environment variable, fallback to secret_key
-    ADMIN_PASSWORD = os.getenv("ADMIN_PASSWORD", settings.secret_key)
+    # Allow admin password to be set via environment variable, default to "EduBot@Admin123"
+    ADMIN_PASSWORD = os.getenv("ADMIN_PASSWORD", "EduBot@Admin123")
     ADMIN_SESSION_KEY = "admin_session"
     FAILED_ATTEMPTS = {}  # Track failed login attempts by IP
     MAX_FAILED_ATTEMPTS = 5
