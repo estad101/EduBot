@@ -18,6 +18,10 @@ interface SettingsData {
   bot_name?: string;
   template_welcome?: string;
   template_status?: string;
+  template_greeting?: string;
+  template_help?: string;
+  template_faq?: string;
+  template_error?: string;
   [key: string]: string | undefined;
 }
 
@@ -414,6 +418,123 @@ export default function SettingsPage() {
                   </div>
                 </div>
 
+                <hr className="border-gray-200" />
+
+                {/* Greeting Template */}
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">
+                    <i className="fas fa-smile mr-2 text-indigo-600"></i>Greeting Template
+                  </label>
+                  <textarea
+                    value={settings.template_greeting || ''}
+                    onChange={(e) => handleSettingChange('template_greeting', e.target.value)}
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition font-mono text-sm"
+                    placeholder="Hi {name}! What would you like to do?"
+                    rows={2}
+                  />
+                  <p className="text-xs text-gray-500 mt-2">
+                    Main greeting shown to registered users. Available variable: {'{name}'} (user first name)
+                  </p>
+                  
+                  {/* Preview */}
+                  <div className="mt-4 p-3 bg-indigo-50 border border-indigo-200 rounded-lg">
+                    <p className="text-xs font-semibold text-indigo-900 mb-2">Preview:</p>
+                    <div className="bg-white rounded p-3 border border-indigo-100">
+                      <p className="text-sm text-gray-700">
+                        {(settings.template_greeting || 'Hi {name}! What would you like to do?')
+                          .replace('{name}', 'John')}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                <hr className="border-gray-200" />
+
+                {/* Help Template */}
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">
+                    <i className="fas fa-question-circle mr-2 text-indigo-600"></i>Help Message Template
+                  </label>
+                  <textarea
+                    value={settings.template_help || ''}
+                    onChange={(e) => handleSettingChange('template_help', e.target.value)}
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition font-mono text-sm"
+                    placeholder="📚 Help & Features\n\n🎓 I can help you with:\n📝 Homework - Submit assignments and get feedback\n💳 Subscribe - Unlimited submissions\n❓ FAQs - Quick answers\n💬 Support - Chat with our team"
+                    rows={5}
+                  />
+                  <p className="text-xs text-gray-500 mt-2">
+                    Shown when user requests help information
+                  </p>
+                  
+                  {/* Preview */}
+                  <div className="mt-4 p-3 bg-indigo-50 border border-indigo-200 rounded-lg">
+                    <p className="text-xs font-semibold text-indigo-900 mb-2">Preview:</p>
+                    <div className="bg-white rounded p-3 border border-indigo-100 max-h-48 overflow-y-auto">
+                      <p className="text-sm text-gray-700 whitespace-pre-wrap">
+                        {settings.template_help || '📚 Help & Features\n\n🎓 I can help you with:\n📝 Homework - Submit assignments and get feedback\n💳 Subscribe - Unlimited submissions\n❓ FAQs - Quick answers\n💬 Support - Chat with our team'}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                <hr className="border-gray-200" />
+
+                {/* FAQ Template */}
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">
+                    <i className="fas fa-book mr-2 text-indigo-600"></i>FAQ Template
+                  </label>
+                  <textarea
+                    value={settings.template_faq || ''}
+                    onChange={(e) => handleSettingChange('template_faq', e.target.value)}
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition font-mono text-sm"
+                    placeholder="❓ Frequently Asked Questions\n\nChoose a category for more info."
+                    rows={3}
+                  />
+                  <p className="text-xs text-gray-500 mt-2">
+                    Shown when user requests FAQ information
+                  </p>
+                  
+                  {/* Preview */}
+                  <div className="mt-4 p-3 bg-indigo-50 border border-indigo-200 rounded-lg">
+                    <p className="text-xs font-semibold text-indigo-900 mb-2">Preview:</p>
+                    <div className="bg-white rounded p-3 border border-indigo-100">
+                      <p className="text-sm text-gray-700 whitespace-pre-wrap">
+                        {settings.template_faq || '❓ Frequently Asked Questions\n\nChoose a category for more info.'}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                <hr className="border-gray-200" />
+
+                {/* Error Template */}
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">
+                    <i className="fas fa-exclamation-triangle mr-2 text-indigo-600"></i>Error/Fallback Template
+                  </label>
+                  <textarea
+                    value={settings.template_error || ''}
+                    onChange={(e) => handleSettingChange('template_error', e.target.value)}
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition font-mono text-sm"
+                    placeholder="❓ I didn't quite understand that.\n\nChoose an option above to continue."
+                    rows={3}
+                  />
+                  <p className="text-xs text-gray-500 mt-2">
+                    Shown when bot doesn't understand the user message or encounters an error
+                  </p>
+                  
+                  {/* Preview */}
+                  <div className="mt-4 p-3 bg-indigo-50 border border-indigo-200 rounded-lg">
+                    <p className="text-xs font-semibold text-indigo-900 mb-2">Preview:</p>
+                    <div className="bg-white rounded p-3 border border-indigo-100">
+                      <p className="text-sm text-gray-700 whitespace-pre-wrap">
+                        {settings.template_error || '❓ I didn\'t quite understand that.\n\nChoose an option above to continue.'}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
                 {/* Save Button */}
                 <div className="flex gap-3 pt-4 border-t border-gray-200">
                   <button
@@ -434,15 +555,20 @@ export default function SettingsPage() {
                       setSettings((prev) => ({
                         ...prev,
                         template_welcome: '👋 {name}, welcome to {bot_name}!',
-                        template_status: '📋 Status: Awaiting registration\n\nPlease provide:\n1. Your full name\n2. Your class/grade\n3. Email address'
+                        template_status: '📋 Status: Awaiting registration\n\nPlease provide:\n1. Your full name\n2. Your class/grade\n3. Email address',
+                        template_greeting: 'Hi {name}! What would you like to do?',
+                        template_help: '📚 Help & Features\n\n🎓 I can help you with:\n📝 Homework - Submit assignments and get feedback\n💳 Subscribe - Unlimited submissions\n❓ FAQs - Quick answers\n💬 Support - Chat with our team',
+                        template_faq: '❓ Frequently Asked Questions\n\nChoose a category for more info.',
+                        template_error: '❓ I didn\'t quite understand that.\n\nChoose an option above to continue.'
                       }));
                     }}
                     className="px-6 py-2 rounded-lg font-medium transition flex items-center gap-2 border border-gray-300 text-gray-700 hover:bg-gray-50"
                   >
                     <i className="fas fa-redo"></i>
-                    Reset to Default
+                    Reset All to Default
                   </button>
                 </div>
+
               </div>
             </div>
           )}
