@@ -547,11 +547,6 @@ export default function SettingsPage() {
           </div>
         )}
 
-        {/* Messages Management Tab - Outside Form */}
-        {activeTab === 'messages' && (
-          <MessageManagementTab />
-        )}
-
         {/* Settings Form */}
         {activeTab !== 'messages' && activeTab !== 'templates' && (
         <form onSubmit={handleSave} className="space-y-6">
