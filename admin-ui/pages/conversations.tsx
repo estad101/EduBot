@@ -71,6 +71,7 @@ export default function ConversationsPage() {
       const interval = setInterval(fetchMessages, 4000); // Refresh every 4 seconds
       return () => clearInterval(interval);
     }
+    return undefined;
   }, [selectedPhone]);
 
   const fetchConversations = async () => {
