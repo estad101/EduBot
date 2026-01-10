@@ -387,30 +387,51 @@ class MessageRouter:
                     ConversationState.INITIAL,
                 )
 
-        # Handle cancel command - Toggle menu state
+        # Handle cancel command - Clear current flow and return to menu
         if intent == "cancel":
-            # Toggle between faq_menu and homework_menu
-            current_menu = ConversationService.get_data(phone_number, "menu_state") or "faq_menu"
-            new_menu = "homework_menu" if current_menu == "faq_menu" else "faq_menu"
-            ConversationService.set_data(phone_number, "menu_state", new_menu)
-            
-            greeting = f"Hey {first_name}!" if first_name else "Hey there!"
-            menu_text = (
-                f"{greeting}\n\n"
-                f"📚 **AVAILABLE FEATURES** 📚\n\n"
-                f"🏠 **Home** - Return to home menu\n"
-                f"❓ **FAQ** - Get answers to common questions\n"
-                f"📝 **Homework** - Submit your homework\n"
-                f"💬 **Support** - Chat with our team\n"
-                f"💳 **Subscribe** - View subscription plans\n"
-                f"📊 **Status** - Check your account details\n"
-                f"ℹ️ **Help** - Get help with the bot\n\n"
-                f"Just type a command above to get started!"
-            )
-            return (
-                menu_text,
-                ConversationState.IDLE,
-            )
+            # Clear any in-progress homework data
+            if current_state in [ConversationState.HOMEWORK_SUBJECT, ConversationState.HOMEWORK_TYPE, ConversationState.HOMEWORK_CONTENT]:
+                # User cancelled homework submission - clear homework data
+                ConversationService.set_data(phone_number, "homework_subject", None)
+                ConversationService.set_data(phone_number, "homework_type", None)
+                ConversationService.set_data(phone_number, "homework_content", None)
+                
+                greeting = f"Homework submission cancelled, {first_name}." if first_name else "Homework submission cancelled."
+                menu_text = (
+                    f"{greeting}\n\n"
+                    f"📚 **AVAILABLE FEATURES** 📚\n\n"
+                    f"🏠 **Home** - Return to home menu\n"
+                    f"❓ **FAQ** - Get answers to common questions\n"
+                    f"📝 **Homework** - Submit your homework\n"
+                    f"💬 **Support** - Chat with our team\n"
+                    f"💳 **Subscribe** - View subscription plans\n"
+                    f"📊 **Status** - Check your account details\n"
+                    f"ℹ️ **Help** - Get help with the bot\n\n"
+                    f"Just type a command above to get started!"
+                )
+                return (
+                    menu_text,
+                    ConversationState.IDLE,
+                )
+            else:
+                # Generic cancel - just show menu
+                greeting = f"Hey {first_name}!" if first_name else "Hey there!"
+                menu_text = (
+                    f"{greeting}\n\n"
+                    f"📚 **AVAILABLE FEATURES** 📚\n\n"
+                    f"🏠 **Home** - Return to home menu\n"
+                    f"❓ **FAQ** - Get answers to common questions\n"
+                    f"📝 **Homework** - Submit your homework\n"
+                    f"💬 **Support** - Chat with our team\n"
+                    f"💳 **Subscribe** - View subscription plans\n"
+                    f"📊 **Status** - Check your account details\n"
+                    f"ℹ️ **Help** - Get help with the bot\n\n"
+                    f"Just type a command above to get started!"
+                )
+                return (
+                    menu_text,
+                    ConversationState.IDLE,
+                )
 
         # Handle help command - Show comprehensive feature list
         if intent == "help":
@@ -903,6 +924,28 @@ class MessageRouter:
                 f"{name_ref}📤 Processing your submission...\n\n"
                 f"Your homework has been received and is being reviewed by a tutor.",
                 ConversationState.HOMEWORK_SUBMITTED,
+            )
+
+        elif current_state == ConversationState.HOMEWORK_SUBMITTED:
+            # Homework is now submitted - user can proceed
+            # Show completion message and return to main menu
+            name_ref = f"{first_name}, " if first_name else ""
+            homework_subject = ConversationService.get_data(phone_number, "homework_subject")
+            homework_type = ConversationService.get_data(phone_number, "homework_type")
+            
+            # Show confirmation based on submission type
+            if homework_type == "IMAGE":
+                confirmation = "Your image has been uploaded and submitted successfully! ✅"
+            else:
+                confirmation = "Your homework has been submitted successfully! ✅"
+            
+            return (
+                f"{confirmation}\n\n"
+                f"Subject: {homework_subject}\n"
+                f"Type: {homework_type}\n\n"
+                f"A tutor will review your work shortly.\n\n"
+                f"What would you like to do next, {name_ref}?",
+                ConversationState.IDLE,
             )
 
         # Payment flow
