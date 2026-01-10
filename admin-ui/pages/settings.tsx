@@ -816,11 +816,16 @@ export default function SettingsPage() {
 
           {/* Templates Tab */}
           {activeTab === 'templates' && (
-            <div className="bg-white rounded-lg shadow p-8 animate-in fade-in duration-300">
-              <h2 className="text-2xl font-bold text-gray-900 mb-2 flex items-center">
-                <i className="fas fa-file-alt text-cyan-600 mr-3"></i>Bot Message Templates
-              </h2>
-              <p className="text-gray-600 mb-6">Message templates stored in the bot_message_templates table</p>
+            <div className="bg-gradient-to-br from-cyan-50 via-white to-transparent rounded-xl shadow-sm p-8 animate-in fade-in duration-300">
+              <div className="flex items-start gap-4 mb-8 pb-6 border-b border-cyan-100">
+                <div className="w-14 h-14 bg-cyan-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                  <i className="fas fa-file-alt text-cyan-600 text-2xl"></i>
+                </div>
+                <div>
+                  <h2 className="text-3xl font-bold text-gray-900">Bot Message Templates</h2>
+                  <p className="text-gray-600 mt-1">Manage and edit message templates stored in the database</p>
+                </div>
+              </div>
 
               {loadingTemplates ? (
                 <div className="flex justify-center items-center py-12">
@@ -834,94 +839,107 @@ export default function SettingsPage() {
                   <p className="text-sm text-gray-500 mt-2">Templates will appear here once they are seeded or created.</p>
                 </div>
               ) : (
-                <div className="space-y-4">
+                <div className="space-y-6">
                   {/* Summary Stats */}
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-                    <div className="bg-cyan-50 border border-cyan-200 rounded-lg p-4">
-                      <p className="text-sm text-cyan-600 font-semibold">Total Templates</p>
-                      <p className="text-2xl font-bold text-cyan-900 mt-1">{templates.length}</p>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div className="bg-cyan-50 border border-cyan-200 rounded-xl p-6">
+                      <p className="text-sm text-cyan-600 font-semibold flex items-center gap-2">
+                        <i className="fas fa-list-check"></i>Total Templates
+                      </p>
+                      <p className="text-3xl font-bold text-cyan-900 mt-2">{templates.length}</p>
                     </div>
-                    <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                      <p className="text-sm text-blue-600 font-semibold">Default Templates</p>
-                      <p className="text-2xl font-bold text-blue-900 mt-1">{templates.filter(t => t.is_default).length}</p>
+                    <div className="bg-blue-50 border border-blue-200 rounded-xl p-6">
+                      <p className="text-sm text-blue-600 font-semibold flex items-center gap-2">
+                        <i className="fas fa-star"></i>Default Templates
+                      </p>
+                      <p className="text-3xl font-bold text-blue-900 mt-2">{templates.filter(t => t.is_default).length}</p>
                     </div>
-                    <div className="bg-indigo-50 border border-indigo-200 rounded-lg p-4">
-                      <p className="text-sm text-indigo-600 font-semibold">Custom Templates</p>
-                      <p className="text-2xl font-bold text-indigo-900 mt-1">{templates.filter(t => !t.is_default).length}</p>
+                    <div className="bg-indigo-50 border border-indigo-200 rounded-xl p-6">
+                      <p className="text-sm text-indigo-600 font-semibold flex items-center gap-2">
+                        <i className="fas fa-pencil-alt"></i>Custom Templates
+                      </p>
+                      <p className="text-3xl font-bold text-indigo-900 mt-2">{templates.filter(t => !t.is_default).length}</p>
                     </div>
                   </div>
 
-                  {/* Templates List */}
-                  <div className="space-y-3 max-h-[70vh] overflow-y-auto">
+                  {/* Templates List - No Scrolling */}
+                  <div className="space-y-4">
                     {templates.map((template) => (
-                      <div key={template.id} className="bg-gray-50 border border-gray-200 rounded-lg p-4 hover:shadow-md transition relative">
-                        <div className="flex justify-between items-start mb-3">
+                      <div key={template.id} className="bg-white border border-gray-200 rounded-xl p-6 hover:shadow-lg transition-all">
+                        <div className="flex justify-between items-start mb-4">
                           <div className="flex-1">
-                            <h3 className="font-semibold text-gray-900 flex items-center gap-2">
-                              <i className="fas fa-tag text-cyan-600 text-sm"></i>
+                            <h3 className="font-bold text-lg text-gray-900 flex items-center gap-2">
+                              <i className="fas fa-tag text-cyan-600"></i>
                               {template.template_name}
                               {template.is_default && (
-                                <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
+                                <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold bg-yellow-100 text-yellow-800">
                                   ⭐ Default
                                 </span>
                               )}
                             </h3>
-                            <p className="text-xs text-gray-500 mt-1">ID: {template.id}</p>
+                            <p className="text-xs text-gray-500 mt-2">Template ID: <code className="bg-gray-100 px-2 py-1 rounded font-mono">{template.id}</code></p>
                           </div>
                           {/* Template Menu */}
                           <div className="relative">
                             <button
                               onClick={() => setTemplateMenuId(templateMenuId === template.id ? null : template.id)}
-                              className="p-2 hover:bg-gray-200 rounded-lg transition text-gray-600"
+                              className="p-2 hover:bg-gray-100 rounded-lg transition text-gray-600 font-bold text-lg"
+                              title="Template actions menu"
                             >
                               <i className="fas fa-ellipsis-v"></i>
                             </button>
                             {templateMenuId === template.id && (
-                              <div className="absolute right-0 mt-1 w-40 bg-white border border-gray-300 rounded-lg shadow-lg z-50">
+                              <div className="absolute right-0 mt-2 w-48 bg-white border border-gray-300 rounded-lg shadow-xl z-50">
                                 <button
                                   onClick={() => openEditModal(template)}
-                                  className="w-full text-left px-4 py-2 hover:bg-blue-50 text-blue-600 font-semibold flex items-center gap-2 border-b"
+                                  className="w-full text-left px-4 py-3 hover:bg-blue-50 text-blue-600 font-bold flex items-center gap-2 border-b transition"
                                 >
-                                  <i className="fas fa-edit"></i>Edit Template
+                                  <i className="fas fa-edit text-lg"></i>Edit Template
                                 </button>
                                 <button
                                   onClick={() => {
-                                    alert('Copy functionality coming soon');
+                                    alert('Duplicate functionality coming soon');
                                     setTemplateMenuId(null);
                                   }}
-                                  className="w-full text-left px-4 py-2 hover:bg-green-50 text-green-600 font-semibold flex items-center gap-2 border-b"
+                                  className="w-full text-left px-4 py-3 hover:bg-green-50 text-green-600 font-bold flex items-center gap-2 border-b transition"
                                 >
-                                  <i className="fas fa-copy"></i>Duplicate
+                                  <i className="fas fa-copy text-lg"></i>Duplicate
                                 </button>
                                 <button
                                   onClick={() => {
-                                    alert('Delete confirmation coming soon');
+                                    if (window.confirm(`Delete template "${template.template_name}"? This action cannot be undone.`)) {
+                                      alert('Delete functionality coming soon');
+                                    }
                                     setTemplateMenuId(null);
                                   }}
-                                  className="w-full text-left px-4 py-2 hover:bg-red-50 text-red-600 font-semibold flex items-center gap-2"
+                                  className="w-full text-left px-4 py-3 hover:bg-red-50 text-red-600 font-bold flex items-center gap-2 transition"
                                 >
-                                  <i className="fas fa-trash"></i>Delete
+                                  <i className="fas fa-trash text-lg"></i>Delete
                                 </button>
                               </div>
                             )}
                           </div>
                         </div>
 
-                        {/* Template Content */}
-                        <div className="bg-white border border-gray-200 rounded p-3 mb-3 font-mono text-sm max-h-32 overflow-y-auto whitespace-pre-wrap break-words">
-                          {template.template_content}
+                        {/* Template Content - Better Display */}
+                        <div className="mb-4">
+                          <p className="text-xs font-bold text-gray-700 mb-2 flex items-center gap-1">
+                            <i className="fas fa-align-left text-cyan-600"></i>CONTENT
+                          </p>
+                          <div className="bg-gray-50 border border-gray-200 rounded-lg p-4 font-mono text-sm text-gray-700 whitespace-pre-wrap break-words">
+                            {template.template_content}
+                          </div>
                         </div>
 
-                        {/* Variables */}
+                        {/* Variables - Better Display */}
                         {template.variables && template.variables.length > 0 && (
                           <div>
-                            <p className="text-xs font-semibold text-gray-700 mb-2 flex items-center gap-1">
-                              <i className="fas fa-code text-purple-600"></i>
-                              Variables:
+                            <p className="text-xs font-bold text-gray-700 mb-2 flex items-center gap-1">
+                              <i className="fas fa-code text-purple-600"></i>VARIABLES
                             </p>
                             <div className="flex flex-wrap gap-2">
                               {template.variables.map((variable, idx) => (
-                                <span key={idx} className="inline-block bg-purple-100 text-purple-700 px-2 py-1 rounded text-xs font-mono">
+                                <span key={idx} className="inline-block bg-purple-100 text-purple-700 px-3 py-1 rounded-full text-xs font-bold font-mono border border-purple-200">
                                   {typeof variable === 'string' ? variable : JSON.stringify(variable)}
                                 </span>
                               ))}
@@ -939,62 +957,67 @@ export default function SettingsPage() {
           {/* Edit Template Modal */}
           {showEditModal && editingTemplate && (
             <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-              <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-                <div className="sticky top-0 bg-white border-b p-6 flex justify-between items-center">
-                  <h3 className="text-xl font-bold text-gray-900 flex items-center gap-2">
-                    <i className="fas fa-edit text-cyan-600"></i>
+              <div className="bg-white rounded-xl shadow-2xl max-w-3xl w-full max-h-[95vh] overflow-y-auto">
+                <div className="sticky top-0 bg-gradient-to-r from-cyan-50 to-cyan-100 border-b border-cyan-200 p-6 flex justify-between items-center">
+                  <h3 className="text-2xl font-bold text-gray-900 flex items-center gap-3">
+                    <div className="w-10 h-10 bg-cyan-600 rounded-lg flex items-center justify-center">
+                      <i className="fas fa-edit text-white"></i>
+                    </div>
                     Edit Template
                   </h3>
                   <button
                     onClick={closeEditModal}
-                    className="text-gray-500 hover:text-gray-700 text-2xl"
+                    className="text-gray-600 hover:text-gray-800 text-3xl font-bold"
                   >
                     ×
                   </button>
                 </div>
 
-                <div className="p-6 space-y-4">
+                <div className="p-8 space-y-6">
                   {/* Template Name */}
                   <div>
-                    <label className="block text-sm font-semibold text-gray-900 mb-2">
+                    <label className="block text-sm font-bold text-gray-800 mb-3 uppercase tracking-wide">
                       <i className="fas fa-tag text-cyan-600 mr-2"></i>Template Name
                     </label>
                     <input
                       type="text"
                       value={editingTemplate.template_name}
                       onChange={(e) => setEditingTemplate({ ...editingTemplate, template_name: e.target.value })}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-cyan-500 focus:border-transparent"
+                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-cyan-500 focus:border-transparent transition"
                       placeholder="e.g., greeting_welcome_new_user"
                     />
+                    <p className="text-xs text-gray-600 mt-2 flex items-center gap-1">
+                      <i className="fas fa-info-circle"></i> Use descriptive names with underscores
+                    </p>
                   </div>
 
                   {/* Template Content */}
                   <div>
-                    <label className="block text-sm font-semibold text-gray-900 mb-2">
+                    <label className="block text-sm font-bold text-gray-800 mb-3 uppercase tracking-wide">
                       <i className="fas fa-align-left text-cyan-600 mr-2"></i>Template Content
                     </label>
                     <textarea
                       value={editingTemplate.template_content}
                       onChange={(e) => setEditingTemplate({ ...editingTemplate, template_content: e.target.value })}
-                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-cyan-500 focus:border-transparent font-mono text-sm"
+                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-cyan-500 focus:border-transparent font-mono text-sm transition"
                       placeholder="Enter template content with variables like {user_name}, {bot_name}, etc."
-                      rows={6}
+                      rows={8}
                     />
-                    <p className="text-xs text-gray-500 mt-2">
-                      Use curly braces for variables: {'{variable_name}'}
+                    <p className="text-xs text-gray-600 mt-2 flex items-center gap-1">
+                      <i className="fas fa-info-circle"></i> Use curly braces for variables: {'{variable_name}'}
                     </p>
                   </div>
 
-                  {/* Variables */}
+                  {/* Variables Management */}
                   <div>
-                    <label className="block text-sm font-semibold text-gray-900 mb-2">
+                    <label className="block text-sm font-bold text-gray-800 mb-3 uppercase tracking-wide">
                       <i className="fas fa-code text-purple-600 mr-2"></i>Variables
                     </label>
-                    <div className="flex flex-wrap gap-2 mb-2 p-3 bg-gray-50 rounded-lg min-h-12">
+                    <div className="flex flex-wrap gap-2 mb-4 p-4 bg-purple-50 rounded-lg border border-purple-100 min-h-16">
                       {editingTemplate.variables && editingTemplate.variables.length > 0 ? (
                         editingTemplate.variables.map((variable, idx) => (
-                          <span key={idx} className="inline-flex items-center gap-2 bg-purple-100 text-purple-700 px-3 py-1 rounded-full text-sm font-mono">
-                            {variable}
+                          <span key={idx} className="inline-flex items-center gap-2 bg-purple-600 text-white px-4 py-2 rounded-full text-sm font-bold font-mono">
+                            {'{' + variable + '}'}
                             <button
                               onClick={() => {
                                 setEditingTemplate({
@@ -1002,19 +1025,20 @@ export default function SettingsPage() {
                                   variables: editingTemplate.variables?.filter((_, i) => i !== idx) || []
                                 });
                               }}
-                              className="hover:text-purple-900 font-bold"
+                              className="hover:bg-purple-700 rounded-full w-6 h-6 flex items-center justify-center transition"
+                              title="Remove variable"
                             >
                               ×
                             </button>
                           </span>
                         ))
                       ) : (
-                        <span className="text-gray-500 text-sm">No variables added</span>
+                        <span className="text-gray-500 text-sm italic">No variables added yet</span>
                       )}
                     </div>
                     <input
                       type="text"
-                      placeholder="Enter variable name and press Enter"
+                      placeholder="Enter variable name and press Enter (e.g., user_name)"
                       onKeyPress={(e) => {
                         if (e.key === 'Enter' && e.currentTarget.value.trim()) {
                           const varName = e.currentTarget.value.trim();
@@ -1027,40 +1051,43 @@ export default function SettingsPage() {
                           e.currentTarget.value = '';
                         }
                       }}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-sm"
+                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-sm transition"
                     />
+                    <p className="text-xs text-gray-600 mt-2 flex items-center gap-1">
+                      <i className="fas fa-info-circle"></i> Add variables that will be used in the template content
+                    </p>
                   </div>
 
                   {/* Is Default Toggle */}
-                  <div className="flex items-center gap-3 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+                  <div className="flex items-center gap-4 p-5 bg-gradient-to-br from-yellow-50 to-yellow-100 border border-yellow-200 rounded-xl">
                     <input
                       type="checkbox"
                       checked={editingTemplate.is_default}
                       onChange={(e) => setEditingTemplate({ ...editingTemplate, is_default: e.target.checked })}
-                      className="w-5 h-5 text-yellow-600 rounded focus:ring-2"
+                      className="w-6 h-6 text-yellow-600 rounded focus:ring-2 cursor-pointer"
                     />
-                    <label className="flex-1 text-sm font-semibold text-gray-900">
-                      <i className="fas fa-star text-yellow-600 mr-2"></i>Mark as Default Template
+                    <label className="flex-1 text-sm font-bold text-gray-900 cursor-pointer flex items-center gap-2">
+                      <i className="fas fa-star text-yellow-600 text-lg"></i>Mark as Default Template
                     </label>
                   </div>
                 </div>
 
                 {/* Modal Footer */}
-                <div className="sticky bottom-0 bg-gray-50 border-t px-6 py-4 flex gap-3 justify-end">
+                <div className="sticky bottom-0 bg-gradient-to-r from-gray-50 to-gray-100 border-t border-gray-200 px-8 py-6 flex gap-3 justify-end">
                   <button
                     onClick={closeEditModal}
-                    className="px-6 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition font-semibold"
+                    className="px-6 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-200 transition font-bold flex items-center gap-2"
                   >
-                    Cancel
+                    <i className="fas fa-times"></i>Cancel
                   </button>
                   <button
                     onClick={saveTemplateChanges}
                     disabled={isSaving}
-                    className="px-6 py-2 bg-cyan-600 text-white rounded-lg hover:bg-cyan-700 transition font-semibold disabled:opacity-50 flex items-center gap-2"
+                    className="px-6 py-3 bg-gradient-to-r from-cyan-600 to-cyan-700 text-white rounded-lg hover:from-cyan-700 hover:to-cyan-800 transition font-bold disabled:opacity-50 flex items-center gap-2 shadow-lg"
                   >
                     {isSaving ? (
                       <>
-                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                        <div className="animate-spin rounded-full h-5 w-5 border-2 border-white border-t-transparent"></div>
                         Saving...
                       </>
                     ) : (
