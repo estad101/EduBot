@@ -562,7 +562,7 @@ export default function SettingsPage() {
                 </div>
 
                 {/* Business Account ID */}
-                <div className="p-5 bg-gradient-to-br from-green-50 to-transparent rounded-lg border border-green-100">
+                <div className="p-6 bg-gradient-to-br from-green-50 to-transparent rounded-xl border border-green-100">
                   <label className="block text-sm font-bold text-gray-800 mb-3 uppercase tracking-wide">
                     <i className="fas fa-briefcase mr-2 text-green-600"></i>Business Account ID
                   </label>
@@ -572,14 +572,16 @@ export default function SettingsPage() {
                     value={settings.whatsapp_business_account_id || ''}
                     onChange={handleInputChange}
                     placeholder="Enter business account ID..."
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent transition"
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent transition"
                   />
-                  <p className="text-xs text-gray-500 mt-2">Your WhatsApp Business Account ID</p>
+                  <p className="text-xs text-gray-600 mt-3 flex items-center gap-1">
+                    <i className="fas fa-info-circle"></i>Your WhatsApp Business Account ID
+                  </p>
                 </div>
 
                 {/* Phone Number */}
-                <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">
+                <div className="p-6 bg-gradient-to-br from-green-50 to-transparent rounded-xl border border-green-100">
+                  <label className="block text-sm font-bold text-gray-800 mb-3 uppercase tracking-wide">
                     <i className="fas fa-phone-alt mr-2 text-green-600"></i>Bot Phone Number
                   </label>
                   <input
@@ -588,30 +590,45 @@ export default function SettingsPage() {
                     value={settings.whatsapp_phone_number || ''}
                     onChange={handleInputChange}
                     placeholder="+234..."
-                    className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent transition ${
-                      validationErrors.whatsapp_phone_number ? 'border-red-500' : 'border-gray-300'
+                    className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent transition ${
+                      validationErrors.whatsapp_phone_number ? 'border-red-500 bg-red-50' : 'border-gray-300'
                     }`}
                   />
                   {validationErrors.whatsapp_phone_number && (
-                    <p className="text-xs text-red-600 mt-2">{validationErrors.whatsapp_phone_number}</p>
+                    <p className="text-xs text-red-600 mt-3 font-medium flex items-center gap-1">
+                      <i className="fas fa-exclamation-circle"></i> {validationErrors.whatsapp_phone_number}
+                    </p>
                   )}
-                  <p className="text-xs text-gray-500 mt-2">Phone number in format +1234567890</p>
+                  <p className="text-xs text-gray-600 mt-3 flex items-center gap-1">
+                    <i className="fas fa-info-circle"></i> Phone number in format +1234567890
+                  </p>
                 </div>
 
                 {/* Webhook Token */}
-                <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">
+                <div className="p-6 bg-gradient-to-br from-green-50 to-transparent rounded-xl border border-green-100">
+                  <label className="block text-sm font-bold text-gray-800 mb-3 uppercase tracking-wide">
                     <i className="fas fa-shield-alt mr-2 text-green-600"></i>Webhook Token
                   </label>
-                  <input
-                    type={showTokens ? 'text' : 'password'}
-                    name="whatsapp_webhook_token"
-                    value={settings.whatsapp_webhook_token || ''}
-                    onChange={handleInputChange}
-                    placeholder="Enter webhook verification token..."
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent transition"
-                  />
-                  <p className="text-xs text-gray-500 mt-2">Used to verify webhook requests from WhatsApp</p>
+                  <div className="flex gap-2">
+                    <input
+                      type={showTokens ? 'text' : 'password'}
+                      name="whatsapp_webhook_token"
+                      value={settings.whatsapp_webhook_token || ''}
+                      onChange={handleInputChange}
+                      placeholder="Enter webhook verification token..."
+                      className="flex-1 px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent transition"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowTokens(!showTokens)}
+                      className="px-4 py-3 bg-green-100 text-green-700 rounded-lg hover:bg-green-200 transition font-medium"
+                    >
+                      <i className={`fas ${showTokens ? 'fa-eye-slash' : 'fa-eye'}`}></i>
+                    </button>
+                  </div>
+                  <p className="text-xs text-gray-600 mt-3 flex items-center gap-1">
+                    <i className="fas fa-info-circle"></i> Used to verify webhook requests from WhatsApp
+                  </p>
                 </div>
               </div>
             </div>
@@ -619,16 +636,21 @@ export default function SettingsPage() {
 
           {/* Paystack Configuration Tab */}
           {activeTab === 'paystack' && (
-            <div className="bg-white rounded-lg shadow p-8 animate-in fade-in duration-300">
-              <h2 className="text-2xl font-bold text-gray-900 mb-2 flex items-center">
-                <i className="fas fa-credit-card text-blue-600 mr-3"></i>Paystack Configuration
-              </h2>
-              <p className="text-gray-600 mb-6">Set up your Paystack payment gateway credentials</p>
+            <div className="bg-gradient-to-br from-blue-50 via-white to-transparent rounded-xl shadow-sm p-8 animate-in fade-in duration-300">
+              <div className="flex items-start gap-4 mb-8 pb-6 border-b border-blue-100">
+                <div className="w-14 h-14 bg-blue-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                  <i className="fas fa-credit-card text-blue-600 text-2xl"></i>
+                </div>
+                <div>
+                  <h2 className="text-3xl font-bold text-gray-900">Payment Gateway</h2>
+                  <p className="text-gray-600 mt-1">Configure your Paystack payment processing credentials</p>
+                </div>
+              </div>
 
               <div className="space-y-6">
                 {/* Public Key */}
-                <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">
+                <div className="p-6 bg-gradient-to-br from-blue-50 to-transparent rounded-xl border border-blue-100">
+                  <label className="block text-sm font-bold text-gray-800 mb-3 uppercase tracking-wide">
                     <i className="fas fa-lock-open mr-2 text-blue-600"></i>Public Key
                   </label>
                   <div className="flex gap-2">
@@ -638,27 +660,31 @@ export default function SettingsPage() {
                       value={settings.paystack_public_key || ''}
                       onChange={handleInputChange}
                       placeholder="pk_live_..."
-                      className={`flex-1 px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition ${
-                        validationErrors.paystack_public_key ? 'border-red-500' : 'border-gray-300'
+                      className={`flex-1 px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition font-mono text-sm ${
+                        validationErrors.paystack_public_key ? 'border-red-500 bg-red-50' : 'border-gray-300'
                       }`}
                     />
                     <button
                       type="button"
                       onClick={() => setShowTokens(!showTokens)}
-                      className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition"
+                      className="px-4 py-3 bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 transition font-medium"
                     >
                       <i className={`fas ${showTokens ? 'fa-eye-slash' : 'fa-eye'}`}></i>
                     </button>
                   </div>
                   {validationErrors.paystack_public_key && (
-                    <p className="text-xs text-red-600 mt-2">{validationErrors.paystack_public_key}</p>
+                    <p className="text-xs text-red-600 mt-3 font-medium flex items-center gap-1">
+                      <i className="fas fa-exclamation-circle"></i> {validationErrors.paystack_public_key}
+                    </p>
                   )}
-                  <p className="text-xs text-gray-500 mt-2">Found in your Paystack dashboard settings</p>
+                  <p className="text-xs text-gray-600 mt-3 flex items-center gap-1">
+                    <i className="fas fa-info-circle"></i> Public key from your Paystack dashboard
+                  </p>
                 </div>
 
                 {/* Secret Key */}
-                <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">
+                <div className="p-6 bg-gradient-to-br from-blue-50 to-transparent rounded-xl border border-blue-100">
+                  <label className="block text-sm font-bold text-gray-800 mb-3 uppercase tracking-wide">
                     <i className="fas fa-lock mr-2 text-blue-600"></i>Secret Key
                   </label>
                   <div className="flex gap-2">
@@ -668,38 +694,53 @@ export default function SettingsPage() {
                       value={settings.paystack_secret_key || ''}
                       onChange={handleInputChange}
                       placeholder="sk_live_..."
-                      className={`flex-1 px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition ${
-                        validationErrors.paystack_secret_key ? 'border-red-500' : 'border-gray-300'
+                      className={`flex-1 px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition font-mono text-sm ${
+                        validationErrors.paystack_secret_key ? 'border-red-500 bg-red-50' : 'border-gray-300'
                       }`}
                     />
                     <button
                       type="button"
                       onClick={() => setShowTokens(!showTokens)}
-                      className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition"
+                      className="px-4 py-3 bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 transition font-medium"
                     >
                       <i className={`fas ${showTokens ? 'fa-eye-slash' : 'fa-eye'}`}></i>
                     </button>
                   </div>
                   {validationErrors.paystack_secret_key && (
-                    <p className="text-xs text-red-600 mt-2">{validationErrors.paystack_secret_key}</p>
+                    <p className="text-xs text-red-600 mt-3 font-medium flex items-center gap-1">
+                      <i className="fas fa-exclamation-circle"></i> {validationErrors.paystack_secret_key}
+                    </p>
                   )}
-                  <p className="text-xs text-gray-500 mt-2">Keep this secret! Used for server-side transactions</p>
+                  <p className="text-xs text-gray-600 mt-3 flex items-center gap-1">
+                    <i className="fas fa-info-circle"></i> Keep this secret! Used for secure server-side transactions
+                  </p>
                 </div>
 
                 {/* Webhook Secret */}
-                <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">
-                    <i className="fas fa-webhook mr-2 text-blue-600"></i>Webhook Secret
+                <div className="p-6 bg-gradient-to-br from-blue-50 to-transparent rounded-xl border border-blue-100">
+                  <label className="block text-sm font-bold text-gray-800 mb-3 uppercase tracking-wide">
+                    <i className="fas fa-key mr-2 text-blue-600"></i>Webhook Secret
                   </label>
-                  <input
-                    type={showTokens ? 'text' : 'password'}
-                    name="paystack_webhook_secret"
-                    value={settings.paystack_webhook_secret || ''}
-                    onChange={handleInputChange}
-                    placeholder="Enter webhook secret..."
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
-                  />
-                  <p className="text-xs text-gray-500 mt-2">Verify webhook signatures from Paystack</p>
+                  <div className="flex gap-2">
+                    <input
+                      type={showTokens ? 'text' : 'password'}
+                      name="paystack_webhook_secret"
+                      value={settings.paystack_webhook_secret || ''}
+                      onChange={handleInputChange}
+                      placeholder="Enter webhook secret..."
+                      className="flex-1 px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition font-mono text-sm"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowTokens(!showTokens)}
+                      className="px-4 py-3 bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 transition font-medium"
+                    >
+                      <i className={`fas ${showTokens ? 'fa-eye-slash' : 'fa-eye'}`}></i>
+                    </button>
+                  </div>
+                  <p className="text-xs text-gray-600 mt-3 flex items-center gap-1">
+                    <i className="fas fa-info-circle"></i> Used to verify webhook signatures from Paystack
+                  </p>
                 </div>
               </div>
             </div>
@@ -707,16 +748,21 @@ export default function SettingsPage() {
 
           {/* Database Configuration Tab */}
           {activeTab === 'database' && (
-            <div className="bg-white rounded-lg shadow p-8 animate-in fade-in duration-300">
-              <h2 className="text-2xl font-bold text-gray-900 mb-2 flex items-center">
-                <i className="fas fa-database text-orange-600 mr-3"></i>Database Configuration
-              </h2>
-              <p className="text-gray-600 mb-6">Database connection settings</p>
+            <div className="bg-gradient-to-br from-orange-50 via-white to-transparent rounded-xl shadow-sm p-8 animate-in fade-in duration-300">
+              <div className="flex items-start gap-4 mb-8 pb-6 border-b border-orange-100">
+                <div className="w-14 h-14 bg-orange-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                  <i className="fas fa-database text-orange-600 text-2xl"></i>
+                </div>
+                <div>
+                  <h2 className="text-3xl font-bold text-gray-900">Database Connection</h2>
+                  <p className="text-gray-600 mt-1">Configure your MySQL database connection string</p>
+                </div>
+              </div>
 
               <div className="space-y-6">
                 {/* Database URL */}
-                <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">
+                <div className="p-6 bg-gradient-to-br from-orange-50 to-transparent rounded-xl border border-orange-100">
+                  <label className="block text-sm font-bold text-gray-800 mb-3 uppercase tracking-wide">
                     <i className="fas fa-link mr-2 text-orange-600"></i>Database URL
                   </label>
                   <div className="flex gap-2">
@@ -726,22 +772,37 @@ export default function SettingsPage() {
                       value={settings.database_url || ''}
                       onChange={handleInputChange}
                       placeholder="mysql+pymysql://user:pass@host/database"
-                      className={`flex-1 px-4 py-2 border rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent transition font-mono text-sm ${
-                        validationErrors.database_url ? 'border-red-500' : 'border-gray-300'
+                      className={`flex-1 px-4 py-3 border rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent transition font-mono text-sm ${
+                        validationErrors.database_url ? 'border-red-500 bg-red-50' : 'border-gray-300'
                       }`}
                     />
                     <button
                       type="button"
                       onClick={() => setShowTokens(!showTokens)}
-                      className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition"
+                      className="px-4 py-3 bg-orange-100 text-orange-700 rounded-lg hover:bg-orange-200 transition font-medium"
                     >
                       <i className={`fas ${showTokens ? 'fa-eye-slash' : 'fa-eye'}`}></i>
                     </button>
                   </div>
                   {validationErrors.database_url && (
-                    <p className="text-xs text-red-600 mt-2">{validationErrors.database_url}</p>
+                    <p className="text-xs text-red-600 mt-3 font-medium flex items-center gap-1">
+                      <i className="fas fa-exclamation-circle"></i> {validationErrors.database_url}
+                    </p>
                   )}
-                  <p className="text-xs text-gray-500 mt-2">MySQL connection string. Format: mysql+pymysql://user:password@host:port/database</p>
+                  <p className="text-xs text-gray-600 mt-3 flex items-center gap-1">
+                    <i className="fas fa-info-circle"></i> Format: mysql+pymysql://user:password@host:port/database
+                  </p>
+                </div>
+
+                {/* Connection Status */}
+                <div className="p-6 bg-gradient-to-br from-green-50 to-transparent rounded-xl border border-green-100">
+                  <div className="flex items-center gap-3">
+                    <div className="w-3 h-3 bg-green-500 rounded-full animate-pulse"></div>
+                    <div>
+                      <p className="text-sm font-semibold text-gray-800">Connection Status</p>
+                      <p className="text-xs text-gray-600 mt-1">Using Railway MySQL database</p>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
