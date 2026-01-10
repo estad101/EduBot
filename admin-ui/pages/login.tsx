@@ -14,21 +14,38 @@ export default function LoginPage() {
   const [botName, setBotName] = useState('EduBot');
   const { setAuthenticated, setError: setAuthError } = useAuthStore();
 
-  // Fetch bot name from settings on component mount
+  // Fetch bot name from admin_settings table on component mount
   useEffect(() => {
     const fetchBotName = async () => {
       try {
-        const response = await fetch('/api/admin/settings');
+        // Fetch from admin_settings API endpoint
+        const response = await fetch('/api/admin/settings', {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        });
+
         if (response.ok) {
           const data = await response.json();
-          if (data.data?.bot_name) {
+          // Get bot_name from settings response (from admin_settings table)
+          if (data?.data?.bot_name && data.data.bot_name.trim()) {
             setBotName(data.data.bot_name);
+          } else {
+            // Fallback to default if not set in database
+            setBotName('EduBot');
           }
+        } else {
+          console.warn('Failed to fetch bot name:', response.status);
+          setBotName('EduBot');
         }
       } catch (err) {
-        console.warn('Could not fetch bot name:', err);
+        console.warn('Error fetching bot name from admin_settings:', err);
+        setBotName('EduBot');
       }
     };
+
+    // Fetch bot name when component mounts
     fetchBotName();
   }, []);
 
