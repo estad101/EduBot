@@ -85,27 +85,10 @@ export default function SettingsPage() {
     const fetchTemplates = async () => {
       try {
         setLoadingTemplates(true);
-        const token = localStorage.getItem('admin_token');
-        if (!token) {
-          return;
-        }
+        const response = await apiClient.getTemplates();
         
-        const response = await fetch('/api/bot-messages/templates/list', {
-          method: 'GET',
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json'
-          }
-        });
-        
-        if (!response.ok) {
-          console.warn(`Templates API returned ${response.status}`);
-          return;
-        }
-        
-        const data = await response.json();
-        if (data.status === 'success' && data.data?.templates) {
-          setTemplates(data.data.templates);
+        if (response.status === 'success' && response.data?.templates) {
+          setTemplates(response.data.templates);
         }
       } catch (err: any) {
         console.error('Failed to fetch templates:', err.message);

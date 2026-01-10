@@ -108,9 +108,9 @@ class Settings(BaseSettings):
         try:
             url_parts = self.database_url.split('@')
             safe_url = f"{url_parts[0]}...{self.database_url.split('/')[-1]}"
-            print(f"[Settings] ✓ Database URL configured: {safe_url}")
+            print(f"[Settings] [OK] Database URL configured: {safe_url}")
         except:
-            print(f"[Settings] ✓ Database URL configured")
+            print(f"[Settings] [OK] Database URL configured")
 
 
 # Load settings

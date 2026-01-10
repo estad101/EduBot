@@ -225,6 +225,12 @@ class APIClient {
     const response = await this.client.post('/api/admin/whatsapp/test-config', {});
     return response.data;
   }
+
+  // Get bot message templates
+  async getTemplates() {
+    const response = await this.client.get("/api/bot-messages/templates/list");
+    return response.data;
+  }
 }
 
 export const apiClient = new APIClient();
