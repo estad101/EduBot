@@ -15,6 +15,7 @@ interface SettingsData {
   paystack_secret_key?: string;
   paystack_webhook_secret?: string;
   database_url?: string;
+  bot_name?: string;
   [key: string]: string | undefined;
 }
 
@@ -31,7 +32,7 @@ export default function SettingsPage() {
   const [success, setSuccess] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [isTesting, setIsTesting] = useState(false);
-  const [activeTab, setActiveTab] = useState<'whatsapp' | 'paystack' | 'database'>('whatsapp');
+  const [activeTab, setActiveTab] = useState<'whatsapp' | 'paystack' | 'database' | 'bot'>('bot');
   const [testPhoneNumber, setTestPhoneNumber] = useState('+2348109508833');
   const [isTestingSendToNumber, setIsTestingSendToNumber] = useState(false);
   const [validationErrors, setValidationErrors] = useState<ValidationError>({});
@@ -287,10 +288,20 @@ export default function SettingsPage() {
 
         {/* Tab Navigation */}
         <div className="bg-white rounded-lg shadow mb-6">
-          <div className="flex border-b border-gray-200">
+          <div className="flex border-b border-gray-200 flex-wrap">
+            <button
+              onClick={() => setActiveTab('bot')}
+              className={`flex-1 min-w-max py-4 px-6 font-medium border-b-2 transition ${
+                activeTab === 'bot'
+                  ? 'border-purple-600 text-purple-600 bg-purple-50'
+                  : 'border-transparent text-gray-600 hover:text-gray-900'
+              }`}
+            >
+              <i className="fas fa-robot mr-2"></i>Bot Config
+            </button>
             <button
               onClick={() => setActiveTab('whatsapp')}
-              className={`flex-1 py-4 px-6 font-medium border-b-2 transition ${
+              className={`flex-1 min-w-max py-4 px-6 font-medium border-b-2 transition ${
                 activeTab === 'whatsapp'
                   ? 'border-green-600 text-green-600 bg-green-50'
                   : 'border-transparent text-gray-600 hover:text-gray-900'
@@ -323,6 +334,59 @@ export default function SettingsPage() {
 
         {/* Settings Form */}
         <form onSubmit={handleSave} className="space-y-6">
+
+          {/* Bot Configuration Tab */}
+          {activeTab === 'bot' && (
+            <div className="bg-white rounded-lg shadow p-8 animate-in fade-in duration-300">
+              <h2 className="text-2xl font-bold text-gray-900 mb-2 flex items-center">
+                <i className="fas fa-robot text-purple-600 mr-3"></i>Bot Configuration
+              </h2>
+              <p className="text-gray-600 mb-6">Configure how your chatbot appears and responds to users</p>
+
+              <div className="space-y-6">
+                {/* Bot Name */}
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">
+                    <i className="fas fa-heading mr-2 text-purple-600"></i>Bot Name
+                  </label>
+                  <input
+                    type="text"
+                    value={settings.bot_name || ''}
+                    onChange={(e) => handleSettingChange('bot_name', e.target.value)}
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500 transition"
+                    placeholder="EduBot"
+                  />
+                  <p className="text-xs text-gray-500 mt-2">The name used in all bot responses and greetings. This will appear in welcome messages, status updates, and all automated responses.</p>
+                  
+                  {/* Preview */}
+                  <div className="mt-4 p-4 bg-purple-50 border border-purple-200 rounded-lg">
+                    <p className="text-xs font-semibold text-purple-900 mb-2">Preview:</p>
+                    <div className="bg-white rounded p-3 border border-purple-100">
+                      <p className="text-sm text-gray-700">
+                        👋 John, welcome to <span className="font-semibold text-purple-600">{settings.bot_name || 'EduBot'}</span>!
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Save Button for Bot Config */}
+                <div className="flex gap-3 pt-4 border-t border-gray-200">
+                  <button
+                    type="submit"
+                    disabled={!isDirty || isSaving}
+                    className={`px-6 py-2 rounded-lg font-medium transition flex items-center gap-2 ${
+                      !isDirty || isSaving
+                        ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                        : 'bg-purple-600 text-white hover:bg-purple-700'
+                    }`}
+                  >
+                    <i className={`fas ${isSaving ? 'fa-spinner fa-spin' : 'fa-save'}`}></i>
+                    {isSaving ? 'Saving...' : 'Save Settings'}
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* WhatsApp Configuration Tab */}
           {activeTab === 'whatsapp' && (

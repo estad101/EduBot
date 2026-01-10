@@ -1183,12 +1183,14 @@ async def get_settings(db: Session = Depends(get_db)):
             settings_dict["whatsapp_phone_number"] = settings.whatsapp_phone_number or ""
         if not settings_dict.get("database_url"):
             settings_dict["database_url"] = settings.database_url or ""
+        if not settings_dict.get("bot_name"):
+            settings_dict["bot_name"] = "EduBot"
         
         # Ensure all expected keys exist
         expected_keys = [
             "whatsapp_api_key", "whatsapp_phone_number_id", "whatsapp_business_account_id",
             "whatsapp_phone_number", "whatsapp_webhook_token", "paystack_public_key",
-            "paystack_secret_key", "paystack_webhook_secret", "database_url"
+            "paystack_secret_key", "paystack_webhook_secret", "database_url", "bot_name"
         ]
         for key in expected_keys:
             if key not in settings_dict:
@@ -1212,7 +1214,8 @@ async def get_settings(db: Session = Depends(get_db)):
                 "paystack_public_key": "",
                 "paystack_secret_key": "",
                 "paystack_webhook_secret": "",
-                "database_url": settings.database_url or ""
+                "database_url": settings.database_url or "",
+                "bot_name": "EduBot"
             }
         }
 
@@ -1732,6 +1735,10 @@ async def get_conversation_messages(phone_number: str, db: Session = Depends(get
             # Use stored messages if available
             messages = stored_messages
         else:
+            # Get bot name from settings
+            bot_name_setting = db.query(AdminSetting).filter(AdminSetting.key == "bot_name").first()
+            bot_name = bot_name_setting.value if bot_name_setting else "EduBot"
+            
             # Check if it's a student or lead and create default conversation
             student = db.query(Student).filter(Student.phone_number == phone_number).first()
             lead = db.query(Lead).filter(Lead.phone_number == phone_number).first()
@@ -1745,7 +1752,7 @@ async def get_conversation_messages(phone_number: str, db: Session = Depends(get
                     {
                         "id": f"msg_welcome_{phone_number}",
                         "phone_number": phone_number,
-                        "text": f"👋 {name}, welcome to EduBot!",
+                        "text": f"👋 {name}, welcome to {bot_name}!",
                         "timestamp": timestamp.isoformat() if hasattr(timestamp, 'isoformat') else timestamp,
                         "sender_type": "bot",
                         "message_type": "text"
