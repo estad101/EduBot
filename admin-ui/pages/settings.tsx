@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/router';
 import Layout from '../components/Layout';
+import MessageManagementTab from '../components/MessageManagementTab';
 import { apiClient } from '../lib/api-client';
 
 interface SettingsData {
@@ -38,7 +39,7 @@ export default function SettingsPage() {
   const [success, setSuccess] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [isTesting, setIsTesting] = useState(false);
-  const [activeTab, setActiveTab] = useState<'whatsapp' | 'paystack' | 'database' | 'bot' | 'templates'>('bot');
+  const [activeTab, setActiveTab] = useState<'whatsapp' | 'paystack' | 'database' | 'bot' | 'templates' | 'messages'>('bot');
   const [testPhoneNumber, setTestPhoneNumber] = useState('+2348109508833');
   const [isTestingSendToNumber, setIsTestingSendToNumber] = useState(false);
   const [validationErrors, setValidationErrors] = useState<ValidationError>({});
@@ -344,6 +345,16 @@ export default function SettingsPage() {
               }`}
             >
               <i className="fas fa-comments mr-2"></i>Templates
+            </button>
+            <button
+              onClick={() => setActiveTab('messages')}
+              className={`flex-1 py-4 px-6 font-medium border-b-2 transition ${
+                activeTab === 'messages'
+                  ? 'border-pink-600 text-pink-600 bg-pink-50'
+                  : 'border-transparent text-gray-600 hover:text-gray-900'
+              }`}
+            >
+              <i className="fas fa-message mr-2"></i>Messages
             </button>
           </div>
         </div>
@@ -934,6 +945,11 @@ export default function SettingsPage() {
                 </code>
               </div>
             </div>
+          )}
+
+          {/* Messages Management Tab */}
+          {activeTab === 'messages' && (
+            <MessageManagementTab />
           )}
 
           {/* Action Buttons */}

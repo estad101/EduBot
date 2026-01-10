@@ -5,7 +5,7 @@ Run this after updating models.
 import logging
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
-from config.database import Base, DATABASE_URL
+from config.database import Base, engine, SessionLocal
 from models.bot_message import BotMessage, BotMessageTemplate, BotMessageWorkflow
 
 logger = logging.getLogger(__name__)
@@ -14,7 +14,6 @@ logger = logging.getLogger(__name__)
 def create_tables():
     """Create all bot message tables."""
     try:
-        engine = create_engine(DATABASE_URL)
         Base.metadata.create_all(bind=engine)
         logger.info("✅ Bot message tables created successfully")
         return True
@@ -26,8 +25,6 @@ def create_tables():
 def seed_default_messages():
     """Seed default messages into the database."""
     try:
-        engine = create_engine(DATABASE_URL)
-        SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
         db = SessionLocal()
 
         # Check if messages already exist
