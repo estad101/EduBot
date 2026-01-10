@@ -264,40 +264,134 @@ export default function SettingsPage() {
 
   return (
     <Layout>
-      <div className="max-w-4xl">
-        {/* Confirmation Dialog */}
-        {showConfirmDialog && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-            <div className="bg-white rounded-lg shadow-lg p-6 max-w-sm">
-              <h3 className="text-lg font-bold text-gray-900 mb-2 flex items-center">
-                <i className="fas fa-exclamation-triangle text-yellow-500 mr-2"></i>
-                Confirm Changes
-              </h3>
-              <p className="text-gray-700 mb-6">Are you sure you want to save these settings? This will update your production configuration.</p>
-              <div className="flex gap-3 justify-end">
-                <button
-                  onClick={() => setShowConfirmDialog(false)}
-                  className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition"
-                >
-                  Cancel
+      <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 py-8 px-4 md:px-8">
+        <div className="max-w-6xl mx-auto">
+          
+          {/* Header Section */}
+          <div className="mb-8">
+            <h1 className="text-4xl font-bold text-gray-900 mb-2 flex items-center gap-3">
+              <i className="fas fa-cog text-blue-600 text-3xl"></i>
+              Admin Settings
+            </h1>
+            <p className="text-gray-600 text-lg">Manage your bot configuration, integrations, and templates</p>
+          </div>
+
+          {/* Alerts Section */}
+          <div className="space-y-4 mb-8">
+            {success && (
+              <div className="bg-green-50 border-l-4 border-green-500 rounded-lg p-4 flex items-start gap-4 shadow-sm">
+                <i className="fas fa-check-circle text-green-600 text-2xl flex-shrink-0 mt-1"></i>
+                <div className="flex-1">
+                  <h3 className="font-bold text-green-900 text-lg">Success!</h3>
+                  <p className="text-green-700 mt-1">{success}</p>
+                </div>
+                <button onClick={() => setSuccess(null)} className="text-green-600 hover:text-green-800">
+                  <i className="fas fa-times text-xl"></i>
                 </button>
-                <button
-                  onClick={confirmSave}
-                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
-                  disabled={isSaving}
-                >
-                  {isSaving ? 'Saving...' : 'Save Settings'}
+              </div>
+            )}
+
+            {error && (
+              <div className="bg-red-50 border-l-4 border-red-500 rounded-lg p-4 flex items-start gap-4 shadow-sm">
+                <i className="fas fa-exclamation-circle text-red-600 text-2xl flex-shrink-0 mt-1"></i>
+                <div className="flex-1">
+                  <h3 className="font-bold text-red-900 text-lg">Error</h3>
+                  <p className="text-red-700 mt-1">{error}</p>
+                </div>
+                <button onClick={() => setError(null)} className="text-red-600 hover:text-red-800">
+                  <i className="fas fa-times text-xl"></i>
                 </button>
+              </div>
+            )}
+
+            {isDirty && (
+              <div className="bg-amber-50 border-l-4 border-amber-500 rounded-lg p-4 flex items-start gap-4 shadow-sm">
+                <i className="fas fa-exclamation-triangle text-amber-600 text-2xl flex-shrink-0 mt-1"></i>
+                <div className="flex-1">
+                  <h3 className="font-bold text-amber-900 text-lg">Unsaved Changes</h3>
+                  <p className="text-amber-700 mt-1">You have made changes that haven't been saved yet.</p>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Confirmation Dialog */}
+          {showConfirmDialog && (
+            <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+              <div className="bg-white rounded-xl shadow-2xl max-w-sm w-full animate-in fade-in duration-200">
+                <div className="bg-gradient-to-r from-blue-600 to-blue-700 px-6 py-4 rounded-t-xl">
+                  <h3 className="text-xl font-bold text-white flex items-center gap-2">
+                    <i className="fas fa-shield-alt"></i>
+                    Confirm Changes
+                  </h3>
+                </div>
+                <div className="p-6">
+                  <p className="text-gray-700 text-base leading-relaxed">
+                    You're about to save changes to your production configuration. Make sure everything is correct before proceeding.
+                  </p>
+                </div>
+                <div className="bg-gray-50 px-6 py-4 rounded-b-xl flex gap-3 justify-end border-t">
+                  <button
+                    onClick={() => setShowConfirmDialog(false)}
+                    className="px-5 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-100 transition font-medium"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={confirmSave}
+                    className="px-5 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition font-medium flex items-center gap-2 disabled:opacity-50"
+                    disabled={isSaving}
+                  >
+                    {isSaving && <i className="fas fa-spinner fa-spin"></i>}
+                    {isSaving ? 'Saving...' : 'Save Settings'}
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Tab Navigation - Horizontal Scrollable */}
+          <div className="bg-white rounded-xl shadow-sm mb-8 overflow-hidden">
+            <div className="overflow-x-auto">
+              <div className="flex border-b border-gray-200 min-w-max md:min-w-full">
+                <TabButton
+                  icon="fas fa-cog"
+                  label="Bot Config"
+                  active={activeTab === 'bot'}
+                  onClick={() => setActiveTab('bot')}
+                  color="purple"
+                />
+                <TabButton
+                  icon="fas fa-comments"
+                  label="WhatsApp"
+                  active={activeTab === 'whatsapp'}
+                  onClick={() => setActiveTab('whatsapp')}
+                  color="green"
+                />
+                <TabButton
+                  icon="fas fa-credit-card"
+                  label="Paystack"
+                  active={activeTab === 'paystack'}
+                  onClick={() => setActiveTab('paystack')}
+                  color="blue"
+                />
+                <TabButton
+                  icon="fas fa-database"
+                  label="Database"
+                  active={activeTab === 'database'}
+                  onClick={() => setActiveTab('database')}
+                  color="orange"
+                />
+                <TabButton
+                  icon="fas fa-file-alt"
+                  label="Templates"
+                  active={activeTab === 'templates'}
+                  onClick={() => setActiveTab('templates')}
+                  color="cyan"
+                />
               </div>
             </div>
           </div>
-        )}
-
-        {success && (
-          <div className="bg-green-50 border-l-4 border-green-500 rounded-lg p-4 mb-6 flex items-start">
-            <i className="fas fa-check-circle text-green-600 text-xl mr-3 mt-0.5"></i>
-            <div>
-              <h3 className="font-semibold text-green-900">Success</h3>
               <p className="text-sm text-green-700 mt-1">{success}</p>
             </div>
           </div>
@@ -323,77 +417,26 @@ export default function SettingsPage() {
           </div>
         )}
 
-        {/* Tab Navigation */}
-        <div className="bg-white rounded-lg shadow mb-6">
-          <div className="flex border-b border-gray-200 flex-wrap">
-            <button
-              onClick={() => setActiveTab('bot')}
-              className={`flex-1 min-w-max py-4 px-6 font-medium border-b-2 transition ${
-                activeTab === 'bot'
-                  ? 'border-purple-600 text-purple-600 bg-purple-50'
-                  : 'border-transparent text-gray-600 hover:text-gray-900'
-              }`}
-            >
-              <i className="fas fa-robot mr-2"></i>Bot Config
-            </button>
-            <button
-              onClick={() => setActiveTab('whatsapp')}
-              className={`flex-1 min-w-max py-4 px-6 font-medium border-b-2 transition ${
-                activeTab === 'whatsapp'
-                  ? 'border-green-600 text-green-600 bg-green-50'
-                  : 'border-transparent text-gray-600 hover:text-gray-900'
-              }`}
-            >
-              <i className="fas fa-comments mr-2"></i>WhatsApp
-            </button>
-            <button
-              onClick={() => setActiveTab('paystack')}
-              className={`flex-1 py-4 px-6 font-medium border-b-2 transition ${
-                activeTab === 'paystack'
-                  ? 'border-blue-600 text-blue-600 bg-blue-50'
-                  : 'border-transparent text-gray-600 hover:text-gray-900'
-              }`}
-            >
-              <i className="fas fa-credit-card mr-2"></i>Paystack
-            </button>
-            <button
-              onClick={() => setActiveTab('database')}
-              className={`flex-1 py-4 px-6 font-medium border-b-2 transition ${
-                activeTab === 'database'
-                  ? 'border-orange-600 text-orange-600 bg-orange-50'
-                  : 'border-transparent text-gray-600 hover:text-gray-900'
-              }`}
-            >
-              <i className="fas fa-database mr-2"></i>Database
-            </button>
-            <button
-              onClick={() => setActiveTab('templates')}
-              className={`flex-1 py-4 px-6 font-medium border-b-2 transition ${
-                activeTab === 'templates'
-                  ? 'border-cyan-600 text-cyan-600 bg-cyan-50'
-                  : 'border-transparent text-gray-600 hover:text-gray-900'
-              }`}
-            >
-              <i className="fas fa-file-alt mr-2"></i>Templates
-            </button>
-          </div>
-        </div>
-
         {/* Settings Form */}
         <form onSubmit={handleSave} className="space-y-6">
 
           {/* Bot Configuration Tab */}
           {activeTab === 'bot' && (
-            <div className="bg-white rounded-lg shadow p-8 animate-in fade-in duration-300">
-              <h2 className="text-2xl font-bold text-gray-900 mb-2 flex items-center">
-                <i className="fas fa-robot text-purple-600 mr-3"></i>Bot Configuration
-              </h2>
-              <p className="text-gray-600 mb-6">Configure how your chatbot appears and responds to users</p>
+            <div className="bg-white rounded-xl shadow-sm p-8 md:p-10 animate-in fade-in duration-300">
+              <div className="mb-8 pb-6 border-b border-gray-200">
+                <h2 className="text-3xl font-bold text-gray-900 mb-2 flex items-center gap-3">
+                  <div className="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center">
+                    <i className="fas fa-cog text-purple-600 text-xl"></i>
+                  </div>
+                  Bot Configuration
+                </h2>
+                <p className="text-gray-600 text-lg">Configure how your chatbot appears and responds to users</p>
+              </div>
 
               <div className="space-y-6">
                 {/* Bot Name */}
-                <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">
+                <div className="p-5 bg-gradient-to-br from-purple-50 to-transparent rounded-lg border border-purple-100">
+                  <label className="block text-sm font-bold text-gray-800 mb-3 uppercase tracking-wide">
                     <i className="fas fa-heading mr-2 text-purple-600"></i>Bot Name
                   </label>
                   <input
@@ -402,14 +445,17 @@ export default function SettingsPage() {
                     value={settings.bot_name || ''}
                     onChange={handleInputChange}
                     placeholder="e.g., EduBot"
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent transition"
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent transition text-base"
                   />
-                  <p className="text-xs text-gray-500 mt-2">The name used in all bot responses and greetings.</p>
+                  <p className="text-xs text-gray-600 mt-2 flex items-center gap-1">
+                    <i className="fas fa-info-circle"></i>
+                    The name used in all bot responses and greetings
+                  </p>
                 </div>
 
                 {/* Welcome Template */}
-                <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">
+                <div className="p-5 bg-gradient-to-br from-yellow-50 to-transparent rounded-lg border border-yellow-100">
+                  <label className="block text-sm font-bold text-gray-800 mb-3 uppercase tracking-wide">
                     <i className="fas fa-star mr-2 text-yellow-500"></i>Welcome Template
                   </label>
                   <textarea
@@ -417,14 +463,17 @@ export default function SettingsPage() {
                     value={settings.template_welcome || ''}
                     onChange={handleInputChange}
                     placeholder="Enter welcome message template..."
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent transition font-mono text-sm h-24"
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-transparent transition font-mono text-sm h-28"
                   />
-                  <p className="text-xs text-gray-500 mt-2">Message shown when user first interacts. Use {'{'}name{'}'} for user name and {'{'}bot_name{'}'} for bot name.</p>
+                  <p className="text-xs text-gray-600 mt-2 flex items-center gap-1">
+                    <i className="fas fa-info-circle"></i>
+                    Message shown when user first interacts. Use {'{'}name{'}'} for user name and {'{'}bot_name{'}'} for bot name
+                  </p>
                 </div>
 
                 {/* Greeting Template */}
-                <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">
+                <div className="p-5 bg-gradient-to-br from-blue-50 to-transparent rounded-lg border border-blue-100">
+                  <label className="block text-sm font-bold text-gray-800 mb-3 uppercase tracking-wide">
                     <i className="fas fa-handshake mr-2 text-blue-500"></i>Greeting Template
                   </label>
                   <textarea
@@ -432,9 +481,12 @@ export default function SettingsPage() {
                     value={settings.template_greeting || ''}
                     onChange={handleInputChange}
                     placeholder="Enter greeting template..."
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent transition font-mono text-sm h-20"
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition font-mono text-sm h-24"
                   />
-                  <p className="text-xs text-gray-500 mt-2">General greeting message for returning users.</p>
+                  <p className="text-xs text-gray-600 mt-2 flex items-center gap-1">
+                    <i className="fas fa-info-circle"></i>
+                    General greeting message for returning users
+                  </p>
                 </div>
               </div>
             </div>
@@ -442,17 +494,22 @@ export default function SettingsPage() {
 
           {/* WhatsApp Configuration Tab */}
           {activeTab === 'whatsapp' && (
-            <div className="bg-white rounded-lg shadow p-8 animate-in fade-in duration-300">
-              <h2 className="text-2xl font-bold text-gray-900 mb-2 flex items-center">
-                <i className="fas fa-comments text-green-600 mr-3"></i>WhatsApp Configuration
-              </h2>
-              <p className="text-gray-600 mb-6">Set up your WhatsApp Cloud API credentials</p>
+            <div className="bg-white rounded-xl shadow-sm p-8 md:p-10 animate-in fade-in duration-300">
+              <div className="mb-8 pb-6 border-b border-gray-200">
+                <h2 className="text-3xl font-bold text-gray-900 mb-2 flex items-center gap-3">
+                  <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
+                    <i className="fas fa-comments text-green-600 text-xl"></i>
+                  </div>
+                  WhatsApp Configuration
+                </h2>
+                <p className="text-gray-600 text-lg">Set up your WhatsApp Cloud API credentials for messaging</p>
+              </div>
 
               <div className="space-y-6">
                 {/* API Key */}
-                <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">
-                    <i className="fas fa-key mr-2 text-green-600"></i>API Key
+                <div className="p-5 bg-gradient-to-br from-green-50 to-transparent rounded-lg border border-green-100">
+                  <label className="block text-sm font-bold text-gray-800 mb-3 uppercase tracking-wide">
+                    <i className="fas fa-key mr-2 text-green-600"></i>API Key / Access Token
                   </label>
                   <div className="flex gap-2">
                     <input
@@ -461,27 +518,33 @@ export default function SettingsPage() {
                       value={settings.whatsapp_api_key || ''}
                       onChange={handleInputChange}
                       placeholder="Enter your WhatsApp API key..."
-                      className={`flex-1 px-4 py-2 border rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent transition ${
-                        validationErrors.whatsapp_api_key ? 'border-red-500' : 'border-gray-300'
+                      className={`flex-1 px-4 py-3 border rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent transition text-base ${
+                        validationErrors.whatsapp_api_key ? 'border-red-500 bg-red-50' : 'border-gray-300'
                       }`}
                     />
                     <button
                       type="button"
                       onClick={() => setShowTokens(!showTokens)}
-                      className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition"
+                      className="px-4 py-3 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition font-semibold"
                     >
                       <i className={`fas ${showTokens ? 'fa-eye-slash' : 'fa-eye'}`}></i>
                     </button>
                   </div>
                   {validationErrors.whatsapp_api_key && (
-                    <p className="text-xs text-red-600 mt-2">{validationErrors.whatsapp_api_key}</p>
+                    <p className="text-xs text-red-600 mt-2 flex items-center gap-1">
+                      <i className="fas fa-exclamation-circle"></i>
+                      {validationErrors.whatsapp_api_key}
+                    </p>
                   )}
-                  <p className="text-xs text-gray-500 mt-2">Get this from WhatsApp Cloud API dashboard</p>
+                  <p className="text-xs text-gray-600 mt-2 flex items-center gap-1">
+                    <i className="fas fa-info-circle"></i>
+                    Get this from WhatsApp Cloud API dashboard
+                  </p>
                 </div>
 
                 {/* Phone Number ID */}
-                <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">
+                <div className="p-5 bg-gradient-to-br from-green-50 to-transparent rounded-lg border border-green-100">
+                  <label className="block text-sm font-bold text-gray-800 mb-3 uppercase tracking-wide">
                     <i className="fas fa-phone mr-2 text-green-600"></i>Phone Number ID
                   </label>
                   <input
@@ -490,14 +553,17 @@ export default function SettingsPage() {
                     value={settings.whatsapp_phone_number_id || ''}
                     onChange={handleInputChange}
                     placeholder="Enter phone number ID..."
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent transition"
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent transition text-base"
                   />
-                  <p className="text-xs text-gray-500 mt-2">Your WhatsApp business phone number ID</p>
+                  <p className="text-xs text-gray-600 mt-2 flex items-center gap-1">
+                    <i className="fas fa-info-circle"></i>
+                    Your WhatsApp business phone number ID
+                  </p>
                 </div>
 
                 {/* Business Account ID */}
-                <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">
+                <div className="p-5 bg-gradient-to-br from-green-50 to-transparent rounded-lg border border-green-100">
+                  <label className="block text-sm font-bold text-gray-800 mb-3 uppercase tracking-wide">
                     <i className="fas fa-briefcase mr-2 text-green-600"></i>Business Account ID
                   </label>
                   <input
@@ -942,29 +1008,88 @@ export default function SettingsPage() {
           )}
 
           {/* Save Button */}
-          <div className="flex gap-3 justify-end sticky bottom-6">
-            <button
-              type="button"
-              onClick={() => {
-                setSettings(originalSettings);
-                setValidationErrors({});
-              }}
-              className="px-6 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition font-semibold disabled:opacity-50"
-              disabled={!isDirty}
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition font-semibold disabled:opacity-50 flex items-center gap-2"
-              disabled={!isDirty || isSaving}
-            >
-              <i className="fas fa-save"></i>
-              {isSaving ? 'Saving...' : 'Save Settings'}
-            </button>
+          <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 shadow-2xl">
+            <div className="max-w-6xl mx-auto px-4 md:px-8 py-4 flex gap-3 justify-end items-center">
+              {isDirty && (
+                <p className="text-sm text-amber-700 mr-auto">
+                  <i className="fas fa-exclamation-circle mr-2"></i>
+                  You have unsaved changes
+                </p>
+              )}
+              <button
+                type="button"
+                onClick={() => {
+                  setSettings(originalSettings);
+                  setValidationErrors({});
+                }}
+                className="px-6 py-2.5 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
+                disabled={!isDirty}
+              >
+                <i className="fas fa-times mr-2"></i>Discard
+              </button>
+              <button
+                type="submit"
+                className="px-8 py-2.5 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-lg hover:from-blue-700 hover:to-blue-800 transition font-semibold disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 shadow-lg hover:shadow-xl"
+                disabled={!isDirty || isSaving}
+              >
+                {isSaving ? (
+                  <>
+                    <i className="fas fa-spinner fa-spin"></i>
+                    Saving...
+                  </>
+                ) : (
+                  <>
+                    <i className="fas fa-save"></i>
+                    Save All Settings
+                  </>
+                )}
+              </button>
+            </div>
           </div>
+
+          {/* Padding for fixed button */}
+          <div className="h-24"></div>
         </form>
       </div>
     </Layout>
   );
 }
+
+// Helper Tab Button Component
+function TabButton({
+  icon,
+  label,
+  active,
+  onClick,
+  color,
+}: {
+  icon: string;
+  label: string;
+  active: boolean;
+  onClick: () => void;
+  color: string;
+}) {
+  const colorMap: Record<string, string> = {
+    purple: 'text-purple-600 border-purple-600 bg-purple-50 hover:bg-purple-100',
+    green: 'text-green-600 border-green-600 bg-green-50 hover:bg-green-100',
+    blue: 'text-blue-600 border-blue-600 bg-blue-50 hover:bg-blue-100',
+    orange: 'text-orange-600 border-orange-600 bg-orange-50 hover:bg-orange-100',
+    cyan: 'text-cyan-600 border-cyan-600 bg-cyan-50 hover:bg-cyan-100',
+  };
+
+  return (
+    <button
+      onClick={onClick}
+      className={`flex-1 min-w-max py-4 px-6 font-semibold border-b-2 transition text-lg flex items-center justify-center gap-2 whitespace-nowrap ${
+        active
+          ? `${colorMap[color]} border-b-2 shadow-sm`
+          : 'border-transparent text-gray-600 hover:text-gray-900 hover:bg-gray-50'
+      }`}
+    >
+      <i className={`${icon} text-xl`}></i>
+      {label}
+    </button>
+  );
+}
+
+```
