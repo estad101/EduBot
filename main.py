@@ -193,6 +193,10 @@ app.include_router(whatsapp.router)  # WhatsApp webhook endpoint
 app.include_router(health.router)  # Health check endpoints
 app.include_router(tutors.router)  # Tutor endpoints
 
+# Include notification router
+from api.routes.notifications import router as notifications_router
+app.include_router(notifications_router)
+
 # Include admin routers
 app.include_router(admin_api.router)
 
