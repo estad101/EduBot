@@ -251,7 +251,6 @@ export default function ConversationsPage() {
                       <span className="inline-block w-2.5 h-2.5 bg-green-500 rounded-full flex-shrink-0 mt-1"></span>
                     )}
                   </div>
-                  <p className="text-xs text-gray-400 mt-1"
                   <p className="text-xs text-gray-400 mt-1">
                     {new Date(conv.last_message_time).toLocaleString()}
                   </p>
