@@ -555,12 +555,15 @@ class MessageRouter:
                 greeting = f"Welcome back, {first_name}! 👋" if first_name else "Welcome back! 👋"
                 menu_text = (
                     f"{greeting}\n\n"
-                    f"📚 **STUDY BOT FEATURES** 📚\n\n"
-                    f"Here's what you can do:\n\n"
-                    f"❓ **FAQs** - Quick answers to common questions about registration, homework & payment\n\n"
-                    f"💬 **Chat Support** - Talk to our team for personalized help anytime\n\n"
-                    f"📊 **Check Status** - View your subscription and account details\n\n"
-                    f"What would you like to do?"
+                    f"📚 **AVAILABLE FEATURES** 📚\n\n"
+                    f"🏠 **Home** - Return to home menu\n"
+                    f"❓ **FAQ** - Get answers to common questions\n"
+                    f"📝 **Homework** - Submit your homework\n"
+                    f"💬 **Support** - Chat with our team\n"
+                    f"💳 **Subscribe** - View subscription plans\n"
+                    f"📊 **Status** - Check your account details\n"
+                    f"ℹ️ **Help** - Get help with the bot\n\n"
+                    f"Just type a command above to get started!"
                 )
                 return (
                     menu_text,
@@ -660,12 +663,15 @@ class MessageRouter:
             greeting = f"Welcome back, {first_name}! 👋" if first_name else "Welcome back! 👋"
             menu_text = (
                 f"{greeting}\n\n"
-                f"📚 **STUDY BOT FEATURES** 📚\n\n"
-                f"Here's what you can do:\n\n"
-                f"❓ **FAQs** - Quick answers to common questions about registration, homework & payment\n\n"
-                f"💬 **Chat Support** - Talk to our team for personalized help anytime\n\n"
-                f"📊 **Check Status** - View your subscription and account details\n\n"
-                f"What would you like to do?"
+                f"📚 **AVAILABLE FEATURES** 📚\n\n"
+                f"🏠 **Home** - Return to home menu\n"
+                f"❓ **FAQ** - Get answers to common questions\n"
+                f"📝 **Homework** - Submit your homework\n"
+                f"💬 **Support** - Chat with our team\n"
+                f"💳 **Subscribe** - View subscription plans\n"
+                f"📊 **Status** - Check your account details\n"
+                f"ℹ️ **Help** - Get help with the bot\n\n"
+                f"Just type a command above to get started!"
             )
             return (
                 menu_text,
