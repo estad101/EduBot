@@ -205,7 +205,7 @@ class MessageRouter:
         """
         Get interactive buttons for a given state.
         
-        NOTE: Buttons are disabled. Users now type commands directly.
+        Shows buttons only when there are 3 or fewer command options.
         
         Args:
             intent: Current user intent
@@ -214,9 +214,24 @@ class MessageRouter:
             phone_number: User's phone number (for menu state lookup)
 
         Returns:
-            None - Users type commands instead of using buttons
+            List of buttons if 3 or fewer options, None for text-based lists
         """
-        # All menus disabled - users type commands instead
+        # Show buttons for states with limited options (3 or fewer)
+        
+        # Homework type selection - 2 options
+        if current_state == ConversationState.HOMEWORK_TYPE:
+            return [
+                {"id": "text", "title": "📄 Text"},
+                {"id": "image", "title": "📷 Image"},
+            ]
+        
+        # Payment confirmation - 1 option  
+        if current_state == ConversationState.PAYMENT_PENDING:
+            return [
+                {"id": "confirm", "title": "✅ Confirm Payment"},
+            ]
+        
+        # All other states - use text-based lists instead of buttons
         return None
 
     @staticmethod
@@ -751,16 +766,79 @@ class MessageRouter:
                 )
 
         else:
-            # Default response for unknown intent on main menu
+            # Default response for unknown intent - show feature list
             if current_state in [ConversationState.INITIAL, ConversationState.IDLE, ConversationState.IDENTIFYING]:
-                greeting = f"Hey {first_name}!" if first_name else "Hey there!"
-                return (
-                    f"{greeting}\n\nWhat would you like to do?",
-                    ConversationState.IDLE,
-                )
+                if student_data and student_data.get("name"):
+                    # Registered user - show feature list
+                    greeting = f"Hey {first_name}!" if first_name else "Hey there!"
+                    return (
+                        f"{greeting}\n\n"
+                        f"❓ I didn't understand that command.\n\n"
+                        f"📚 **AVAILABLE FEATURES** 📚\n\n"
+                        f"🏠 **home** - Return to home menu\n"
+                        f"❓ **faq** - Get answers to common questions\n"
+                        f"📝 **homework** - Submit your homework\n"
+                        f"💬 **support** - Chat with our team\n"
+                        f"💳 **subscribe** - View subscription plans\n"
+                        f"📊 **status** - Check your account details\n"
+                        f"ℹ️ **help** - Get help with the bot\n\n"
+                        f"Just type a command above to continue!",
+                        ConversationState.IDLE,
+                    )
+                else:
+                    # Unregistered user - show feature list
+                    try:
+                        from models.admin_settings import AdminSettings
+                        from config.database import SessionLocal
+                        db = SessionLocal()
+                        try:
+                            settings = db.query(AdminSettings).first()
+                            bot_name = settings.bot_name if settings and settings.bot_name else "EduBot"
+                        finally:
+                            db.close()
+                    except Exception as e:
+                        logger.warning(f"Could not fetch bot name: {str(e)}")
+                        bot_name = "EduBot"
+                    
+                    return (
+                        f"❓ I didn't understand that command.\n\n"
+                        f"📚 **WHAT I CAN DO** 📚\n\n"
+                        f"✏️ **homework** - Get help with your assignments\n"
+                        f"❓ **faq** - Find answers to common questions\n"
+                        f"💬 **support** - Chat with our support team\n"
+                        f"💳 **subscribe** - Check subscription plans & pricing\n"
+                        f"📊 **status** - View your account info\n"
+                        f"ℹ️ **help** - Learn how to use me\n\n"
+                        f"To get started, type any command above or enter your full name to create an account!",
+                        ConversationState.INITIAL,
+                    )
             else:
-                return (
-                    f"❓ I didn't quite understand that.\n\n"
-                    f"Choose an option above to continue.",
-                    ConversationState.IDLE,
-                )
+                # In other states, return to idle with feature list
+                if student_data and student_data.get("name"):
+                    return (
+                        f"❓ I didn't understand that.\n\n"
+                        f"📚 **AVAILABLE FEATURES** 📚\n\n"
+                        f"🏠 **home** - Return to home menu\n"
+                        f"❓ **faq** - Get answers to common questions\n"
+                        f"📝 **homework** - Submit your homework\n"
+                        f"💬 **support** - Chat with our team\n"
+                        f"💳 **subscribe** - View subscription plans\n"
+                        f"📊 **status** - Check your account details\n"
+                        f"ℹ️ **help** - Get help with the bot\n\n"
+                        f"Just type a command above to continue!",
+                        ConversationState.IDLE,
+                    )
+                else:
+                    # Unregistered user in other state - show feature list
+                    return (
+                        f"❓ I didn't understand that.\n\n"
+                        f"📚 **WHAT I CAN DO** 📚\n\n"
+                        f"✏️ **homework** - Get help with your assignments\n"
+                        f"❓ **faq** - Find answers to common questions\n"
+                        f"💬 **support** - Chat with our support team\n"
+                        f"💳 **subscribe** - Check subscription plans & pricing\n"
+                        f"📊 **status** - View your account info\n"
+                        f"ℹ️ **help** - Learn how to use me\n\n"
+                        f"To get started, type any command above or enter your full name to create an account!",
+                        ConversationState.INITIAL,
+                    )
