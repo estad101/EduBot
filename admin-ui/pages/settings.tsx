@@ -124,12 +124,23 @@ export default function SettingsPage() {
 
   const saveTemplateChanges = async () => {
     if (!editingTemplate) return;
+
+    // Validate template
+    if (!editingTemplate.template_name.trim()) {
+      setError('Template name is required');
+      return;
+    }
+    if (!editingTemplate.template_content.trim()) {
+      setError('Template content is required');
+      return;
+    }
     
     try {
       setIsSaving(true);
+      setError(null);
       const response = await apiClient.updateTemplate(editingTemplate.id, {
-        template_name: editingTemplate.template_name,
-        template_content: editingTemplate.template_content,
+        template_name: editingTemplate.template_name.trim(),
+        template_content: editingTemplate.template_content.trim(),
         variables: editingTemplate.variables || [],
         menu_items: editingTemplate.menu_items || [],
         is_default: editingTemplate.is_default
@@ -975,9 +986,9 @@ export default function SettingsPage() {
 
           {/* Edit Template Modal */}
           {showEditModal && editingTemplate && (
-            <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+            <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[60] p-4">
               <div className="bg-white rounded-xl shadow-2xl max-w-3xl w-full max-h-[95vh] overflow-y-auto">
-                <div className="sticky top-0 bg-gradient-to-r from-cyan-50 to-cyan-100 border-b border-cyan-200 p-6 flex justify-between items-center">
+                <div className="sticky top-0 z-10 bg-gradient-to-r from-cyan-50 to-cyan-100 border-b border-cyan-200 p-6 flex justify-between items-center">
                   <h3 className="text-2xl font-bold text-gray-900 flex items-center gap-3">
                     <div className="w-10 h-10 bg-cyan-600 rounded-lg flex items-center justify-center">
                       <i className="fas fa-edit text-white"></i>
@@ -985,8 +996,9 @@ export default function SettingsPage() {
                     Edit Template
                   </h3>
                   <button
+                    type="button"
                     onClick={closeEditModal}
-                    className="text-gray-600 hover:text-gray-800 text-3xl font-bold"
+                    className="text-gray-600 hover:text-gray-800 text-3xl font-bold transition"
                   >
                     ×
                   </button>
@@ -1070,6 +1082,7 @@ export default function SettingsPage() {
                     <div className="flex gap-2">
                       <input
                         type="text"
+                        id="menuButtonInput"
                         placeholder="Add new menu button (e.g., Click Here, Learn More, etc.)"
                         onKeyPress={(e) => {
                           if (e.key === 'Enter' && e.currentTarget.value.trim()) {
@@ -1079,13 +1092,15 @@ export default function SettingsPage() {
                               menu_items: [...(editingTemplate.menu_items || []), buttonText]
                             });
                             e.currentTarget.value = '';
+                            e.currentTarget.focus();
                           }
                         }}
                         className="flex-1 px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent text-sm transition"
                       />
                       <button
-                        onClick={(e) => {
-                          const input = (e.target as HTMLElement).previousElementSibling as HTMLInputElement;
+                        type="button"
+                        onClick={() => {
+                          const input = document.getElementById('menuButtonInput') as HTMLInputElement;
                           if (input?.value.trim()) {
                             const buttonText = input.value.trim();
                             setEditingTemplate({
@@ -1093,6 +1108,7 @@ export default function SettingsPage() {
                               menu_items: [...(editingTemplate.menu_items || []), buttonText]
                             });
                             input.value = '';
+                            input.focus();
                           }
                         }}
                         className="px-4 py-3 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition font-bold flex items-center gap-2"
@@ -1171,14 +1187,16 @@ export default function SettingsPage() {
                 </div>
 
                 {/* Modal Footer */}
-                <div className="sticky bottom-0 bg-gradient-to-r from-gray-50 to-gray-100 border-t border-gray-200 px-8 py-6 flex gap-3 justify-end">
+                <div className="sticky bottom-0 z-10 bg-gradient-to-r from-gray-50 to-gray-100 border-t border-gray-200 px-8 py-6 flex gap-3 justify-end">
                   <button
+                    type="button"
                     onClick={closeEditModal}
                     className="px-6 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-200 transition font-bold flex items-center gap-2"
                   >
                     <i className="fas fa-times"></i>Cancel
                   </button>
                   <button
+                    type="button"
                     onClick={saveTemplateChanges}
                     disabled={isSaving}
                     className="px-6 py-3 bg-gradient-to-r from-cyan-600 to-cyan-700 text-white rounded-lg hover:from-cyan-700 hover:to-cyan-800 transition font-bold disabled:opacity-50 flex items-center gap-2 shadow-lg"
