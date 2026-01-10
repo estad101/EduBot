@@ -164,6 +164,40 @@ export default function HomeworkPage() {
     }
   };
 
+  const handleDeleteHomework = async () => {
+    if (!selectedHomework) {
+      alert('No homework selected');
+      return;
+    }
+
+    const confirm = window.confirm(
+      `Are you sure you want to delete this homework submission from ${selectedHomework.student_name}? This action cannot be undone.`
+    );
+
+    if (!confirm) {
+      return;
+    }
+
+    setSubmittingAction('delete');
+    try {
+      const response = await apiClient.delete(
+        `/api/admin/homework/${selectedHomework.id}`
+      );
+
+      if (response.status === 'success') {
+        alert('✅ Homework deleted successfully!');
+        closeModal();
+        fetchHomework(currentPage); // Refresh the list
+      } else {
+        alert(`Error: ${response.message}`);
+      }
+    } catch (err: any) {
+      alert(`Failed to delete homework: ${err.message}`);
+    } finally {
+      setSubmittingAction(null);
+    }
+  };
+
   const handlePreviousPage = () => {
     if (currentPage > 1) {
       fetchHomework(currentPage - 1);
@@ -320,12 +354,64 @@ export default function HomeworkPage() {
                         </span>
                       </td>
                       <td className="px-6 py-4 text-sm">
-                        <button
-                          onClick={() => openModal(hw)}
-                          className="inline-block px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded font-medium text-xs transition"
-                        >
-                          <i className="fas fa-eye mr-1"></i>View Homework
-                        </button>
+                        <div className="flex gap-2 flex-wrap">
+                          <button
+                            onClick={() => openModal(hw)}
+                            className="px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded font-medium text-xs transition whitespace-nowrap"
+                            title="View Details"
+                          >
+                            <i className="fas fa-eye mr-1"></i>View
+                          </button>
+                          <button
+                            onClick={async () => {
+                              const confirm = window.confirm(`Mark homework from ${hw.student_name} as resolved?`);
+                              if (confirm) {
+                                try {
+                                  const response = await apiClient.post(
+                                    `/api/admin/homework/${hw.id}/mark-solved`,
+                                    { delivery_message: 'Homework marked as resolved.' }
+                                  );
+                                  if (response.status === 'success') {
+                                    alert('✅ Homework marked as resolved!');
+                                    fetchHomework(currentPage);
+                                  } else {
+                                    alert(`Error: ${response.message}`);
+                                  }
+                                } catch (err: any) {
+                                  alert(`Failed: ${err.message}`);
+                                }
+                              }
+                            }}
+                            className="px-3 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded font-medium text-xs transition whitespace-nowrap"
+                            title="Mark as Resolved"
+                          >
+                            <i className="fas fa-check mr-1"></i>Resolve
+                          </button>
+                          <button
+                            onClick={async () => {
+                              const confirm = window.confirm(`Delete homework from ${hw.student_name}? This cannot be undone.`);
+                              if (confirm) {
+                                try {
+                                  const response = await apiClient.delete(
+                                    `/api/admin/homework/${hw.id}`
+                                  );
+                                  if (response.status === 'success') {
+                                    alert('✅ Homework deleted!');
+                                    fetchHomework(currentPage);
+                                  } else {
+                                    alert(`Error: ${response.message}`);
+                                  }
+                                } catch (err: any) {
+                                  alert(`Failed: ${err.message}`);
+                                }
+                              }
+                            }}
+                            className="px-3 py-2 bg-red-600 hover:bg-red-700 text-white rounded font-medium text-xs transition whitespace-nowrap"
+                            title="Delete Homework"
+                          >
+                            <i className="fas fa-trash-alt mr-1"></i>Delete
+                          </button>
+                        </div>
                       </td>
                       <td className="px-6 py-4 text-sm text-gray-600">
                         <div>
@@ -433,17 +519,29 @@ export default function HomeworkPage() {
                     onClick={handleMarkSolved}
                     disabled={submittingAction === 'solved'}
                     className="px-3 py-2 bg-purple-600 hover:bg-purple-700 disabled:bg-gray-400 text-white rounded font-medium text-sm transition whitespace-nowrap"
-                    title="Mark Solved"
+                    title="Mark Resolved"
                   >
                     {submittingAction === 'solved' ? (
                       <><i className="fas fa-spinner fa-spin mr-1"></i>Marking...</>
                     ) : (
-                      <><i className="fas fa-checkmark mr-1"></i>Solved</>
+                      <><i className="fas fa-check mr-1"></i>Resolved</>
+                    )}
+                  </button>
+                  <button
+                    onClick={handleDeleteHomework}
+                    disabled={submittingAction === 'delete'}
+                    className="px-3 py-2 bg-red-600 hover:bg-red-700 disabled:bg-gray-400 text-white rounded font-medium text-sm transition whitespace-nowrap"
+                    title="Delete Homework"
+                  >
+                    {submittingAction === 'delete' ? (
+                      <><i className="fas fa-spinner fa-spin mr-1"></i>Deleting...</>
+                    ) : (
+                      <><i className="fas fa-trash-alt mr-1"></i>Delete</>
                     )}
                   </button>
                   <button
                     onClick={closeModal}
-                    className="px-3 py-2 bg-red-600 hover:bg-red-700 text-white rounded font-medium text-sm transition"
+                    className="px-3 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded font-medium text-sm transition"
                     title="Close"
                   >
                     <i className="fas fa-times mr-1"></i>Close
