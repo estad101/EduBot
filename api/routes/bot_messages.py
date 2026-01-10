@@ -13,7 +13,7 @@ from schemas.response import StandardResponse
 
 logger = logging.getLogger(__name__)
 
-router = APIRouter(prefix="/api/messages", tags=["messages"])
+router = APIRouter(prefix="/api/bot-messages", tags=["bot-messages"])
 
 
 @router.get("/list", response_model=StandardResponse)
