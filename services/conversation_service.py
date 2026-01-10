@@ -374,10 +374,21 @@ class MessageRouter:
             
             # Return to appropriate state based on registration
             if student_data and student_data.get("name"):
-                # Registered user - show main menu
+                # Registered user - show main menu with feature list
                 greeting = f"Hey {first_name}!" if first_name else "Hey there!"
+                menu_text = (
+                    f"{greeting}\n\n"
+                    f"📚 **STUDY BOT FEATURES** 📚\n\n"
+                    f"Here's what you can do:\n\n"
+                    f"📝 **Homework** - Submit assignments (text or image) and get expert feedback\n\n"
+                    f"💳 **Subscribe** - Unlimited submissions (₦5,000/month) with priority support\n\n"
+                    f"❓ **FAQs** - Quick answers to common questions about registration, homework & payment\n\n"
+                    f"💬 **Chat Support** - Talk to our team for personalized help anytime\n\n"
+                    f"📊 **Check Status** - View your subscription and account details\n\n"
+                    f"What would you like to do?"
+                )
                 return (
-                    f"{greeting}\n\nWhat would you like to do?",
+                    menu_text,
                     ConversationState.IDLE,
                 )
             else:
@@ -395,22 +406,52 @@ class MessageRouter:
             ConversationService.set_data(phone_number, "menu_state", new_menu)
             
             greeting = f"Hey {first_name}!" if first_name else "Hey there!"
+            menu_text = (
+                f"{greeting}\n\n"
+                f"📚 **STUDY BOT FEATURES** 📚\n\n"
+                f"Here's what you can do:\n\n"
+                f"📝 **Homework** - Submit assignments (text or image) and get expert feedback\n\n"
+                f"💳 **Subscribe** - Unlimited submissions (₦5,000/month) with priority support\n\n"
+                f"❓ **FAQs** - Quick answers to common questions about registration, homework & payment\n\n"
+                f"💬 **Chat Support** - Talk to our team for personalized help anytime\n\n"
+                f"📊 **Check Status** - View your subscription and account details\n\n"
+                f"What would you like to do?"
+            )
             return (
-                f"{greeting}\n\nWhat would you like to do?",
+                menu_text,
                 ConversationState.IDLE,
             )
 
-        # Handle help command
+        # Handle help command - Show comprehensive feature list
         if intent == "help":
-            return (
-                f"📚 Help & Features\n\n"
-                f"🎓 EduBot helps you with:"
-                f"\n📝 Homework - Submit assignments and get tutor feedback"
-                f"\n💳 Subscribe - Unlock unlimited homework submissions (₦5,000/month)"
-                f"\n❓ FAQs - Quick answers to common questions"
-                f"\n💬 Chat Support - Talk to our support team",
-                ConversationState.IDLE,
+            help_text = (
+                f"📚 **STUDY BOT - COMPLETE FEATURES GUIDE** 📚\n\n"
+                f"Our bot helps you succeed academically with these tools:\n\n"
+                f"🎓 **KEY FEATURES:**\n\n"
+                f"📝 **HOMEWORK SUBMISSIONS**\n"
+                f"• Submit text-based answers or image uploads\n"
+                f"• Get detailed feedback from expert tutors\n"
+                f"• Response time: Within 24 hours\n\n"
+                f"💳 **SUBSCRIPTION PLANS**\n"
+                f"• FREE: Per-submission payment model\n"
+                f"• PREMIUM: ₦5,000/month for unlimited submissions\n"
+                f"• BONUS: Priority support for subscribers\n\n"
+                f"❓ **KNOWLEDGE BASE (FAQs)**\n"
+                f"• Registration guide: How to create your account\n"
+                f"• Homework help: Submission tips and limits\n"
+                f"• Payment info: Accepted methods and refund policy\n"
+                f"• Subscription details: Plans and benefits\n\n"
+                f"💬 **LIVE CHAT SUPPORT**\n"
+                f"• Talk directly with our support team\n"
+                f"• Available for all account types\n"
+                f"• Quick responses to your questions\n\n"
+                f"📊 **ACCOUNT MANAGEMENT**\n"
+                f"• Check your subscription status anytime\n"
+                f"• View your submission history\n"
+                f"• Track tutor feedback\n\n"
+                f"Ready to get started? Choose an option above!"
             )
+            return (help_text, ConversationState.IDLE)
 
         # Handle chat support command
         if intent == "support":
@@ -539,16 +580,38 @@ class MessageRouter:
             elif intent == "main_menu":
                 # If user clicks main menu from IDLE/INITIAL, return to main options
                 greeting = f"Welcome back, {first_name}! 👋" if first_name else "Welcome back! 👋"
+                menu_text = (
+                    f"{greeting}\n\n"
+                    f"📚 **STUDY BOT FEATURES** 📚\n\n"
+                    f"Here's what you can do:\n\n"
+                    f"📝 **Homework** - Submit assignments (text or image) and get expert feedback\n\n"
+                    f"💳 **Subscribe** - Unlimited submissions (₦5,000/month) with priority support\n\n"
+                    f"❓ **FAQs** - Quick answers to common questions about registration, homework & payment\n\n"
+                    f"💬 **Chat Support** - Talk to our team for personalized help anytime\n\n"
+                    f"📊 **Check Status** - View your subscription and account details\n\n"
+                    f"What would you like to do?"
+                )
                 return (
-                    f"{greeting}\n\nWhat would you like to do?",
+                    menu_text,
                     ConversationState.REGISTERED if student_data else ConversationState.IDLE,
                 )
             else:
                 greeting = f"👋 Hey {first_name}!" if first_name else "👋 Hi!"
                 if first_name:
-                    # Registered user
+                    # Registered user - show feature list
+                    menu_text = (
+                        f"{greeting}\n\n"
+                        f"📚 **STUDY BOT FEATURES** 📚\n\n"
+                        f"Here's what you can do:\n\n"
+                        f"📝 **Homework** - Submit assignments (text or image) and get expert feedback\n\n"
+                        f"💳 **Subscribe** - Unlimited submissions (₦5,000/month) with priority support\n\n"
+                        f"❓ **FAQs** - Quick answers to common questions about registration, homework & payment\n\n"
+                        f"💬 **Chat Support** - Talk to our team for personalized help anytime\n\n"
+                        f"📊 **Check Status** - View your subscription and account details\n\n"
+                        f"What would you like to do?"
+                    )
                     return (
-                        f"{greeting}\n\nWhat would you like to do?",
+                        menu_text,
                         ConversationState.IDLE,
                     )
                 else:
@@ -626,8 +689,19 @@ class MessageRouter:
         # Main menu - show welcome and main options (CHECK BEFORE REGISTERED STATE)
         elif intent == "main_menu":
             greeting = f"Welcome back, {first_name}! 👋" if first_name else "Welcome back! 👋"
+            menu_text = (
+                f"{greeting}\n\n"
+                f"📚 **STUDY BOT FEATURES** 📚\n\n"
+                f"Here's what you can do:\n\n"
+                f"📝 **Homework** - Submit assignments (text or image) and get expert feedback\n\n"
+                f"💳 **Subscribe** - Unlimited submissions (₦5,000/month) with priority support\n\n"
+                f"❓ **FAQs** - Quick answers to common questions about registration, homework & payment\n\n"
+                f"💬 **Chat Support** - Talk to our team for personalized help anytime\n\n"
+                f"📊 **Check Status** - View your subscription and account details\n\n"
+                f"What would you like to do?"
+            )
             return (
-                f"{greeting}\n\nWhat would you like to do?",
+                menu_text,
                 ConversationState.REGISTERED,
             )
 
