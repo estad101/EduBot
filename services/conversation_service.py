@@ -818,12 +818,23 @@ class MessageRouter:
             ConversationService.set_data(phone_number, "class_grade", message_text)
             full_name = ConversationService.get_data(phone_number, "full_name")
             first_name_reg = full_name.split()[0] if full_name else "there"
-            return (
+            
+            # Show main menu after registration completion
+            menu_text = (
                 f"✅ Account Created!\n\n"
-                f"Welcome, {first_name_reg}!\n\n"
-                f"You're now registered as a FREE user. You can submit homework "
-                f"with payment per submission, or subscribe for unlimited access.\n\n"
-                f"What would you like to do?",
+                f"Welcome, {first_name_reg}! 👋\n\n"
+                f"📚 **AVAILABLE FEATURES** 📚\n\n"
+                f"🏠 **Home** - Return to home menu\n"
+                f"❓ **FAQ** - Get answers to common questions\n"
+                f"📝 **Homework** - Submit your homework\n"
+                f"💬 **Support** - Chat with our team\n"
+                f"💳 **Subscribe** - View subscription plans\n"
+                f"📊 **Status** - Check your account details\n"
+                f"ℹ️ **Help** - Get help with the bot\n\n"
+                f"Just type a command above to get started!"
+            )
+            return (
+                menu_text,
                 ConversationState.REGISTERED,
             )
 
