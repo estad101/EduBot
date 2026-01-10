@@ -55,6 +55,10 @@ export default function SettingsPage() {
   const [showTokens, setShowTokens] = useState(false);
   const [templates, setTemplates] = useState<BotTemplate[]>([]);
   const [loadingTemplates, setLoadingTemplates] = useState(false);
+  const [whatsappValid, setWhatsappValid] = useState<boolean | null>(null);
+  const [paystackValid, setPaystackValid] = useState<boolean | null>(null);
+  const [validatingWhatsapp, setValidatingWhatsapp] = useState(false);
+  const [validatingPaystack, setValidatingPaystack] = useState(false);
 
   const isDirty = JSON.stringify(settings) !== JSON.stringify(originalSettings);
 
@@ -89,19 +93,33 @@ export default function SettingsPage() {
     const fetchTemplates = async () => {
       try {
         setLoadingTemplates(true);
+        const token = localStorage.getItem('admin_token');
+        if (!token) {
+          console.warn('No auth token available for templates fetch');
+          return;
+        }
+        
         const response = await fetch('/api/bot-messages/templates/list', {
           method: 'GET',
           headers: {
-            'Authorization': `Bearer ${localStorage.getItem('admin_token')}`,
+            'Authorization': `Bearer ${token}`,
             'Content-Type': 'application/json'
           }
         });
+        
+        if (!response.ok) {
+          console.warn(`Templates API returned ${response.status}: ${response.statusText}`);
+          return;
+        }
+        
         const data = await response.json();
         if (data.status === 'success' && data.data?.templates) {
           setTemplates(data.data.templates);
+        } else {
+          console.warn('Templates API returned unexpected format:', data);
         }
       } catch (err: any) {
-        console.error('Failed to fetch templates:', err);
+        console.error('Failed to fetch templates:', err.message);
       } finally {
         setLoadingTemplates(false);
       }
@@ -119,7 +137,11 @@ export default function SettingsPage() {
 
   const validateTokenFormat = (token: string, prefix: string): boolean => {
     if (!token) return true;
-    return token.length > 10 && (prefix === '' || token.startsWith(prefix));
+    // Allow tokens of reasonable length (at least 20 chars for API keys)
+    if (token.length < 20) return false;
+    // If prefix is specified, check it
+    if (prefix && !token.startsWith(prefix)) return false;
+    return true;
   };
 
   const validateSettings = (): boolean => {
@@ -129,8 +151,8 @@ export default function SettingsPage() {
       if (settings.whatsapp_phone_number && !validatePhoneNumber(settings.whatsapp_phone_number)) {
         errors.whatsapp_phone_number = 'Invalid phone number format';
       }
-      if (settings.whatsapp_api_key && !validateTokenFormat(settings.whatsapp_api_key, 'EAA')) {
-        errors.whatsapp_api_key = 'Invalid API token format (should start with EAA)';
+      if (settings.whatsapp_api_key && settings.whatsapp_api_key.length < 20) {
+        errors.whatsapp_api_key = 'API token seems too short (should be 20+ characters)';
       }
       if (settings.whatsapp_phone_number_id && !/^\d+$/.test(settings.whatsapp_phone_number_id)) {
         errors.whatsapp_phone_number_id = 'Phone Number ID should be numeric';
@@ -141,11 +163,11 @@ export default function SettingsPage() {
     }
 
     if (activeTab === 'paystack') {
-      if (settings.paystack_public_key && !validateTokenFormat(settings.paystack_public_key, 'pk_')) {
-        errors.paystack_public_key = 'Invalid public key format (should start with pk_)';
+      if (settings.paystack_public_key && settings.paystack_public_key.length < 20) {
+        errors.paystack_public_key = 'Public key seems too short (should be 20+ characters)';
       }
-      if (settings.paystack_secret_key && !validateTokenFormat(settings.paystack_secret_key, 'sk_')) {
-        errors.paystack_secret_key = 'Invalid secret key format (should start with sk_)';
+      if (settings.paystack_secret_key && settings.paystack_secret_key.length < 20) {
+        errors.paystack_secret_key = 'Secret key seems too short (should be 20+ characters)';
       }
     }
 
@@ -188,6 +210,8 @@ export default function SettingsPage() {
       return;
     }
 
+    setError(null);
+    setSuccess(null);
     setShowConfirmDialog(true);
   };
 
@@ -199,7 +223,7 @@ export default function SettingsPage() {
 
     try {
       const cleanedSettings = Object.fromEntries(
-        Object.entries(settings).filter(([_, v]) => v !== undefined)
+        Object.entries(settings).filter(([_, v]) => v !== undefined && v !== '')
       ) as Record<string, string>;
       
       console.log('Saving settings:', cleanedSettings);
@@ -208,15 +232,15 @@ export default function SettingsPage() {
       
       if (response.status === 'success') {
         setOriginalSettings(settings);
-        setSuccess('Settings saved successfully');
-        setTimeout(() => setSuccess(null), 3000);
+        setSuccess('Settings saved successfully ✅');
+        setTimeout(() => setSuccess(null), 5000);
       } else {
         setError(response.message || 'Failed to save settings');
       }
     } catch (err: any) {
       console.error('Save error:', err);
       const errorMsg = err.response?.data?.message || err.message || 'Failed to save settings. Check network connection.';
-      setError(errorMsg);
+      setError(`Error: ${errorMsg}`);
     } finally {
       setIsSaving(false);
     }
@@ -224,7 +248,7 @@ export default function SettingsPage() {
 
   const handleSendTestMessage = async () => {
     if (!testPhoneNumber || !validatePhoneNumber(testPhoneNumber)) {
-      setError('Invalid phone number format');
+      setError('Invalid phone number format. Use +1234567890');
       return;
     }
 
@@ -236,14 +260,14 @@ export default function SettingsPage() {
       const response = await apiClient.testWhatsAppMessage(testPhoneNumber, 'Test message from WhatsApp chatbot admin settings. If you receive this, your configuration is working correctly!');
 
       if (response && response.status === 'success') {
-        setSuccess(`Test message sent successfully to ${testPhoneNumber}`);
+        setSuccess(`✅ Test message sent successfully to ${testPhoneNumber}`);
         setTimeout(() => setSuccess(null), 5000);
       } else {
-        setError(response?.message || 'Failed to send test message');
+        setError(`❌ Failed to send test message: ${response?.message || 'Unknown error'}`);
       }
     } catch (err: any) {
-      const errorMsg = err.response?.data?.message || err.message || 'Failed to send test message';
-      setError(errorMsg);
+      const errorMsg = err.response?.data?.message || err.message || 'Failed to send test message. Check your WhatsApp configuration.';
+      setError(`❌ Error: ${errorMsg}`);
     } finally {
       setIsTestingSendToNumber(false);
     }
@@ -253,6 +277,44 @@ export default function SettingsPage() {
     if (!token) return '';
     if (token.length <= 10) return token;
     return token.substring(0, 5) + '*'.repeat(token.length - 10) + token.substring(token.length - 5);
+  };
+
+  const validateWhatsappConfig = async () => {
+    setValidatingWhatsapp(true);
+    try {
+      const response = await apiClient.post('/api/admin/settings/validate-whatsapp', {});
+      setWhatsappValid(response.valid === true);
+      if (!response.valid) {
+        setError(`⚠️ WhatsApp: ${response.message}`);
+      } else {
+        setSuccess(`✅ WhatsApp configuration is valid`);
+        setTimeout(() => setSuccess(null), 3000);
+      }
+    } catch (err: any) {
+      setError(`WhatsApp validation error: ${err.message}`);
+      setWhatsappValid(false);
+    } finally {
+      setValidatingWhatsapp(false);
+    }
+  };
+
+  const validatePaystackConfig = async () => {
+    setValidatingPaystack(true);
+    try {
+      const response = await apiClient.post('/api/admin/settings/validate-paystack', {});
+      setPaystackValid(response.valid === true);
+      if (!response.valid) {
+        setError(`⚠️ Paystack: ${response.message}`);
+      } else {
+        setSuccess(`✅ Paystack configuration is valid`);
+        setTimeout(() => setSuccess(null), 3000);
+      }
+    } catch (err: any) {
+      setError(`Paystack validation error: ${err.message}`);
+      setPaystackValid(false);
+    } finally {
+      setValidatingPaystack(false);
+    }
   };
 
   if (loading) {
@@ -665,11 +727,40 @@ export default function SettingsPage() {
               </div>
 
               {/* WhatsApp Info Box */}
-              <div className="mt-6 bg-green-50 border border-green-200 rounded-lg p-4">
+              <div className="mt-6 bg-green-50 border border-green-200 rounded-lg p-4 flex items-start justify-between">
                 <p className="text-sm text-green-800">
                   <i className="fas fa-info-circle mr-2"></i>
                   <strong>Note:</strong> Get these credentials from your WhatsApp Business Account Settings in the Meta Business Suite
                 </p>
+                <button
+                  type="button"
+                  onClick={validateWhatsappConfig}
+                  disabled={validatingWhatsapp}
+                  className="ml-3 px-3 py-2 rounded text-xs font-medium bg-green-600 text-white hover:bg-green-700 transition disabled:opacity-50 flex items-center gap-1 whitespace-nowrap"
+                  title="Validate WhatsApp configuration"
+                >
+                  {validatingWhatsapp ? (
+                    <>
+                      <i className="fas fa-spinner fa-spin"></i>
+                      Validating...
+                    </>
+                  ) : whatsappValid === true ? (
+                    <>
+                      <i className="fas fa-check-circle text-green-300"></i>
+                      Valid
+                    </>
+                  ) : whatsappValid === false ? (
+                    <>
+                      <i className="fas fa-times-circle text-red-300"></i>
+                      Invalid
+                    </>
+                  ) : (
+                    <>
+                      <i className="fas fa-check"></i>
+                      Validate
+                    </>
+                  )}
+                </button>
               </div>
 
               {/* Send Test Message to Custom Number Section */}
@@ -814,11 +905,40 @@ export default function SettingsPage() {
               </div>
 
               {/* Paystack Info Box */}
-              <div className="mt-6 bg-blue-50 border border-blue-200 rounded-lg p-4">
+              <div className="mt-6 bg-blue-50 border border-blue-200 rounded-lg p-4 flex items-start justify-between">
                 <p className="text-sm text-blue-800">
                   <i className="fas fa-info-circle mr-2"></i>
                   <strong>Note:</strong> Find these keys in your Paystack Dashboard under Settings &gt; API Keys &amp; Webhooks
                 </p>
+                <button
+                  type="button"
+                  onClick={validatePaystackConfig}
+                  disabled={validatingPaystack}
+                  className="ml-3 px-3 py-2 rounded text-xs font-medium bg-blue-600 text-white hover:bg-blue-700 transition disabled:opacity-50 flex items-center gap-1 whitespace-nowrap"
+                  title="Validate Paystack configuration"
+                >
+                  {validatingPaystack ? (
+                    <>
+                      <i className="fas fa-spinner fa-spin"></i>
+                      Validating...
+                    </>
+                  ) : paystackValid === true ? (
+                    <>
+                      <i className="fas fa-check-circle text-green-300"></i>
+                      Valid
+                    </>
+                  ) : paystackValid === false ? (
+                    <>
+                      <i className="fas fa-times-circle text-red-300"></i>
+                      Invalid
+                    </>
+                  ) : (
+                    <>
+                      <i className="fas fa-check"></i>
+                      Validate
+                    </>
+                  )}
+                </button>
               </div>
             </div>
           )}

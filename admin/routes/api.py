@@ -1205,7 +1205,8 @@ async def get_dashboard_stats(db: Session = Depends(get_db)):
 # ==================== SETTINGS ENDPOINTS ====================
 
 @router.get("/settings")
-async def get_settings(db: Session = Depends(get_db)):
+@admin_session_required
+async def get_settings(db: Session = Depends(get_db), request: Request = None):
     """Get admin settings from database."""
     try:
         # Get all settings from database
@@ -1314,7 +1315,8 @@ async def debug_settings(db: Session = Depends(get_db)):
 
 
 @router.post("/settings/update")
-async def update_settings(data: dict, db: Session = Depends(get_db)):
+@admin_session_required
+async def update_settings(data: dict, db: Session = Depends(get_db), request: Request = None):
     """Update admin settings in database."""
     logger.info(f"=== SETTINGS UPDATE: Received {len(data)} keys ===")
     
@@ -1362,6 +1364,103 @@ async def update_settings(data: dict, db: Session = Depends(get_db)):
         return {
             "status": "error",
             "message": f"Failed to update settings: {str(e)}"
+        }
+
+
+@router.post("/settings/validate-whatsapp")
+@admin_session_required
+async def validate_whatsapp(db: Session = Depends(get_db), request: Request = None):
+    """Validate WhatsApp configuration."""
+    try:
+        # Get current settings
+        db_settings = db.query(AdminSetting).filter(
+            AdminSetting.key.in_([
+                "whatsapp_api_key",
+                "whatsapp_phone_number_id",
+                "whatsapp_business_account_id"
+            ])
+        ).all()
+        
+        settings_dict = {s.key: s.value for s in db_settings}
+        
+        # Check if required fields are present
+        required_fields = ["whatsapp_api_key", "whatsapp_phone_number_id", "whatsapp_business_account_id"]
+        missing = [f for f in required_fields if not settings_dict.get(f)]
+        
+        if missing:
+            return {
+                "status": "warning",
+                "message": f"Missing WhatsApp configuration: {', '.join(missing)}",
+                "valid": False
+            }
+        
+        # Check field lengths
+        if len(settings_dict.get("whatsapp_api_key", "")) < 50:
+            return {
+                "status": "warning",
+                "message": "WhatsApp API key appears too short",
+                "valid": False
+            }
+        
+        return {
+            "status": "success",
+            "message": "WhatsApp configuration appears valid",
+            "valid": True
+        }
+    except Exception as e:
+        logger.error(f"WhatsApp validation error: {str(e)}")
+        return {
+            "status": "error",
+            "message": f"Validation error: {str(e)}",
+            "valid": False
+        }
+
+
+@router.post("/settings/validate-paystack")
+@admin_session_required
+async def validate_paystack(db: Session = Depends(get_db), request: Request = None):
+    """Validate Paystack configuration."""
+    try:
+        # Get current settings
+        db_settings = db.query(AdminSetting).filter(
+            AdminSetting.key.in_([
+                "paystack_public_key",
+                "paystack_secret_key"
+            ])
+        ).all()
+        
+        settings_dict = {s.key: s.value for s in db_settings}
+        
+        # Check if required fields are present
+        required_fields = ["paystack_public_key", "paystack_secret_key"]
+        missing = [f for f in required_fields if not settings_dict.get(f)]
+        
+        if missing:
+            return {
+                "status": "warning",
+                "message": f"Missing Paystack configuration: {', '.join(missing)}",
+                "valid": False
+            }
+        
+        # Check field lengths
+        if len(settings_dict.get("paystack_public_key", "")) < 20:
+            return {
+                "status": "warning",
+                "message": "Paystack public key appears too short",
+                "valid": False
+            }
+        
+        return {
+            "status": "success",
+            "message": "Paystack configuration appears valid",
+            "valid": True
+        }
+    except Exception as e:
+        logger.error(f"Paystack validation error: {str(e)}")
+        return {
+            "status": "error",
+            "message": f"Validation error: {str(e)}",
+            "valid": False
         }
 
 
