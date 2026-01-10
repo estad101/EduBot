@@ -329,13 +329,13 @@ class MessageRouter:
                 feature_text = (
                     f"{greeting}\n\n"
                     f"📚 **AVAILABLE FEATURES** 📚\n\n"
-                    f"🏠 **home** - Return to home menu\n"
-                    f"❓ **faq** - Get answers to common questions\n"
-                    f"📝 **homework** - Submit your homework\n"
-                    f"💬 **support** - Chat with our team\n"
-                    f"💳 **subscribe** - View subscription plans\n"
-                    f"📊 **status** - Check your account details\n"
-                    f"ℹ️ **help** - Get help with the bot\n\n"
+                    f"🏠 **Home** - Return to home menu\n"
+                    f"❓ **FAQ** - Get answers to common questions\n"
+                    f"📝 **Homework** - Submit your homework\n"
+                    f"💬 **Support** - Chat with our team\n"
+                    f"💳 **Subscribe** - View subscription plans\n"
+                    f"📊 **Status** - Check your account details\n"
+                    f"ℹ️ **Help** - Get help with the bot\n\n"
                     f"Just type a command above to get started!"
                 )
                 return (
@@ -775,13 +775,13 @@ class MessageRouter:
                         f"{greeting}\n\n"
                         f"❓ I didn't understand that command.\n\n"
                         f"📚 **AVAILABLE FEATURES** 📚\n\n"
-                        f"🏠 **home** - Return to home menu\n"
-                        f"❓ **faq** - Get answers to common questions\n"
-                        f"📝 **homework** - Submit your homework\n"
-                        f"💬 **support** - Chat with our team\n"
-                        f"💳 **subscribe** - View subscription plans\n"
-                        f"📊 **status** - Check your account details\n"
-                        f"ℹ️ **help** - Get help with the bot\n\n"
+                        f"🏠 **Home** - Return to home menu\n"
+                        f"❓ **FAQ** - Get answers to common questions\n"
+                        f"📝 **Homework** - Submit your homework\n"
+                        f"💬 **Support** - Chat with our team\n"
+                        f"💳 **Subscribe** - View subscription plans\n"
+                        f"📊 **Status** - Check your account details\n"
+                        f"ℹ️ **Help** - Get help with the bot\n\n"
                         f"Just type a command above to continue!",
                         ConversationState.IDLE,
                     )
@@ -803,12 +803,12 @@ class MessageRouter:
                     return (
                         f"❓ I didn't understand that command.\n\n"
                         f"📚 **WHAT I CAN DO** 📚\n\n"
-                        f"✏️ **homework** - Get help with your assignments\n"
-                        f"❓ **faq** - Find answers to common questions\n"
-                        f"💬 **support** - Chat with our support team\n"
-                        f"💳 **subscribe** - Check subscription plans & pricing\n"
-                        f"📊 **status** - View your account info\n"
-                        f"ℹ️ **help** - Learn how to use me\n\n"
+                        f"✏️ **Homework** - Get help with your assignments\n"
+                        f"❓ **FAQ** - Find answers to common questions\n"
+                        f"💬 **Support** - Chat with our support team\n"
+                        f"💳 **Subscribe** - Check subscription plans & pricing\n"
+                        f"📊 **Status** - View your account info\n"
+                        f"ℹ️ **Help** - Learn how to use me\n\n"
                         f"To get started, type any command above or enter your full name to create an account!",
                         ConversationState.INITIAL,
                     )
@@ -818,13 +818,13 @@ class MessageRouter:
                     return (
                         f"❓ I didn't understand that.\n\n"
                         f"📚 **AVAILABLE FEATURES** 📚\n\n"
-                        f"🏠 **home** - Return to home menu\n"
-                        f"❓ **faq** - Get answers to common questions\n"
-                        f"📝 **homework** - Submit your homework\n"
-                        f"💬 **support** - Chat with our team\n"
-                        f"💳 **subscribe** - View subscription plans\n"
-                        f"📊 **status** - Check your account details\n"
-                        f"ℹ️ **help** - Get help with the bot\n\n"
+                        f"🏠 **Home** - Return to home menu\n"
+                        f"❓ **FAQ** - Get answers to common questions\n"
+                        f"📝 **Homework** - Submit your homework\n"
+                        f"💬 **Support** - Chat with our team\n"
+                        f"💳 **Subscribe** - View subscription plans\n"
+                        f"📊 **Status** - Check your account details\n"
+                        f"ℹ️ **Help** - Get help with the bot\n\n"
                         f"Just type a command above to continue!",
                         ConversationState.IDLE,
                     )
@@ -833,12 +833,12 @@ class MessageRouter:
                     return (
                         f"❓ I didn't understand that.\n\n"
                         f"📚 **WHAT I CAN DO** 📚\n\n"
-                        f"✏️ **homework** - Get help with your assignments\n"
-                        f"❓ **faq** - Find answers to common questions\n"
-                        f"💬 **support** - Chat with our support team\n"
-                        f"💳 **subscribe** - Check subscription plans & pricing\n"
-                        f"📊 **status** - View your account info\n"
-                        f"ℹ️ **help** - Learn how to use me\n\n"
+                        f"✏️ **Homework** - Get help with your assignments\n"
+                        f"❓ **FAQ** - Find answers to common questions\n"
+                        f"💬 **Support** - Chat with our support team\n"
+                        f"💳 **Subscribe** - Check subscription plans & pricing\n"
+                        f"📊 **Status** - View your account info\n"
+                        f"ℹ️ **Help** - Learn how to use me\n\n"
                         f"To get started, type any command above or enter your full name to create an account!",
                         ConversationState.INITIAL,
                     )
