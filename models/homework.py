@@ -52,7 +52,8 @@ class Homework(Base):
     __tablename__ = "homeworks"
 
     id = Column(Integer, primary_key=True, index=True)
-    student_id = Column(Integer, ForeignKey("students.id", ondelete="CASCADE"), nullable=False)
+    # Allow NULL for student_id - database CASCADE delete will handle removal
+    student_id = Column(Integer, ForeignKey("students.id", ondelete="CASCADE"), nullable=True)
     subject = Column(String(255), nullable=False)
     submission_type = Column(Enum(SubmissionType), nullable=False)
     content = Column(Text, nullable=True)

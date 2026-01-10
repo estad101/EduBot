@@ -27,7 +27,8 @@ class Subscription(Base):
     __tablename__ = "subscriptions"
 
     id = Column(Integer, primary_key=True, index=True)
-    student_id = Column(Integer, ForeignKey("students.id", ondelete="CASCADE"), nullable=False, index=True)
+    # Allow NULL for student_id - database CASCADE delete will handle removal
+    student_id = Column(Integer, ForeignKey("students.id", ondelete="CASCADE"), nullable=True, index=True)
     payment_id = Column(Integer, ForeignKey("payments.id", ondelete="SET NULL"), nullable=True)
     amount = Column(String(50), nullable=False)  # Store as string for precision
     start_date = Column(DateTime, default=datetime.utcnow, nullable=False)
