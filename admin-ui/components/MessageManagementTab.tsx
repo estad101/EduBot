@@ -359,7 +359,7 @@ const MessageManagementTab: React.FC = () => {
               </div>
 
               <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-                <label className="block text-sm font-semibold mb-2 text-green-900">📋 Start from existing message</label>
+                <label className="block text-sm font-semibold mb-2 text-green-900">📋 Copy from existing message</label>
                 <select
                   onChange={(e) => {
                     const key = e.target.value;
