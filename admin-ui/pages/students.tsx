@@ -147,7 +147,7 @@ export default function StudentsPage() {
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase">Name</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase">Phone</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase">Email</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase">Grade</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase">Class</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase">Status</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase">Joined</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase">Actions</th>
