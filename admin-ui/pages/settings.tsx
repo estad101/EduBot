@@ -199,6 +199,11 @@ export default function SettingsPage() {
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
     
+    // Don't save settings if templates tab is active
+    if (activeTab === 'templates') {
+      return;
+    }
+    
     if (!validateSettings()) {
       setError('Please fix the validation errors below');
       return;
@@ -1218,6 +1223,7 @@ export default function SettingsPage() {
           )}
 
           {/* Save Button */}
+          {activeTab !== 'templates' && (
           <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 shadow-2xl">
             <div className="max-w-6xl mx-auto px-4 md:px-8 py-4 flex gap-3 justify-end items-center">
               {isDirty && (
@@ -1256,6 +1262,7 @@ export default function SettingsPage() {
               </button>
             </div>
           </div>
+          )}
 
           {/* Padding for fixed button */}
           <div className="h-24"></div>
