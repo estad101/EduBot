@@ -400,7 +400,6 @@ async def send_whatsapp_test_message(request: Request, request_body: dict = Body
 
 @router.get("/students")
 async def list_students(
-    request: Request,
     skip: int = Query(0, ge=0),
     limit: int = Query(50, ge=1, le=100),
     db: Session = Depends(get_db)
@@ -412,10 +411,6 @@ async def list_students(
     - Must have phone_number
     - Must have non-empty/non-pending class_grade
     """
-    # Check authentication
-    if not AdminAuth.is_authenticated(request):
-        raise HTTPException(status_code=401, detail="Unauthorized")
-    
     students = (
         db.query(Student)
         .filter(
@@ -469,19 +464,13 @@ async def get_student(student_id: int, db: Session = Depends(get_db)):
 
 
 @router.delete("/students/{student_id}")
-async def delete_student(student_id: int, request: Request, db: Session = Depends(get_db)):
+async def delete_student(student_id: int, db: Session = Depends(get_db)):
     """Hard delete a student from the database (cascades to related records)."""
-    # Check authentication
-    if not AdminAuth.is_authenticated(request):
-        logger.warning(f"Unauthorized delete attempt for student {student_id}")
-        raise HTTPException(status_code=401, detail="Unauthorized")
+    student = db.query(Student).filter_by(id=student_id).first()
+    if not student:
+        raise HTTPException(status_code=404, detail="Student not found")
     
     try:
-        student = db.query(Student).filter_by(id=student_id).first()
-        if not student:
-            logger.warning(f"Delete attempted for non-existent student {student_id}")
-            raise HTTPException(status_code=404, detail="Student not found")
-        
         student_name = student.full_name
         student_phone = student.phone_number
         
@@ -501,8 +490,6 @@ async def delete_student(student_id: int, request: Request, db: Session = Depend
             "status": "success",
             "message": f"Student {student_name} and all related records have been permanently deleted"
         }
-    except HTTPException:
-        raise
     except Exception as e:
         db.rollback()
         logger.error(f"❌ Error deleting student {student_id}: {str(e)}")
@@ -871,34 +858,21 @@ async def extend_subscription(
 
 
 @router.delete("/subscriptions/{subscription_id}")
-async def cancel_subscription(subscription_id: int, request: Request, db: Session = Depends(get_db)):
+async def cancel_subscription(subscription_id: int, db: Session = Depends(get_db)):
     """Cancel a subscription."""
-    # Check authentication
-    if not AdminAuth.is_authenticated(request):
-        logger.warning(f"Unauthorized cancel attempt for subscription {subscription_id}")
-        raise HTTPException(status_code=401, detail="Unauthorized")
+    subscription = db.query(Subscription).filter_by(id=subscription_id).first()
+    if not subscription:
+        raise HTTPException(status_code=404, detail="Subscription not found")
     
-    try:
-        subscription = db.query(Subscription).filter_by(id=subscription_id).first()
-        if not subscription:
-            logger.warning(f"Cancel attempted for non-existent subscription {subscription_id}")
-            raise HTTPException(status_code=404, detail="Subscription not found")
-        
-        subscription.is_active = False
-        db.commit()
-        
-        logger.info(f"Cancelled subscription {subscription_id}")
-        
-        return {
-            "status": "success",
-            "message": "Subscription cancelled"
-        }
-    except HTTPException:
-        raise
-    except Exception as e:
-        db.rollback()
-        logger.error(f"Error cancelling subscription {subscription_id}: {str(e)}")
-        raise HTTPException(status_code=500, detail=f"Failed to cancel subscription: {str(e)}")
+    subscription.is_active = False
+    db.commit()
+    
+    logger.info(f"Cancelled subscription {subscription_id}")
+    
+    return {
+        "status": "success",
+        "message": "Subscription cancelled"
+    }
 
 
 # ==================== HOMEWORK API ====================
@@ -1596,18 +1570,12 @@ async def convert_lead_to_student(
 
 
 @router.delete("/leads/{lead_id}")
-async def delete_lead(lead_id: int, request: Request, db: Session = Depends(get_db)):
+async def delete_lead(lead_id: int, db: Session = Depends(get_db)):
     """Hard delete a lead from the database."""
-    # Check authentication
-    if not AdminAuth.is_authenticated(request):
-        logger.warning(f"Unauthorized delete attempt for lead {lead_id}")
-        raise HTTPException(status_code=401, detail="Unauthorized")
-    
     try:
         lead = db.query(Lead).filter(Lead.id == lead_id).first()
         
         if not lead:
-            logger.warning(f"Delete attempted for non-existent lead {lead_id}")
             raise HTTPException(status_code=404, detail="Lead not found")
         
         phone_number = lead.phone_number
