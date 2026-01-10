@@ -38,8 +38,17 @@ interface WorkflowEdge {
   description?: string;
 }
 
+interface MessageTemplate {
+  id: number;
+  template_name: string;
+  template_content: string;
+  variables: string[];
+  is_default: boolean;
+}
+
 const MessageManagementTab: React.FC = () => {
   const [messages, setMessages] = useState<BotMessage[]>([]);
+  const [templates, setTemplates] = useState<MessageTemplate[]>([]);
   const [diagram, setDiagram] = useState<{ nodes: WorkflowNode[]; edges: WorkflowEdge[] } | null>(null);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<'list' | 'create' | 'workflow'>('list');
@@ -60,6 +69,7 @@ const MessageManagementTab: React.FC = () => {
 
   useEffect(() => {
     fetchMessages();
+    fetchTemplates();
     fetchWorkflowDiagram();
   }, []);
 
@@ -85,6 +95,17 @@ const MessageManagementTab: React.FC = () => {
       }
     } catch (error) {
       console.error('Error fetching workflow:', error);
+    }
+  };
+
+  const fetchTemplates = async () => {
+    try {
+      const response = await apiClient.get('/api/messages/templates/list');
+      if (response.data?.data?.templates) {
+        setTemplates(response.data.data.templates);
+      }
+    } catch (error) {
+      console.error('Error fetching templates:', error);
     }
   };
 
@@ -302,38 +323,74 @@ const MessageManagementTab: React.FC = () => {
           )}
           
           {!editMode && (
-            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-              <label className="block text-sm font-semibold mb-2 text-blue-900">📋 Start from a template</label>
-              <select
-                onChange={(e) => {
-                  const key = e.target.value;
-                  if (key && messages) {
-                    const template = messages.find(m => m.message_key === key);
-                    if (template) {
-                      setFormData({
-                        message_key: template.message_key + '_copy_' + Date.now(),
-                        message_type: template.message_type,
-                        context: template.context,
-                        content: template.content,
-                        has_menu: template.has_menu,
-                        menu_items: template.menu_items || [],
-                        next_states: template.next_states || [],
-                        description: template.description || ''
-                      });
+            <div className="space-y-3">
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                <label className="block text-sm font-semibold mb-2 text-blue-900">📋 Start from a saved template</label>
+                <select
+                  onChange={(e) => {
+                    const templateName = e.target.value;
+                    if (templateName && templates) {
+                      const template = templates.find(t => t.template_name === templateName);
+                      if (template) {
+                        setFormData({
+                          message_key: templateName.toLowerCase().replace(/\s+/g, '_') + '_' + Date.now(),
+                          message_type: 'info',
+                          context: 'AUTO_GENERATED',
+                          content: template.template_content,
+                          has_menu: false,
+                          menu_items: [],
+                          next_states: [],
+                          description: `Created from template: ${templateName}`
+                        });
+                      }
                     }
-                  }
-                  e.target.value = '';
-                }}
-                className="w-full border rounded px-3 py-2 bg-white"
-              >
-                <option value="">-- Select a template to copy --</option>
-                {messages.map(msg => (
-                  <option key={msg.message_key} value={msg.message_key}>
-                    {msg.message_key} ({msg.message_type})
-                  </option>
-                ))}
-              </select>
-              <p className="text-xs text-blue-700 mt-1">💡 Select an existing message to use as a template for your new message</p>
+                    e.target.value = '';
+                  }}
+                  className="w-full border rounded px-3 py-2 bg-white"
+                >
+                  <option value="">-- Select a saved template --</option>
+                  {templates.map(tmpl => (
+                    <option key={tmpl.template_name} value={tmpl.template_name}>
+                      {tmpl.template_name} {tmpl.is_default ? '⭐' : ''}
+                    </option>
+                  ))}
+                </select>
+                <p className="text-xs text-blue-700 mt-1">💡 Choose from pre-built templates to quickly create a message</p>
+              </div>
+
+              <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                <label className="block text-sm font-semibold mb-2 text-green-900">📋 Start from existing message</label>
+                <select
+                  onChange={(e) => {
+                    const key = e.target.value;
+                    if (key && messages) {
+                      const template = messages.find(m => m.message_key === key);
+                      if (template) {
+                        setFormData({
+                          message_key: template.message_key + '_copy_' + Date.now(),
+                          message_type: template.message_type,
+                          context: template.context,
+                          content: template.content,
+                          has_menu: template.has_menu,
+                          menu_items: template.menu_items || [],
+                          next_states: template.next_states || [],
+                          description: template.description || ''
+                        });
+                      }
+                    }
+                    e.target.value = '';
+                  }}
+                  className="w-full border rounded px-3 py-2 bg-white"
+                >
+                  <option value="">-- Select an existing message to copy --</option>
+                  {messages.map(msg => (
+                    <option key={msg.message_key} value={msg.message_key}>
+                      {msg.message_key} ({msg.message_type})
+                    </option>
+                  ))}
+                </select>
+                <p className="text-xs text-green-700 mt-1">💡 Copy an existing message to use as a template for your new message</p>
+              </div>
             </div>
           )}
           

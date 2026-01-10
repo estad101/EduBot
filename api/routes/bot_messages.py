@@ -7,7 +7,7 @@ from typing import List, Optional
 import logging
 
 from config.database import get_db
-from models.bot_message import BotMessage, BotMessageWorkflow
+from models.bot_message import BotMessage, BotMessageWorkflow, BotMessageTemplate
 from services.bot_message_service import BotMessageService, BotMessageWorkflowService
 from schemas.response import StandardResponse
 
@@ -233,3 +233,59 @@ async def get_next_messages(
     except Exception as e:
         logger.error(f"Error fetching next messages: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
+
+
+# Template Endpoints
+@router.get("/templates/list", response_model=StandardResponse)
+async def get_templates(db: Session = Depends(get_db)):
+    """Get all message templates."""
+    try:
+        templates = db.query(BotMessageTemplate).all()
+        
+        template_data = []
+        for tmpl in templates:
+            template_data.append({
+                "id": tmpl.id,
+                "template_name": tmpl.template_name,
+                "template_content": tmpl.template_content,
+                "variables": tmpl.variables or [],
+                "is_default": tmpl.is_default
+            })
+
+        return StandardResponse(
+            status="success",
+            message=f"Found {len(template_data)} templates",
+            data={"templates": template_data}
+        )
+    except Exception as e:
+        logger.error(f"Error fetching templates: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/templates/{template_name}", response_model=StandardResponse)
+async def get_template(template_name: str, db: Session = Depends(get_db)):
+    """Get a specific template by name."""
+    try:
+        template = db.query(BotMessageTemplate).filter(
+            BotMessageTemplate.template_name == template_name
+        ).first()
+
+        if not template:
+            raise HTTPException(status_code=404, detail="Template not found")
+
+        return StandardResponse(
+            status="success",
+            data={
+                "id": template.id,
+                "template_name": template.template_name,
+                "template_content": template.template_content,
+                "variables": template.variables or [],
+                "is_default": template.is_default
+            }
+        )
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error fetching template: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
