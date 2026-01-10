@@ -18,7 +18,7 @@ class Settings(BaseSettings):
     # FastAPI
     debug: bool = os.getenv("DEBUG", "False").lower() == "true"
     api_title: str = os.getenv("API_TITLE", "EduBot API")
-    api_version: str = os.getenv("API_VERSION", "1.0.0")
+    api_version: str = os.getenv("API_VERSION", "1.0.1")
     api_port: int = int(os.getenv("API_PORT", "8000"))
 
     # Paystack (with safe defaults)
