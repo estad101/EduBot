@@ -944,10 +944,17 @@ async def get_homework_detail(homework_id: int, db: Session = Depends(get_db)):
 @router.post("/homework/{homework_id}/provide-solution")
 async def provide_solution(
     homework_id: int,
-    solution_text: str,
+    request_body: dict = Body(...),
     db: Session = Depends(get_db)
 ):
     """Provide solution to homework and send to student via WhatsApp."""
+    solution_text = request_body.get("solution_text", "").strip()
+    
+    if not solution_text:
+        return {
+            "status": "error",
+            "message": "Solution text is required"
+        }
     homework = db.query(Homework).filter_by(id=homework_id).first()
     if not homework:
         raise HTTPException(status_code=404, detail="Homework not found")
@@ -1020,10 +1027,11 @@ Please review the solution and let us know if you have any questions.
 @router.post("/homework/{homework_id}/mark-solved")
 async def mark_homework_solved(
     homework_id: int,
-    delivery_message: str = "Homework solution delivered successfully!",
+    request_body: dict = Body(...),
     db: Session = Depends(get_db)
 ):
     """Mark homework as solved and notify student."""
+    delivery_message = request_body.get("delivery_message", "Homework solution delivered successfully!")
     homework = db.query(Homework).filter_by(id=homework_id).first()
     if not homework:
         raise HTTPException(status_code=404, detail="Homework not found")
@@ -1070,6 +1078,41 @@ Thank you for using our homework help service!
         }
     except Exception as e:
         logger.error(f"Error marking homework {homework_id} as solved: {str(e)}")
+        return {
+            "status": "error",
+            "message": str(e)
+        }
+
+
+@router.delete("/homework/{homework_id}")
+async def delete_homework(homework_id: int, db: Session = Depends(get_db)):
+    """Delete a homework submission."""
+    homework = db.query(Homework).filter_by(id=homework_id).first()
+    if not homework:
+        raise HTTPException(status_code=404, detail="Homework not found")
+    
+    try:
+        # Get student info before deleting (for logging)
+        student = db.query(Student).filter_by(id=homework.student_id).first()
+        student_name = student.full_name if student else f"Student {homework.student_id}"
+        
+        # Delete the homework submission
+        db.delete(homework)
+        db.commit()
+        
+        logger.info(f"Homework {homework_id} deleted by admin. Student: {student_name}, Subject: {homework.subject}")
+        
+        return {
+            "status": "success",
+            "message": "Homework deleted successfully",
+            "data": {
+                "homework_id": homework_id,
+                "student_id": homework.student_id
+            }
+        }
+    except Exception as e:
+        db.rollback()
+        logger.error(f"Error deleting homework {homework_id}: {str(e)}")
         return {
             "status": "error",
             "message": str(e)
