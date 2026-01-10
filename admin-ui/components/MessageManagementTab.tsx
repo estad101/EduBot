@@ -204,7 +204,18 @@ const MessageManagementTab: React.FC = () => {
       {/* Messages List Tab */}
       {activeTab === 'list' && (
         <div className="space-y-4">
-          <h2 className="text-2xl font-bold">Bot Messages</h2>
+          <div className="flex justify-between items-center mb-4">
+            <h2 className="text-2xl font-bold">Bot Messages</h2>
+            <button
+              onClick={() => {
+                resetForm();
+                setActiveTab('create');
+              }}
+              className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 font-semibold"
+            >
+              + New Message
+            </button>
+          </div>
           {loading ? (
             <p>Loading messages...</p>
           ) : (
@@ -213,43 +224,55 @@ const MessageManagementTab: React.FC = () => {
                 <p className="text-gray-500">No messages found</p>
               ) : (
                 messages.map((msg) => (
-                  <div key={msg.id} className="border rounded-lg p-4 hover:shadow-lg transition">
+                  <div 
+                    key={msg.id} 
+                    onClick={() => handleEditMessage(msg)}
+                    className="border rounded-lg p-4 hover:shadow-lg transition cursor-pointer hover:border-blue-500 hover:bg-blue-50"
+                  >
                     <div className="flex justify-between items-start mb-2">
                       <div className="flex-1">
                         <h3 className="font-bold text-lg">{msg.message_key}</h3>
-                        <span className={`inline-block px-2 py-1 rounded text-xs font-semibold ${getMessageTypeColor(msg.message_type)}`}>
-                          {msg.message_type}
-                        </span>
-                        <span className="ml-2 text-xs text-gray-600">[{msg.context}]</span>
+                        <div className="flex items-center gap-2 mt-1">
+                          <span className={`inline-block px-2 py-1 rounded text-xs font-semibold ${getMessageTypeColor(msg.message_type)}`}>
+                            {msg.message_type}
+                          </span>
+                          <span className="text-xs text-gray-600 bg-gray-100 px-2 py-1 rounded">{msg.context}</span>
+                          {msg.is_active ? (
+                            <span className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded">✓ Active</span>
+                          ) : (
+                            <span className="text-xs bg-gray-100 text-gray-700 px-2 py-1 rounded">○ Inactive</span>
+                          )}
+                        </div>
                       </div>
                       <div className="flex gap-2">
                         <button
-                          onClick={() => handleEditMessage(msg)}
-                          className="px-3 py-1 bg-blue-500 text-white rounded hover:bg-blue-600"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleEditMessage(msg);
+                          }}
+                          className="px-3 py-1 bg-blue-500 text-white rounded hover:bg-blue-600 text-sm font-semibold"
                         >
-                          Edit
+                          ✏️ Edit
                         </button>
                         <button
-                          onClick={() => handleDeleteMessage(msg.message_key)}
-                          className="px-3 py-1 bg-red-500 text-white rounded hover:bg-red-600"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleDeleteMessage(msg.message_key);
+                          }}
+                          className="px-3 py-1 bg-red-500 text-white rounded hover:bg-red-600 text-sm font-semibold"
                         >
-                          Delete
-                        </button>
-                        <button
-                          className={`px-3 py-1 rounded ${msg.is_active ? 'bg-green-500 text-white' : 'bg-gray-300'}`}
-                        >
-                          {msg.is_active ? 'Active' : 'Inactive'}
+                          🗑️ Delete
                         </button>
                       </div>
                     </div>
-                    <p className="text-gray-700 mb-2 whitespace-pre-wrap">{msg.content.substring(0, 100)}...</p>
+                    <p className="text-gray-700 mb-3 whitespace-pre-wrap text-sm">{msg.content.substring(0, 120)}...</p>
                     {msg.has_menu && msg.menu_items?.length > 0 && (
-                      <div className="mt-2">
-                        <p className="text-xs font-semibold text-gray-600">Menu Items ({msg.menu_items.length}):</p>
-                        <div className="flex flex-wrap gap-2 mt-1">
+                      <div className="mt-3 pt-3 border-t">
+                        <p className="text-xs font-semibold text-gray-600 mb-2">📋 Menu Items ({msg.menu_items.length}):</p>
+                        <div className="flex flex-wrap gap-2">
                           {msg.menu_items.map((item) => (
-                            <span key={item.id} className="text-xs bg-gray-200 px-2 py-1 rounded">
-                              {item.emoji} {item.label}
+                            <span key={item.id} className="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded">
+                              {item.emoji || '•'} {item.label}
                             </span>
                           ))}
                         </div>
@@ -266,7 +289,17 @@ const MessageManagementTab: React.FC = () => {
       {/* Create/Edit Message Tab */}
       {activeTab === 'create' && (
         <div className="space-y-4">
-          <h2 className="text-2xl font-bold">{editMode ? 'Edit' : 'Create'} Message</h2>
+          {editMode ? (
+            <div className="bg-blue-50 border border-blue-300 rounded-lg p-4 mb-4">
+              <h2 className="text-2xl font-bold text-blue-900">✏️ Edit Message</h2>
+              <p className="text-sm text-blue-700 mt-1">Editing: <span className="font-mono font-bold">{formData.message_key}</span></p>
+            </div>
+          ) : (
+            <div className="bg-green-50 border border-green-300 rounded-lg p-4 mb-4">
+              <h2 className="text-2xl font-bold text-green-900">+ Create New Message</h2>
+              <p className="text-sm text-green-700 mt-1">Start from scratch or use a template below</p>
+            </div>
+          )}
           
           {!editMode && (
             <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
@@ -303,7 +336,7 @@ const MessageManagementTab: React.FC = () => {
               <p className="text-xs text-blue-700 mt-1">💡 Select an existing message to use as a template for your new message</p>
             </div>
           )}
-
+          
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-semibold mb-2">Message Key</label>
@@ -434,18 +467,25 @@ const MessageManagementTab: React.FC = () => {
             />
           </div>
 
-          <div className="flex gap-2">
+          <div className="flex gap-2 pt-4 border-t">
             <button
               onClick={handleSaveMessage}
-              className="px-6 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 font-semibold"
+              className={`px-6 py-2 text-white rounded hover:opacity-90 font-semibold transition flex items-center gap-2 ${
+                editMode 
+                  ? 'bg-blue-600 hover:bg-blue-700' 
+                  : 'bg-green-600 hover:bg-green-700'
+              }`}
             >
-              {editMode ? 'Update Message' : 'Create Message'}
+              {editMode ? '💾 Update Message' : '✨ Create Message'}
             </button>
             <button
-              onClick={resetForm}
-              className="px-6 py-2 bg-gray-400 text-white rounded hover:bg-gray-500 font-semibold"
+              onClick={() => {
+                resetForm();
+                setActiveTab('list');
+              }}
+              className="px-6 py-2 bg-gray-400 text-white rounded hover:bg-gray-500 font-semibold transition"
             >
-              Cancel
+              ✕ Cancel
             </button>
           </div>
         </div>
