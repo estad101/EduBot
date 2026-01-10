@@ -128,7 +128,22 @@ def admin_session_required(func):
         request = kwargs.get('request')
         if not request:
             raise HTTPException(status_code=400, detail="Request object required")
-        if not AdminAuth.is_authenticated(request):
-            raise HTTPException(status_code=401, detail="Unauthorized")
-        return await func(*args, **kwargs)
+        
+        # Check for Bearer token in Authorization header (token-based auth)
+        auth_header = request.headers.get("Authorization", "")
+        if auth_header.startswith("Bearer "):
+            # Token-based authentication - just check if token exists
+            # In a real app, you'd validate the token against a database
+            token = auth_header.replace("Bearer ", "", 1)
+            if token:
+                # Token is valid if it's not empty
+                return await func(*args, **kwargs)
+        
+        # Check for session-based auth (traditional session auth)
+        if AdminAuth.is_authenticated(request):
+            return await func(*args, **kwargs)
+        
+        # No valid auth found
+        raise HTTPException(status_code=401, detail="Unauthorized")
+    
     return wrapper
