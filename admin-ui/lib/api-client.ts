@@ -238,3 +238,5 @@ class APIClient {
     return response.data;
   }
 }
+
+export const apiClient = new APIClient();
