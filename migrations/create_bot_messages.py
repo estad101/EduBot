@@ -27,11 +27,9 @@ def seed_default_messages():
     try:
         db = SessionLocal()
 
-        # Check if messages already exist
-        existing = db.query(BotMessage).first()
-        if existing:
-            logger.info("Messages already exist, skipping seed")
-            return True
+        # Clear existing messages for development (optional - comment out for production)
+        db.query(BotMessage).delete()
+        db.commit()
 
         default_messages = [
             # Registration flow
@@ -151,7 +149,117 @@ def seed_default_messages():
                 "content": "❌ Error processing your message. Please try again.",
                 "has_menu": False,
                 "description": "Generic error message"
+            },
+            # FAQ section
+            {
+                "message_key": "faq_intro",
+                "message_type": "info",
+                "context": "FAQ_MENU",
+                "content": "❓ **Frequently Asked Questions**\n\nChoose a topic below to learn more:",
+                "has_menu": True,
+                "menu_items": [
+                    {"id": "how_register", "label": "📝 How do I register?", "action": "faq_registration"},
+                    {"id": "how_submit", "label": "📤 How do I submit homework?", "action": "faq_homework"},
+                    {"id": "pricing", "label": "💰 What's the pricing?", "action": "faq_pricing"},
+                    {"id": "payment", "label": "💳 Payment methods?", "action": "faq_payment"},
+                    {"id": "support", "label": "🆘 Need help?", "action": "support"}
+                ],
+                "next_states": ["IDLE"],
+                "description": "FAQ menu with common questions"
+            },
+            {
+                "message_key": "faq_registration",
+                "message_type": "info",
+                "context": "FAQ_REGISTRATION",
+                "content": "📝 **How do I register?**\n\nRegistration is simple:\n1. Send 'Register' to start\n2. Provide your full name\n3. Enter your email address\n4. Tell us your class/grade\n5. Done! Your account is ready\n\nYou'll then have access to all features.",
+                "has_menu": True,
+                "menu_items": [
+                    {"id": "back", "label": "⬅️ Back to FAQ", "action": "faq_menu"},
+                    {"id": "home", "label": "🏠 Home", "action": "main_menu"}
+                ],
+                "next_states": ["FAQ_MENU", "IDLE"],
+                "description": "FAQ answer about registration process"
+            },
+            # Support section
+            {
+                "message_key": "support_intro",
+                "message_type": "info",
+                "context": "CHAT_SUPPORT_ACTIVE",
+                "content": "💬 **Chat Support**\n\nHello! Welcome to our support team. How can we help you today?\n\nYou can ask about:\n✅ Account issues\n✅ Homework submission\n✅ Payment problems\n✅ Technical issues\n✅ Other questions",
+                "has_menu": True,
+                "menu_items": [
+                    {"id": "issue", "label": "📋 Report an issue", "action": "support_issue"},
+                    {"id": "billing", "label": "💳 Billing question", "action": "support_billing"},
+                    {"id": "other", "label": "❓ Other", "action": "support_other"},
+                    {"id": "close", "label": "✅ Close chat", "action": "main_menu"}
+                ],
+                "next_states": ["IDLE"],
+                "description": "Support chat introduction"
+            },
+            # Status/Account info
+            {
+                "message_key": "status_check",
+                "message_type": "info",
+                "context": "IDLE",
+                "content": "📊 **Account Status**\n\nName: {full_name}\nEmail: {email}\nClass: {class}\nSubscription: {subscription_status}\nJoined: {join_date}",
+                "has_menu": True,
+                "menu_items": [
+                    {"id": "back", "label": "⬅️ Back to menu", "action": "main_menu"}
+                ],
+                "next_states": ["IDLE"],
+                "variables": ["full_name", "email", "class", "subscription_status", "join_date"],
+                "description": "Display user account status and information"
+            },
+            # Welcome message
+            {
+                "message_key": "welcome_unregistered",
+                "message_type": "greeting",
+                "context": "IDLE",
+                "content": "👋 Welcome to {bot_name}!\n\nI'm here to help you with homework submission and learning support.\n\n📌 **To get started:**\n\nType 'Register' to create an account, or ask me anything!",
+                "has_menu": True,
+                "menu_items": [
+                    {"id": "register", "label": "📝 Register", "action": "register"},
+                    {"id": "faq", "label": "❓ FAQ", "action": "faq_menu"},
+                    {"id": "support", "label": "💬 Support", "action": "support_intro"}
+                ],
+                "next_states": ["REGISTERING_NAME", "FAQ_MENU", "CHAT_SUPPORT_ACTIVE"],
+                "variables": ["bot_name"],
+                "description": "Welcome message for unregistered users"
+            },
+            # Homework submission
+            {
+                "message_key": "homework_intro",
+                "message_type": "info",
+                "context": "HOMEWORK_SUBJECT",
+                "content": "📝 **Homework Submission**\n\nLet's get started! Which subject is your homework for?\n\n🔹 Common subjects:\n• Mathematics\n• English\n• Science\n• History\n• Geography\n• Other",
+                "has_menu": True,
+                "menu_items": [
+                    {"id": "math", "label": "📐 Mathematics", "action": "homework_math"},
+                    {"id": "english", "label": "📚 English", "action": "homework_english"},
+                    {"id": "science", "label": "🔬 Science", "action": "homework_science"},
+                    {"id": "other", "label": "🔹 Other", "action": "homework_other"},
+                    {"id": "cancel", "label": "❌ Cancel", "action": "main_menu"}
+                ],
+                "next_states": ["HOMEWORK_CONTENT"],
+                "description": "Homework submission introduction with subject selection"
+            },
+            # Subscription info
+            {
+                "message_key": "subscription_plans",
+                "message_type": "info",
+                "context": "PAYMENT_PENDING",
+                "content": "💳 **Subscription Plans**\n\n🎯 **Basic** - Free\n• Limited submissions (5/month)\n• Standard support\n\n⭐ **Premium** - ₦5,000/month\n• Unlimited submissions\n• Priority support\n• Detailed feedback\n\n👑 **Pro** - ₦10,000/month\n• Everything in Premium\n• Direct tutor access\n• Weekly progress reports",
+                "has_menu": True,
+                "menu_items": [
+                    {"id": "basic", "label": "🎯 Basic (Free)", "action": "subscribe_basic"},
+                    {"id": "premium", "label": "⭐ Premium", "action": "subscribe_premium"},
+                    {"id": "pro", "label": "👑 Pro", "action": "subscribe_pro"},
+                    {"id": "back", "label": "⬅️ Back", "action": "main_menu"}
+                ],
+                "next_states": ["PAYMENT_CONFIRMED", "IDLE"],
+                "description": "Subscription plans overview"
             }
+
         ]
 
         for msg_data in default_messages:

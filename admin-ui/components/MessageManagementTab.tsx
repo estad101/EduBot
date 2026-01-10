@@ -267,6 +267,43 @@ const MessageManagementTab: React.FC = () => {
       {activeTab === 'create' && (
         <div className="space-y-4">
           <h2 className="text-2xl font-bold">{editMode ? 'Edit' : 'Create'} Message</h2>
+          
+          {!editMode && (
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+              <label className="block text-sm font-semibold mb-2 text-blue-900">📋 Start from a template</label>
+              <select
+                onChange={(e) => {
+                  const key = e.target.value;
+                  if (key && messages) {
+                    const template = messages.find(m => m.message_key === key);
+                    if (template) {
+                      setFormData({
+                        message_key: template.message_key + '_copy_' + Date.now(),
+                        message_type: template.message_type,
+                        context: template.context,
+                        content: template.content,
+                        has_menu: template.has_menu,
+                        menu_items: template.menu_items || [],
+                        next_states: template.next_states || [],
+                        description: template.description || ''
+                      });
+                    }
+                  }
+                  e.target.value = '';
+                }}
+                className="w-full border rounded px-3 py-2 bg-white"
+              >
+                <option value="">-- Select a template to copy --</option>
+                {messages.map(msg => (
+                  <option key={msg.message_key} value={msg.message_key}>
+                    {msg.message_key} ({msg.message_type})
+                  </option>
+                ))}
+              </select>
+              <p className="text-xs text-blue-700 mt-1">💡 Select an existing message to use as a template for your new message</p>
+            </div>
+          )}
+
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-semibold mb-2">Message Key</label>
