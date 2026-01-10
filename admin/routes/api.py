@@ -941,6 +941,141 @@ async def get_homework_detail(homework_id: int, db: Session = Depends(get_db)):
     }
 
 
+@router.post("/homework/{homework_id}/provide-solution")
+async def provide_solution(
+    homework_id: int,
+    solution_text: str,
+    db: Session = Depends(get_db)
+):
+    """Provide solution to homework and send to student via WhatsApp."""
+    homework = db.query(Homework).filter_by(id=homework_id).first()
+    if not homework:
+        raise HTTPException(status_code=404, detail="Homework not found")
+    
+    student = db.query(Student).filter_by(id=homework.student_id).first()
+    if not student:
+        raise HTTPException(status_code=404, detail="Student not found")
+    
+    try:
+        # Update homework status to indicate solution is being prepared
+        homework.status = HomeworkStatus.IN_PROGRESS
+        db.commit()
+        
+        # Send solution message to student via WhatsApp
+        from services.whatsapp_service import WhatsAppService
+        
+        message = f"""
+*📝 Homework Solution*
+
+Subject: {homework.subject}
+
+*Solution:*
+{solution_text}
+
+Please review the solution and let us know if you have any questions.
+        """.strip()
+        
+        result = WhatsAppService.send_message(
+            phone_number=student.phone_number,
+            message=message
+        )
+        
+        if result:
+            # Mark as solved once message is sent
+            homework.status = HomeworkStatus.SOLVED
+            db.commit()
+            
+            logger.info(f"Solution provided for homework {homework_id} to student {student.phone_number}")
+            
+            return {
+                "status": "success",
+                "message": "Solution sent to student successfully",
+                "data": {
+                    "homework_id": homework_id,
+                    "student_phone": student.phone_number,
+                    "status": HomeworkStatus.SOLVED.value
+                }
+            }
+        else:
+            # Revert status if message fails
+            homework.status = HomeworkStatus.ASSIGNED
+            db.commit()
+            
+            return {
+                "status": "error",
+                "message": "Failed to send solution via WhatsApp",
+                "data": {
+                    "homework_id": homework_id,
+                    "status": HomeworkStatus.ASSIGNED.value
+                }
+            }
+    except Exception as e:
+        logger.error(f"Error providing solution for homework {homework_id}: {str(e)}")
+        return {
+            "status": "error",
+            "message": str(e)
+        }
+
+
+@router.post("/homework/{homework_id}/mark-solved")
+async def mark_homework_solved(
+    homework_id: int,
+    delivery_message: str = "Homework solution delivered successfully!",
+    db: Session = Depends(get_db)
+):
+    """Mark homework as solved and notify student."""
+    homework = db.query(Homework).filter_by(id=homework_id).first()
+    if not homework:
+        raise HTTPException(status_code=404, detail="Homework not found")
+    
+    student = db.query(Student).filter_by(id=homework.student_id).first()
+    if not student:
+        raise HTTPException(status_code=404, detail="Student not found")
+    
+    try:
+        # Update homework status to SOLVED
+        homework.status = HomeworkStatus.SOLVED
+        db.commit()
+        
+        # Send delivery confirmation to student
+        from services.whatsapp_service import WhatsAppService
+        
+        message = f"""
+✅ *Homework Marked as Solved*
+
+Subject: {homework.subject}
+
+{delivery_message}
+
+Thank you for using our homework help service!
+        """.strip()
+        
+        result = WhatsAppService.send_message(
+            phone_number=student.phone_number,
+            message=message
+        )
+        
+        if result:
+            logger.info(f"Homework {homework_id} marked as solved and student {student.phone_number} notified")
+        
+        return {
+            "status": "success",
+            "message": "Homework marked as solved",
+            "data": {
+                "homework_id": homework_id,
+                "student_phone": student.phone_number,
+                "status": HomeworkStatus.SOLVED.value,
+                "message_sent": result
+            }
+        }
+    except Exception as e:
+        logger.error(f"Error marking homework {homework_id} as solved: {str(e)}")
+        return {
+            "status": "error",
+            "message": str(e)
+        }
+
+
 # ==================== SYSTEM STATS ====================
 
 @router.get("/stats/overview")

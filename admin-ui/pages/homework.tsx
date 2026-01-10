@@ -34,6 +34,9 @@ export default function HomeworkPage() {
   const [selectedHomework, setSelectedHomework] = useState<Homework | null>(null);
   const [showModal, setShowModal] = useState(false);
   const [imageError, setImageError] = useState(false);
+  const [solutionText, setSolutionText] = useState('');
+  const [deliveryMessage, setDeliveryMessage] = useState('Homework solution delivered successfully!');
+  const [submittingAction, setSubmittingAction] = useState<string | null>(null);
 
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
@@ -85,15 +88,80 @@ export default function HomeworkPage() {
     fetchHomework(1);
   }, [submissionTypeFilter, subjectFilter, pageSize]);
 
+  // Handle solution submission when text is set via prompt
+  useEffect(() => {
+    if (submittingAction === 'solution_prompt' && solutionText.trim()) {
+      handleProvideSolution();
+    }
+  }, [solutionText, submittingAction]);
+
   const openModal = (homework: Homework) => {
     setSelectedHomework(homework);
     setShowModal(true);
+    setSolutionText('');
+    setDeliveryMessage('Homework solution delivered successfully!');
   };
 
   const closeModal = () => {
     setShowModal(false);
     setSelectedHomework(null);
     setImageError(false);
+    setSolutionText('');
+    setSubmittingAction(null);
+  };
+
+  const handleProvideSolution = async () => {
+    if (!selectedHomework || !solutionText.trim()) {
+      alert('Please enter a solution');
+      return;
+    }
+
+    setSubmittingAction('solution');
+    try {
+      const response = await apiClient.post(
+        `/api/admin/homework/${selectedHomework.id}/provide-solution`,
+        { solution_text: solutionText }
+      );
+
+      if (response.status === 'success') {
+        alert('✅ Solution sent to student successfully!');
+        closeModal();
+        fetchHomework(currentPage); // Refresh the list
+      } else {
+        alert(`Error: ${response.message}`);
+      }
+    } catch (err: any) {
+      alert(`Failed to send solution: ${err.message}`);
+    } finally {
+      setSubmittingAction(null);
+    }
+  };
+
+  const handleMarkSolved = async () => {
+    if (!selectedHomework) {
+      alert('No homework selected');
+      return;
+    }
+
+    setSubmittingAction('solved');
+    try {
+      const response = await apiClient.post(
+        `/api/admin/homework/${selectedHomework.id}/mark-solved`,
+        { delivery_message: deliveryMessage }
+      );
+
+      if (response.status === 'success') {
+        alert('✅ Homework marked as solved and student notified!');
+        closeModal();
+        fetchHomework(currentPage); // Refresh the list
+      } else {
+        alert(`Error: ${response.message}`);
+      }
+    } catch (err: any) {
+      alert(`Failed to mark homework as solved: ${err.message}`);
+    } finally {
+      setSubmittingAction(null);
+    }
   };
 
   const handlePreviousPage = () => {
@@ -344,23 +412,34 @@ export default function HomeworkPage() {
                 <div className="flex gap-2">
                   <button
                     onClick={() => {
-                      // TODO: Implement provide solution handler
-                      alert('Provide Homework Solution feature coming soon');
+                      // Show solution input modal
+                      const solution = prompt('Enter the homework solution to send to the student:');
+                      if (solution && solution.trim()) {
+                        setSolutionText(solution);
+                        setSubmittingAction('solution_prompt');
+                      }
                     }}
-                    className="px-3 py-2 bg-green-600 hover:bg-green-700 text-white rounded font-medium text-sm transition whitespace-nowrap"
+                    disabled={submittingAction === 'solution'}
+                    className="px-3 py-2 bg-green-600 hover:bg-green-700 disabled:bg-gray-400 text-white rounded font-medium text-sm transition whitespace-nowrap"
                     title="Provide Solution"
                   >
-                    <i className="fas fa-check-circle mr-1"></i>Solution
+                    {submittingAction === 'solution' ? (
+                      <><i className="fas fa-spinner fa-spin mr-1"></i>Sending...</>
+                    ) : (
+                      <><i className="fas fa-check-circle mr-1"></i>Solution</>
+                    )}
                   </button>
                   <button
-                    onClick={() => {
-                      // TODO: Implement mark solved handler
-                      alert('Mark Homework Solved feature coming soon');
-                    }}
-                    className="px-3 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded font-medium text-sm transition whitespace-nowrap"
+                    onClick={handleMarkSolved}
+                    disabled={submittingAction === 'solved'}
+                    className="px-3 py-2 bg-purple-600 hover:bg-purple-700 disabled:bg-gray-400 text-white rounded font-medium text-sm transition whitespace-nowrap"
                     title="Mark Solved"
                   >
-                    <i className="fas fa-checkmark mr-1"></i>Solved
+                    {submittingAction === 'solved' ? (
+                      <><i className="fas fa-spinner fa-spin mr-1"></i>Marking...</>
+                    ) : (
+                      <><i className="fas fa-checkmark mr-1"></i>Solved</>
+                    )}
                   </button>
                   <button
                     onClick={closeModal}
