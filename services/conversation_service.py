@@ -317,6 +317,32 @@ class MessageRouter:
         if student_data and student_data.get("name"):
             first_name = student_data.get("name").split()[0]
 
+        # PRIORITY: If user is in active chat support, handle their message in chat context
+        # (except for end_chat intent which is handled below)
+        if current_state == ConversationState.CHAT_SUPPORT_ACTIVE and intent != "end_chat":
+            # User sent a message during active chat - store it and notify admin
+            # Mark chat session as active with timestamp
+            ConversationService.set_data(phone_number, "chat_support_active", True)
+            ConversationService.set_data(phone_number, "chat_last_message_time", datetime.now().isoformat())
+            
+            # Store the message content for admin review via conversations page
+            chat_messages = ConversationService.get_data(phone_number, "chat_messages") or []
+            if isinstance(chat_messages, str):
+                chat_messages = []
+            chat_messages.append({
+                "text": message_text,
+                "timestamp": datetime.now().isoformat(),
+                "sender": "user"
+            })
+            ConversationService.set_data(phone_number, "chat_messages", chat_messages)
+            
+            # Acknowledge message to user
+            ack_message = (
+                "✓ Your message has been sent to support.\n\n"
+                "An admin will respond shortly. You can continue typing or select 'End Chat' to exit."
+            )
+            return (ack_message, ConversationState.CHAT_SUPPORT_ACTIVE)
+
         # Handle end chat command
         if intent == "end_chat":
             try:
@@ -342,7 +368,7 @@ class MessageRouter:
             
             # Return to appropriate state based on registration
             if student_data and student_data.get("name"):
-                # Registered user - show feature list with commands
+                # Registered user - return to main menu
                 greeting = f"Hey {first_name}!" if first_name else "Hey there!"
                 feature_text = (
                     f"{greeting}\n\n"
@@ -361,7 +387,7 @@ class MessageRouter:
                     ConversationState.IDLE,
                 )
             else:
-                # Unregistered user - show welcome page with bot features
+                # Unregistered user - return to idle menu, not back to initial registration
                 try:
                     from models.admin_settings import AdminSettings
                     from config.database import SessionLocal
@@ -375,8 +401,8 @@ class MessageRouter:
                     logger.warning(f"Could not fetch bot name: {str(e)}")
                     bot_name = "EduBot"
                 
-                welcome_text = (
-                    f"👋 Welcome! I'm {bot_name}, your AI tutor assistant.\n\n"
+                menu_text = (
+                    f"👋 Welcome back! I'm {bot_name}, your AI tutor assistant.\n\n"
                     f"📚 **WHAT I CAN DO** 📚\n\n"
                     f"✏️ **homework** - Get help with your assignments\n"
                     f"❓ **faq** - Find answers to common questions\n"
@@ -384,11 +410,11 @@ class MessageRouter:
                     f"💳 **subscribe** - Check subscription plans & pricing\n"
                     f"📊 **status** - View your account info\n"
                     f"ℹ️ **help** - Learn how to use me\n\n"
-                    f"To get started, type any command above or enter your full name to create an account!"
+                    f"Type any command above to get started or enter your name to register!"
                 )
                 return (
-                    welcome_text,
-                    ConversationState.INITIAL,
+                    menu_text,
+                    ConversationState.IDLE,
                 )
 
         # Handle cancel command - Clear current flow and return to menu
@@ -799,43 +825,6 @@ class MessageRouter:
             )
 
         # Chat support active - handle user messages during chat
-        elif current_state == ConversationState.CHAT_SUPPORT_ACTIVE:
-            # Check if user wants to end the chat
-            if intent == "end_chat":
-                ConversationService.set_data(phone_number, "in_chat_support", False)
-                ConversationService.set_data(phone_number, "chat_support_active", False)
-                ConversationService.set_data(phone_number, "support_ticket_id", None)
-                ConversationService.set_data(phone_number, "chat_start_time", None)
-                greeting = f"Thanks for chatting, {first_name}! 👋" if first_name else "Thanks for chatting! 👋"
-                return (
-                    f"{greeting}\n\n"
-                    f"Chat support session ended.\n\n"
-                    f"Is there anything else I can help you with?",
-                    ConversationState.REGISTERED if student_data else ConversationState.IDLE,
-                )
-            else:
-                # User sent a message during active chat - store it and notify admin
-                # Mark chat session as active with timestamp
-                ConversationService.set_data(phone_number, "chat_support_active", True)
-                ConversationService.set_data(phone_number, "chat_last_message_time", datetime.now().isoformat())
-                
-                # Store the message content for admin review via conversations page
-                chat_messages = ConversationService.get_data(phone_number, "chat_messages") or []
-                if isinstance(chat_messages, str):
-                    chat_messages = []
-                chat_messages.append({
-                    "text": message_text,
-                    "timestamp": datetime.now().isoformat(),
-                    "sender": "user"
-                })
-                ConversationService.set_data(phone_number, "chat_messages", chat_messages)
-                
-                # Acknowledge message to user
-                ack_message = (
-                    "✓ Your message has been sent to support.\n\n"
-                    "An admin will respond shortly. You can continue typing or select 'End Chat' to exit."
-                )
-                return (ack_message, ConversationState.CHAT_SUPPORT_ACTIVE)
 
         # Main menu - show welcome and main options (CHECK BEFORE REGISTERED STATE)
         elif intent == "main_menu":
