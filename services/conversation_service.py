@@ -333,6 +333,10 @@ class MessageRouter:
                 # Clear support data
                 ConversationService.set_data(phone_number, "requesting_support", False)
                 ConversationService.set_data(phone_number, "support_ticket_id", None)
+                # Clear chat support flags
+                ConversationService.set_data(phone_number, "in_chat_support", False)
+                ConversationService.set_data(phone_number, "chat_support_active", False)
+                ConversationService.set_data(phone_number, "chat_start_time", None)
             except Exception as e:
                 logger.warning(f"Could not close support ticket: {str(e)}")
             
@@ -476,6 +480,7 @@ class MessageRouter:
             )
             # Store that user is now in active chat support
             ConversationService.set_data(phone_number, "in_chat_support", True)
+            ConversationService.set_data(phone_number, "chat_support_active", True)
             ConversationService.set_data(phone_number, "chat_start_time", datetime.now().isoformat())
             return (support_text, ConversationState.CHAT_SUPPORT_ACTIVE)
 
@@ -798,7 +803,9 @@ class MessageRouter:
             # Check if user wants to end the chat
             if intent == "end_chat":
                 ConversationService.set_data(phone_number, "in_chat_support", False)
+                ConversationService.set_data(phone_number, "chat_support_active", False)
                 ConversationService.set_data(phone_number, "support_ticket_id", None)
+                ConversationService.set_data(phone_number, "chat_start_time", None)
                 greeting = f"Thanks for chatting, {first_name}! 👋" if first_name else "Thanks for chatting! 👋"
                 return (
                     f"{greeting}\n\n"
