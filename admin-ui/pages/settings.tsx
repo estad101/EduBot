@@ -392,6 +392,12 @@ export default function SettingsPage() {
               </div>
             </div>
           </div>
+
+        {success && (
+          <div className="bg-green-50 border-l-4 border-green-500 rounded-lg p-4 mb-6 flex items-start">
+            <i className="fas fa-check-circle text-green-600 text-xl mr-3 mt-0.5"></i>
+            <div>
+              <h3 className="font-semibold text-green-900">Success</h3>
               <p className="text-sm text-green-700 mt-1">{success}</p>
             </div>
           </div>
@@ -1112,6 +1118,7 @@ export default function SettingsPage() {
           <div className="h-24"></div>
         </form>
       </div>
+    </div>
     </Layout>
   );
 }
@@ -1152,5 +1159,3 @@ function TabButton({
     </button>
   );
 }
-
-```
