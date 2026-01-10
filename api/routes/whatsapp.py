@@ -127,8 +127,14 @@ async def whatsapp_webhook(request: Request, background_tasks: BackgroundTasks, 
             
             response_text = (
                 f"👋 Welcome! I'm {bot_name}, your AI tutor assistant.\n\n"
-                "To get started, let's create your free account!\n\n"
-                "👤 What is your full name?"
+                f"📚 **WHAT I CAN DO** 📚\n\n"
+                f"✏️ **homework** - Get help with your assignments\n"
+                f"❓ **faq** - Find answers to common questions\n"
+                f"💬 **support** - Chat with our support team\n"
+                f"💳 **subscribe** - Check subscription plans & pricing\n"
+                f"📊 **status** - View your account info\n"
+                f"ℹ️ **help** - Learn how to use me\n\n"
+                f"To get started, type any command above or enter your full name to create an account!"
             )
             next_state = ConversationState.REGISTERING_NAME
             ConversationService.set_state(phone_number, next_state)

@@ -204,7 +204,9 @@ class MessageRouter:
     def get_buttons(intent: str, current_state: ConversationState, is_registered: bool = False, phone_number: str = None) -> Optional[List[Dict[str, str]]]:
         """
         Get interactive buttons for a given state.
-
+        
+        NOTE: Buttons are disabled. Users now type commands directly.
+        
         Args:
             intent: Current user intent
             current_state: Current conversation state
@@ -212,76 +214,9 @@ class MessageRouter:
             phone_number: User's phone number (for menu state lookup)
 
         Returns:
-            List of button dicts with 'id' and 'title', or None for text-only responses
+            None - Users type commands instead of using buttons
         """
-        # STATE-BASED MENUS (CHECKED FIRST - Main menus always show regardless of intent)
-        
-        # Idle/Initial state buttons (Main Menu) - Toggle between FAQ menu and Homework menu
-        if current_state in [ConversationState.INITIAL, ConversationState.IDLE, ConversationState.IDENTIFYING]:
-            menu_state = ConversationService.get_data(phone_number, "menu_state") or "faq_menu" if phone_number else "faq_menu"
-            
-            if menu_state == "homework_menu":
-                return [
-                    {"id": "homework", "title": "📝 Homework"},
-                    {"id": "pay", "title": "💳 Subscribe"},
-                    {"id": "help", "title": "ℹ️ Help"},
-                ]
-            else:  # faq_menu (default)
-                return [
-                    {"id": "faq", "title": "❓ FAQs"},
-                    {"id": "support", "title": "💬 Chat Support"},
-                    {"id": "main_menu", "title": "📍 Main Menu"},
-                ]
-
-        # Registration complete - main menu
-        if current_state == ConversationState.REGISTERED:
-            return [
-                {"id": "homework", "title": "📝 Homework"},
-                {"id": "pay", "title": "💳 Subscribe"},
-                {"id": "help", "title": "ℹ️ Help"},
-            ]
-
-        # Homework type selection
-        if current_state == ConversationState.HOMEWORK_TYPE:
-            return [
-                {"id": "text", "title": "📄 Text"},
-                {"id": "image", "title": "📷 Image"},
-                {"id": "main_menu", "title": "📍 Main Menu"},
-            ]
-
-        # Payment confirmation
-        if current_state == ConversationState.PAYMENT_PENDING:
-            return [
-                {"id": "confirm", "title": "✅ Confirm Payment"},
-                {"id": "main_menu", "title": "📍 Main Menu"},
-            ]
-
-        # Homework submitted - what's next
-        if current_state == ConversationState.HOMEWORK_SUBMITTED:
-            return [
-                {"id": "faq", "title": "❓ FAQs"},
-                {"id": "support", "title": "💬 Chat Support"},
-                {"id": "main_menu", "title": "📍 Main Menu"},
-            ]
-
-        # Registration flows - collect info without menu option
-        if current_state in [ConversationState.REGISTERING_NAME, ConversationState.REGISTERING_EMAIL, ConversationState.REGISTERING_CLASS]:
-            return None
-
-        # Homework input flows - collect info with main menu option
-        if current_state in [ConversationState.HOMEWORK_SUBJECT, ConversationState.HOMEWORK_CONTENT]:
-            return [
-                {"id": "main_menu", "title": "📍 Main Menu"},
-            ]
-
-        # Active chat support - show end chat button
-        if current_state == ConversationState.CHAT_SUPPORT_ACTIVE:
-            return [
-                {"id": "end_chat", "title": "❌ End Chat"},
-            ]
-
-        # INTENT-BASED MENUS (CHECKED SECOND - Only when intent is explicit)
-        
+        # All menus disabled - users type commands instead
         return None
 
     @staticmethod
@@ -374,23 +309,26 @@ class MessageRouter:
             
             # Return to appropriate state based on registration
             if student_data and student_data.get("name"):
-                # Registered user - show main menu with feature list
+                # Registered user - show feature list with commands
                 greeting = f"Hey {first_name}!" if first_name else "Hey there!"
-                menu_text = (
+                feature_text = (
                     f"{greeting}\n\n"
-                    f"📚 **STUDY BOT FEATURES** 📚\n\n"
-                    f"Here's what you can do:\n\n"
-                    f"❓ **FAQs** - Quick answers to common questions about registration, homework & payment\n\n"
-                    f"💬 **Chat Support** - Talk to our team for personalized help anytime\n\n"
-                    f"📊 **Check Status** - View your subscription and account details\n\n"
-                    f"What would you like to do?"
+                    f"📚 **AVAILABLE FEATURES** 📚\n\n"
+                    f"🏠 **home** - Return to home menu\n"
+                    f"❓ **faq** - Get answers to common questions\n"
+                    f"📝 **homework** - Submit your homework\n"
+                    f"💬 **support** - Chat with our team\n"
+                    f"💳 **subscribe** - View subscription plans\n"
+                    f"📊 **status** - Check your account details\n"
+                    f"ℹ️ **help** - Get help with the bot\n\n"
+                    f"Just type a command above to get started!"
                 )
                 return (
-                    menu_text,
+                    feature_text,
                     ConversationState.IDLE,
                 )
             else:
-                # Unregistered user - show welcome page
+                # Unregistered user - show welcome page with bot features
                 try:
                     from models.admin_settings import AdminSettings
                     from config.database import SessionLocal
@@ -404,8 +342,19 @@ class MessageRouter:
                     logger.warning(f"Could not fetch bot name: {str(e)}")
                     bot_name = "EduBot"
                 
+                welcome_text = (
+                    f"👋 Welcome! I'm {bot_name}, your AI tutor assistant.\n\n"
+                    f"📚 **WHAT I CAN DO** 📚\n\n"
+                    f"✏️ **homework** - Get help with your assignments\n"
+                    f"❓ **faq** - Find answers to common questions\n"
+                    f"💬 **support** - Chat with our support team\n"
+                    f"💳 **subscribe** - Check subscription plans & pricing\n"
+                    f"📊 **status** - View your account info\n"
+                    f"ℹ️ **help** - Learn how to use me\n\n"
+                    f"To get started, type any command above or enter your full name to create an account!"
+                )
                 return (
-                    f"👋 Welcome! I'm {bot_name}, your AI tutor assistant.\n\nTo get started, let's create your free account!\n\n👤 What is your full name?",
+                    welcome_text,
                     ConversationState.INITIAL,
                 )
 
