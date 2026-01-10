@@ -374,19 +374,10 @@ class MessageRouter:
             
             # Return to appropriate state based on registration
             if student_data and student_data.get("name"):
-                # Registered user - show main menu with feature list
+                # Registered user - show simple greeting without menu
                 greeting = f"Hey {first_name}!" if first_name else "Hey there!"
-                menu_text = (
-                    f"{greeting}\n\n"
-                    f"📚 **STUDY BOT FEATURES** 📚\n\n"
-                    f"Here's what you can do:\n\n"
-                    f"❓ **FAQs** - Quick answers to common questions about registration, homework & payment\n\n"
-                    f"💬 **Chat Support** - Talk to our team for personalized help anytime\n\n"
-                    f"📊 **Check Status** - View your subscription and account details\n\n"
-                    f"What would you like to do?"
-                )
                 return (
-                    menu_text,
+                    greeting,
                     ConversationState.IDLE,
                 )
             else:
@@ -396,25 +387,11 @@ class MessageRouter:
                     ConversationState.INITIAL,
                 )
 
-        # Handle cancel command - Toggle menu state
+        # Handle cancel command - Return to greeting
         if intent == "cancel":
-            # Toggle between faq_menu and homework_menu
-            current_menu = ConversationService.get_data(phone_number, "menu_state") or "faq_menu"
-            new_menu = "homework_menu" if current_menu == "faq_menu" else "faq_menu"
-            ConversationService.set_data(phone_number, "menu_state", new_menu)
-            
             greeting = f"Hey {first_name}!" if first_name else "Hey there!"
-            menu_text = (
-                f"{greeting}\n\n"
-                f"📚 **STUDY BOT FEATURES** 📚\n\n"
-                f"Here's what you can do:\n\n"
-                f"❓ **FAQs** - Quick answers to common questions about registration, homework & payment\n\n"
-                f"💬 **Chat Support** - Talk to our team for personalized help anytime\n\n"
-                f"📊 **Check Status** - View your subscription and account details\n\n"
-                f"What would you like to do?"
-            )
             return (
-                menu_text,
+                greeting,
                 ConversationState.IDLE,
             )
 
@@ -444,8 +421,7 @@ class MessageRouter:
                 f"📊 **ACCOUNT MANAGEMENT**\n"
                 f"• Check your subscription status anytime\n"
                 f"• View your submission history\n"
-                f"• Track tutor feedback\n\n"
-                f"Ready to get started? Choose an option above!"
+                f"• Track tutor feedback"
             )
             return (help_text, ConversationState.IDLE)
 
@@ -574,36 +550,18 @@ class MessageRouter:
                     ConversationState.IDLE,
                 )
             elif intent == "main_menu":
-                # If user clicks main menu from IDLE/INITIAL, return to main options
+                # If user clicks main menu from IDLE/INITIAL, return to greeting
                 greeting = f"Welcome back, {first_name}! 👋" if first_name else "Welcome back! 👋"
-                menu_text = (
-                    f"{greeting}\n\n"
-                    f"📚 **STUDY BOT FEATURES** 📚\n\n"
-                    f"Here's what you can do:\n\n"
-                    f"❓ **FAQs** - Quick answers to common questions about registration, homework & payment\n\n"
-                    f"💬 **Chat Support** - Talk to our team for personalized help anytime\n\n"
-                    f"📊 **Check Status** - View your subscription and account details\n\n"
-                    f"What would you like to do?"
-                )
                 return (
-                    menu_text,
+                    greeting,
                     ConversationState.REGISTERED if student_data else ConversationState.IDLE,
                 )
             else:
                 greeting = f"👋 Hey {first_name}!" if first_name else "👋 Hi!"
                 if first_name:
-                    # Registered user - show feature list
-                    menu_text = (
-                        f"{greeting}\n\n"
-                        f"📚 **STUDY BOT FEATURES** 📚\n\n"
-                        f"Here's what you can do:\n\n"
-                        f"❓ **FAQs** - Quick answers to common questions about registration, homework & payment\n\n"
-                        f"💬 **Chat Support** - Talk to our team for personalized help anytime\n\n"
-                        f"📊 **Check Status** - View your subscription and account details\n\n"
-                        f"What would you like to do?"
-                    )
+                    # Registered user - show simple greeting
                     return (
-                        menu_text,
+                        greeting,
                         ConversationState.IDLE,
                     )
                 else:
@@ -635,9 +593,7 @@ class MessageRouter:
             return (
                 f"✅ Account Created!\n\n"
                 f"Welcome, {first_name_reg}!\n\n"
-                f"You're now registered as a FREE user. You can submit homework "
-                f"with payment per submission, or subscribe for unlimited access.\n\n"
-                f"What would you like to do?",
+                f"You're now registered as a FREE user.",
                 ConversationState.REGISTERED,
             )
 
@@ -678,20 +634,11 @@ class MessageRouter:
                 )
                 return (ack_message, ConversationState.CHAT_SUPPORT_ACTIVE)
 
-        # Main menu - show welcome and main options (CHECK BEFORE REGISTERED STATE)
+        # Main menu - show simple greeting (no menu display)
         elif intent == "main_menu":
             greeting = f"Welcome back, {first_name}! 👋" if first_name else "Welcome back! 👋"
-            menu_text = (
-                f"{greeting}\n\n"
-                f"📚 **STUDY BOT FEATURES** 📚\n\n"
-                f"Here's what you can do:\n\n"
-                f"❓ **FAQs** - Quick answers to common questions about registration, homework & payment\n\n"
-                f"💬 **Chat Support** - Talk to our team for personalized help anytime\n\n"
-                f"📊 **Check Status** - View your subscription and account details\n\n"
-                f"What would you like to do?"
-            )
             return (
-                menu_text,
+                greeting,
                 ConversationState.REGISTERED,
             )
 
@@ -727,7 +674,7 @@ class MessageRouter:
                 # Default response for other intents while registered
                 greeting = f"Hey {first_name}! 👋" if first_name else "👋"
                 return (
-                    f"{greeting}\n\nWhat would you like to do?",
+                    greeting,
                     ConversationState.REGISTERED,
                 )
 
@@ -793,12 +740,10 @@ class MessageRouter:
             if current_state in [ConversationState.INITIAL, ConversationState.IDLE, ConversationState.IDENTIFYING]:
                 greeting = f"Hey {first_name}!" if first_name else "Hey there!"
                 return (
-                    f"{greeting}\n\nWhat would you like to do?",
+                    f"{greeting}",
                     ConversationState.IDLE,
                 )
             else:
                 return (
-                    f"❓ I didn't quite understand that.\n\n"
-                    f"Choose an option above to continue.",
-                    ConversationState.IDLE,
+                    f"❓ I didn't quite understand that.\n\nTry typing a command like: faq, support, or check",                    ConversationState.IDLE,
                 )
