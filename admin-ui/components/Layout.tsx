@@ -2,7 +2,6 @@ import React from "react";
 import StatusIndicator from "./StatusIndicator";
 import WhatsAppIndicator from "./WhatsAppIndicator";
 
-// Updated layout with mobile-friendly sidebar menu
 interface LayoutProps {
   children: React.ReactNode;
 }
@@ -32,21 +31,21 @@ export default function Layout({ children }: LayoutProps) {
       )}
 
       {/* Main Layout Container */}
-      <div className="flex flex-col lg:flex-row h-screen bg-gray-100">
+      <div className="flex w-full h-full bg-gray-100">
         {/* Sidebar */}
         <aside
-          className={`fixed lg:relative inset-y-0 left-0 w-64 bg-blue-900 text-white shadow-lg transition-all duration-300 ease-in-out z-40 ${
-            sidebarOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"
+          className={`fixed top-0 left-0 w-64 h-full bg-blue-900 text-white shadow-lg transition-all duration-300 ease-in-out z-40 lg:relative lg:translate-x-0 overflow-y-auto ${
+            sidebarOpen ? "translate-x-0" : "-translate-x-full"
           }`}
         >
           {/* Logo Section */}
-          <div className="p-6 border-b border-blue-800">
+          <div className="p-6 border-b border-blue-800 flex-shrink-0">
             <h1 className="text-2xl font-bold">WhatsApp Bot</h1>
             <p className="text-blue-200 text-sm">Admin Panel</p>
           </div>
 
           {/* Navigation Menu */}
-          <nav className="py-6 overflow-y-auto h-[calc(100vh-120px)]">
+          <nav className="py-6">
             <div className="space-y-2">
               {menuItems.map((item) => (
                 <a
@@ -76,45 +75,43 @@ export default function Layout({ children }: LayoutProps) {
         </aside>
 
         {/* Main Content Area */}
-        <main className="flex-1 flex flex-col overflow-hidden w-full">
+        <main className="flex-1 flex flex-col overflow-hidden">
           {/* Top Bar */}
-          <div className="bg-white shadow-sm z-20 flex-shrink-0 border-b border-gray-200">
-            <div className="px-4 sm:px-6 lg:px-8 py-4 flex items-center justify-between gap-4 h-16">
-              {/* Mobile Menu Button */}
-              <button
-                onClick={() => setSidebarOpen(!sidebarOpen)}
-                className="lg:hidden p-2 hover:bg-gray-100 rounded transition flex-shrink-0"
-                aria-label="Toggle sidebar"
+          <div className="bg-white shadow-sm z-20 flex-shrink-0 border-b border-gray-200 h-16 flex items-center px-4 sm:px-6 lg:px-8 gap-4">
+            {/* Mobile Menu Button */}
+            <button
+              onClick={() => setSidebarOpen(!sidebarOpen)}
+              className="lg:hidden p-2 hover:bg-gray-100 rounded transition flex-shrink-0 -ml-2"
+              aria-label="Toggle sidebar"
+            >
+              <i className={`fas ${sidebarOpen ? "fa-times" : "fa-bars"} text-lg text-gray-700`}></i>
+            </button>
+
+            {/* Title */}
+            <h2 className="text-lg sm:text-xl font-bold text-gray-800 flex-1 min-w-0">
+              Admin
+            </h2>
+
+            {/* Status Indicators - Desktop Only */}
+            <div className="hidden md:flex items-center gap-3 flex-shrink-0">
+              <StatusIndicator />
+              <WhatsAppIndicator />
+            </div>
+
+            {/* Notifications */}
+            <button className="p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded transition flex-shrink-0">
+              <i className="fas fa-bell text-lg"></i>
+            </button>
+
+            {/* Logout */}
+            <div className="border-l border-gray-300 pl-3 sm:pl-4 flex-shrink-0">
+              <a
+                href="/logout"
+                className="text-gray-600 hover:text-red-600 transition flex items-center gap-1"
               >
-                <i className={`fas ${sidebarOpen ? "fa-times" : "fa-bars"} text-lg text-gray-700`}></i>
-              </button>
-
-              {/* Title */}
-              <h2 className="text-lg sm:text-xl font-bold text-gray-800 flex-1 min-w-0">
-                Admin
-              </h2>
-
-              {/* Status Indicators - Desktop Only */}
-              <div className="hidden md:flex items-center gap-3 flex-shrink-0">
-                <StatusIndicator />
-                <WhatsAppIndicator />
-              </div>
-
-              {/* Notifications */}
-              <button className="p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded transition flex-shrink-0">
-                <i className="fas fa-bell text-lg"></i>
-              </button>
-
-              {/* Logout */}
-              <div className="border-l border-gray-300 pl-3 sm:pl-4 flex-shrink-0">
-                <a
-                  href="/logout"
-                  className="text-gray-600 hover:text-red-600 transition flex items-center gap-1"
-                >
-                  <i className="fas fa-sign-out-alt text-lg"></i>
-                  <span className="hidden sm:inline text-sm font-medium">Logout</span>
-                </a>
-              </div>
+                <i className="fas fa-sign-out-alt text-lg"></i>
+                <span className="hidden sm:inline text-sm font-medium">Logout</span>
+              </a>
             </div>
           </div>
 
