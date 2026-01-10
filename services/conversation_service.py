@@ -21,6 +21,9 @@ class ConversationState(str, Enum):
     REGISTERING_NAME = "registering_name"
     REGISTERING_EMAIL = "registering_email"
     REGISTERING_CLASS = "registering_class"
+    UPDATING_NAME = "updating_name"
+    UPDATING_EMAIL = "updating_email"
+    UPDATING_CLASS = "updating_class"
     REGISTERED = "registered"
     HOMEWORK_SUBJECT = "homework_subject"
     HOMEWORK_TYPE = "homework_type"
@@ -199,6 +202,7 @@ class MessageRouter:
     KEYWORD_IMAGE = ["image", "📷", "photo", "picture", "img"]
     KEYWORD_TEXT = ["text", "📄", "write", "type", "message"]
     KEYWORD_CANCEL = ["cancel", "stop", "reset", "clear", "menu"]
+    KEYWORD_UPDATE = ["update", "edit", "change", "modify", "profile"]
 
     @staticmethod
     def get_buttons(intent: str, current_state: ConversationState, is_registered: bool = False, phone_number: str = None) -> Optional[List[Dict[str, str]]]:
@@ -258,6 +262,8 @@ class MessageRouter:
         # Check for other keywords
         if any(kw in text_lower for kw in MessageRouter.KEYWORD_REGISTER):
             return "register"
+        if any(kw in text_lower for kw in MessageRouter.KEYWORD_UPDATE):
+            return "update"
         if any(kw in text_lower for kw in MessageRouter.KEYWORD_HOMEWORK):
             return "homework"
         if any(kw in text_lower for kw in MessageRouter.KEYWORD_PAY):
@@ -502,10 +508,44 @@ class MessageRouter:
         # Initial state - user hasn't chosen action
         if current_state == ConversationState.INITIAL or current_state == ConversationState.IDLE:
             if intent == "register":
+                # Check if user is already registered
+                if student_data and student_data.get("name"):
+                    # User is already registered - show their info with update menu
+                    user_email = student_data.get("email", "Not provided")
+                    user_class = student_data.get("class_grade", "Not provided")
+                    return (
+                        f"✅ You are already registered!\n\n"
+                        f"📋 **Your Information:**\n\n"
+                        f"👤 Name: {student_data.get('name')}\n"
+                        f"📧 Email: {user_email}\n"
+                        f"🎓 Class: {user_class}\n\n"
+                        f"Would you like to:\n\n"
+                        f"📝 **Update** - Change your information\n"
+                        f"↩️ **Home** - Return to main menu\n\n"
+                        f"Type a command above to continue!",
+                        ConversationState.IDLE,
+                    )
+                # Not registered - proceed with registration
                 return (
                     "👤 Let's create your account!\n\n"
                     "What is your full name?",
                     ConversationState.REGISTERING_NAME,
+                )
+            elif intent == "update":
+                # User wants to update their profile
+                if not student_data or not student_data.get("name"):
+                    return (
+                        "❌ No Account Found\n\n"
+                        "You don't have an account yet. Type 'Register' to create one.",
+                        ConversationState.IDLE,
+                    )
+                # Start update profile process - begin with name
+                current_name = student_data.get("name", "Not provided")
+                return (
+                    f"✏️ Update Your Profile\n\n"
+                    f"Current Name: {current_name}\n\n"
+                    f"Enter your new full name (or press skip to keep current name):",
+                    ConversationState.UPDATING_NAME,
                 )
             elif intent == "homework":
                 if not student_data:
@@ -625,6 +665,65 @@ class MessageRouter:
                 f"with payment per submission, or subscribe for unlimited access.\n\n"
                 f"What would you like to do?",
                 ConversationState.REGISTERED,
+            )
+
+        # Profile update flow
+        elif current_state == ConversationState.UPDATING_NAME:
+            # Allow user to skip with "skip" command
+            if "skip" in message_text.lower():
+                # Keep existing name
+                existing_name = student_data.get("name") if student_data else ""
+                ConversationService.set_data(phone_number, "full_name", existing_name)
+            else:
+                ConversationService.set_data(phone_number, "full_name", message_text)
+            
+            current_email = student_data.get("email", "Not provided") if student_data else "Not provided"
+            return (
+                f"✅ Name updated!\n\n"
+                f"Current Email: {current_email}\n\n"
+                f"📧 Enter your new email address (or type 'skip' to keep current):",
+                ConversationState.UPDATING_EMAIL,
+            )
+
+        elif current_state == ConversationState.UPDATING_EMAIL:
+            # Allow user to skip
+            if "skip" in message_text.lower():
+                # Keep existing email
+                existing_email = student_data.get("email") if student_data else ""
+                ConversationService.set_data(phone_number, "email", existing_email)
+            else:
+                ConversationService.set_data(phone_number, "email", message_text)
+            
+            current_class = student_data.get("class_grade", "Not provided") if student_data else "Not provided"
+            return (
+                f"✅ Email updated!\n\n"
+                f"Current Class: {current_class}\n\n"
+                f"🎓 Enter your new class/grade (or type 'skip' to keep current):",
+                ConversationState.UPDATING_CLASS,
+            )
+
+        elif current_state == ConversationState.UPDATING_CLASS:
+            # Allow user to skip
+            if "skip" in message_text.lower():
+                # Keep existing class
+                existing_class = student_data.get("class_grade") if student_data else ""
+                ConversationService.set_data(phone_number, "class_grade", existing_class)
+            else:
+                ConversationService.set_data(phone_number, "class_grade", message_text)
+            
+            updated_name = ConversationService.get_data(phone_number, "full_name")
+            updated_email = ConversationService.get_data(phone_number, "email")
+            updated_class = ConversationService.get_data(phone_number, "class_grade")
+            first_name_updated = updated_name.split()[0] if updated_name else "there"
+            
+            return (
+                f"✅ Profile Updated!\n\n"
+                f"📋 **Your Updated Information:**\n\n"
+                f"👤 Name: {updated_name}\n"
+                f"📧 Email: {updated_email}\n"
+                f"🎓 Class: {updated_class}\n\n"
+                f"What would you like to do next, {first_name_updated}?",
+                ConversationState.IDLE,
             )
 
         # Chat support active - handle user messages during chat
