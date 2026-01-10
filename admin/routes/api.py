@@ -1185,12 +1185,17 @@ async def get_settings(db: Session = Depends(get_db)):
             settings_dict["database_url"] = settings.database_url or ""
         if not settings_dict.get("bot_name"):
             settings_dict["bot_name"] = "EduBot"
+        if not settings_dict.get("template_welcome"):
+            settings_dict["template_welcome"] = "👋 {name}, welcome to {bot_name}!"
+        if not settings_dict.get("template_status"):
+            settings_dict["template_status"] = "📋 Status: Awaiting registration\n\nPlease provide:\n1. Your full name\n2. Your class/grade\n3. Email address"
         
         # Ensure all expected keys exist
         expected_keys = [
             "whatsapp_api_key", "whatsapp_phone_number_id", "whatsapp_business_account_id",
             "whatsapp_phone_number", "whatsapp_webhook_token", "paystack_public_key",
-            "paystack_secret_key", "paystack_webhook_secret", "database_url", "bot_name"
+            "paystack_secret_key", "paystack_webhook_secret", "database_url", "bot_name",
+            "template_welcome", "template_status"
         ]
         for key in expected_keys:
             if key not in settings_dict:
@@ -1735,9 +1740,15 @@ async def get_conversation_messages(phone_number: str, db: Session = Depends(get
             # Use stored messages if available
             messages = stored_messages
         else:
-            # Get bot name from settings
+            # Get bot settings
             bot_name_setting = db.query(AdminSetting).filter(AdminSetting.key == "bot_name").first()
             bot_name = bot_name_setting.value if bot_name_setting else "EduBot"
+            
+            template_welcome_setting = db.query(AdminSetting).filter(AdminSetting.key == "template_welcome").first()
+            template_welcome = template_welcome_setting.value if template_welcome_setting else "👋 {name}, welcome to {bot_name}!"
+            
+            template_status_setting = db.query(AdminSetting).filter(AdminSetting.key == "template_status").first()
+            template_status = template_status_setting.value if template_status_setting else "📋 Status: Awaiting registration\n\nPlease provide:\n1. Your full name\n2. Your class/grade\n3. Email address"
             
             # Check if it's a student or lead and create default conversation
             student = db.query(Student).filter(Student.phone_number == phone_number).first()
@@ -1748,11 +1759,14 @@ async def get_conversation_messages(phone_number: str, db: Session = Depends(get
                 name = student.full_name if student else (lead.sender_name if lead else "User")
                 timestamp = student.created_at if student else (lead.created_at if lead else datetime.utcnow())
                 
+                # Replace template variables
+                welcome_text = template_welcome.replace("{name}", name).replace("{bot_name}", bot_name)
+                
                 messages = [
                     {
                         "id": f"msg_welcome_{phone_number}",
                         "phone_number": phone_number,
-                        "text": f"👋 {name}, welcome to {bot_name}!",
+                        "text": welcome_text,
                         "timestamp": timestamp.isoformat() if hasattr(timestamp, 'isoformat') else timestamp,
                         "sender_type": "bot",
                         "message_type": "text"
@@ -1764,7 +1778,7 @@ async def get_conversation_messages(phone_number: str, db: Session = Depends(get
                     messages.append({
                         "id": f"msg_status_{phone_number}",
                         "phone_number": phone_number,
-                        "text": f"📋 Status: Awaiting registration\n\nPlease provide:\n1. Your full name\n2. Your class/grade\n3. Email address",
+                        "text": template_status,
                         "timestamp": (timestamp + timedelta(seconds=1)).isoformat() if hasattr(timestamp, 'isoformat') else timestamp,
                         "sender_type": "bot",
                         "message_type": "text"

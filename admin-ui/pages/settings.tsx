@@ -16,6 +16,8 @@ interface SettingsData {
   paystack_webhook_secret?: string;
   database_url?: string;
   bot_name?: string;
+  template_welcome?: string;
+  template_status?: string;
   [key: string]: string | undefined;
 }
 
@@ -32,7 +34,7 @@ export default function SettingsPage() {
   const [success, setSuccess] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [isTesting, setIsTesting] = useState(false);
-  const [activeTab, setActiveTab] = useState<'whatsapp' | 'paystack' | 'database' | 'bot'>('bot');
+  const [activeTab, setActiveTab] = useState<'whatsapp' | 'paystack' | 'database' | 'bot' | 'templates'>('bot');
   const [testPhoneNumber, setTestPhoneNumber] = useState('+2348109508833');
   const [isTestingSendToNumber, setIsTestingSendToNumber] = useState(false);
   const [validationErrors, setValidationErrors] = useState<ValidationError>({});
@@ -329,11 +331,121 @@ export default function SettingsPage() {
             >
               <i className="fas fa-database mr-2"></i>Database
             </button>
+            <button
+              onClick={() => setActiveTab('templates')}
+              className={`flex-1 py-4 px-6 font-medium border-b-2 transition ${
+                activeTab === 'templates'
+                  ? 'border-indigo-600 text-indigo-600 bg-indigo-50'
+                  : 'border-transparent text-gray-600 hover:text-gray-900'
+              }`}
+            >
+              <i className="fas fa-comments mr-2"></i>Templates
+            </button>
           </div>
         </div>
 
         {/* Settings Form */}
         <form onSubmit={handleSave} className="space-y-6">
+
+          {/* Conversation Templates Tab */}
+          {activeTab === 'templates' && (
+            <div className="bg-white rounded-lg shadow p-8 animate-in fade-in duration-300">
+              <h2 className="text-2xl font-bold text-gray-900 mb-2 flex items-center">
+                <i className="fas fa-comments text-indigo-600 mr-3"></i>Conversation Templates
+              </h2>
+              <p className="text-gray-600 mb-6">Customize bot response templates. Use {'{name}'} and {'{bot_name}'} as placeholders</p>
+
+              <div className="space-y-8">
+                {/* Welcome Template */}
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">
+                    <i className="fas fa-hand-paper mr-2 text-indigo-600"></i>Welcome Message Template
+                  </label>
+                  <textarea
+                    value={settings.template_welcome || ''}
+                    onChange={(e) => handleSettingChange('template_welcome', e.target.value)}
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition font-mono text-sm"
+                    placeholder="👋 {name}, welcome to {bot_name}!"
+                    rows={3}
+                  />
+                  <p className="text-xs text-gray-500 mt-2">
+                    Shown when a user starts a conversation. Available variables: {'{name}'} (user name), {'{bot_name}'} (bot name)
+                  </p>
+                  
+                  {/* Preview */}
+                  <div className="mt-4 p-3 bg-indigo-50 border border-indigo-200 rounded-lg">
+                    <p className="text-xs font-semibold text-indigo-900 mb-2">Preview:</p>
+                    <div className="bg-white rounded p-3 border border-indigo-100">
+                      <p className="text-sm text-gray-700">
+                        {(settings.template_welcome || '👋 {name}, welcome to {bot_name}!')
+                          .replace('{name}', 'John')
+                          .replace('{bot_name}', settings.bot_name || 'EduBot')}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                <hr className="border-gray-200" />
+
+                {/* Status Template */}
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">
+                    <i className="fas fa-info-circle mr-2 text-indigo-600"></i>Status Message Template
+                  </label>
+                  <textarea
+                    value={settings.template_status || ''}
+                    onChange={(e) => handleSettingChange('template_status', e.target.value)}
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition font-mono text-sm"
+                    placeholder="📋 Status: Awaiting registration\n\nPlease provide:\n1. Your full name\n2. Your class/grade\n3. Email address"
+                    rows={4}
+                  />
+                  <p className="text-xs text-gray-500 mt-2">
+                    Shown to unregistered users when they start a conversation
+                  </p>
+                  
+                  {/* Preview */}
+                  <div className="mt-4 p-3 bg-indigo-50 border border-indigo-200 rounded-lg">
+                    <p className="text-xs font-semibold text-indigo-900 mb-2">Preview:</p>
+                    <div className="bg-white rounded p-3 border border-indigo-100">
+                      <p className="text-sm text-gray-700 whitespace-pre-wrap">
+                        {settings.template_status || '📋 Status: Awaiting registration\n\nPlease provide:\n1. Your full name\n2. Your class/grade\n3. Email address'}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Save Button */}
+                <div className="flex gap-3 pt-4 border-t border-gray-200">
+                  <button
+                    type="submit"
+                    disabled={!isDirty || isSaving}
+                    className={`px-6 py-2 rounded-lg font-medium transition flex items-center gap-2 ${
+                      !isDirty || isSaving
+                        ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                        : 'bg-indigo-600 text-white hover:bg-indigo-700'
+                    }`}
+                  >
+                    <i className={`fas ${isSaving ? 'fa-spinner fa-spin' : 'fa-save'}`}></i>
+                    {isSaving ? 'Saving...' : 'Save Templates'}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSettings((prev) => ({
+                        ...prev,
+                        template_welcome: '👋 {name}, welcome to {bot_name}!',
+                        template_status: '📋 Status: Awaiting registration\n\nPlease provide:\n1. Your full name\n2. Your class/grade\n3. Email address'
+                      }));
+                    }}
+                    className="px-6 py-2 rounded-lg font-medium transition flex items-center gap-2 border border-gray-300 text-gray-700 hover:bg-gray-50"
+                  >
+                    <i className="fas fa-redo"></i>
+                    Reset to Default
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* Bot Configuration Tab */}
           {activeTab === 'bot' && (
