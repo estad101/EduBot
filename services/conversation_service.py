@@ -781,11 +781,10 @@ class MessageRouter:
             # Default response for unknown intent - show feature list
             if current_state in [ConversationState.INITIAL, ConversationState.IDLE, ConversationState.IDENTIFYING]:
                 if student_data and student_data.get("name"):
-                    # Registered user - show feature list
+                    # Registered user - show main menu
                     greeting = f"Hey {first_name}!" if first_name else "Hey there!"
                     return (
                         f"{greeting}\n\n"
-                        f"❓ I didn't understand that command.\n\n"
                         f"📚 **AVAILABLE FEATURES** 📚\n\n"
                         f"🏠 **Home** - Return to home menu\n"
                         f"❓ **FAQ** - Get answers to common questions\n"
@@ -794,29 +793,16 @@ class MessageRouter:
                         f"💳 **Subscribe** - View subscription plans\n"
                         f"📊 **Status** - Check your account details\n"
                         f"ℹ️ **Help** - Get help with the bot\n\n"
-                        f"Just type a command above to continue!",
+                        f"Just type a command above to get started!",
                         ConversationState.IDLE,
                     )
                 else:
-                    # Unregistered user - show feature list
-                    try:
-                        from models.admin_settings import AdminSettings
-                        from config.database import SessionLocal
-                        db = SessionLocal()
-                        try:
-                            settings = db.query(AdminSettings).first()
-                            bot_name = settings.bot_name if settings and settings.bot_name else "EduBot"
-                        finally:
-                            db.close()
-                    except Exception as e:
-                        logger.warning(f"Could not fetch bot name: {str(e)}")
-                        bot_name = "EduBot"
-                    
+                    # Unregistered user - show main menu
                     return (
-                        f"❓ I didn't understand that command.\n\n"
-                        f"📚 **WHAT I CAN DO** 📚\n\n"
-                        f"✏️ **Homework** - Get help with your assignments\n"
-                        f"❓ **FAQ** - Find answers to common questions\n"
+                        f"📚 **AVAILABLE FEATURES** 📚\n\n"
+                        f"🏠 **Home** - Return to home menu\n"
+                        f"❓ **FAQ** - Get answers to common questions\n"
+                        f"📝 **Homework** - Submit your homework\n"
                         f"💬 **Support** - Chat with our support team\n"
                         f"💳 **Subscribe** - Check subscription plans & pricing\n"
                         f"📊 **Status** - View your account info\n"
@@ -828,7 +814,6 @@ class MessageRouter:
                 # In other states, return to idle with feature list
                 if student_data and student_data.get("name"):
                     return (
-                        f"❓ I didn't understand that.\n\n"
                         f"📚 **AVAILABLE FEATURES** 📚\n\n"
                         f"🏠 **Home** - Return to home menu\n"
                         f"❓ **FAQ** - Get answers to common questions\n"
@@ -837,16 +822,16 @@ class MessageRouter:
                         f"💳 **Subscribe** - View subscription plans\n"
                         f"📊 **Status** - Check your account details\n"
                         f"ℹ️ **Help** - Get help with the bot\n\n"
-                        f"Just type a command above to continue!",
+                        f"Just type a command above to get started!",
                         ConversationState.IDLE,
                     )
                 else:
-                    # Unregistered user in other state - show feature list
+                    # Unregistered user in other state - show main menu
                     return (
-                        f"❓ I didn't understand that.\n\n"
-                        f"📚 **WHAT I CAN DO** 📚\n\n"
-                        f"✏️ **Homework** - Get help with your assignments\n"
-                        f"❓ **FAQ** - Find answers to common questions\n"
+                        f"📚 **AVAILABLE FEATURES** 📚\n\n"
+                        f"🏠 **Home** - Return to home menu\n"
+                        f"❓ **FAQ** - Get answers to common questions\n"
+                        f"📝 **Homework** - Submit your homework\n"
                         f"💬 **Support** - Chat with our support team\n"
                         f"💳 **Subscribe** - Check subscription plans & pricing\n"
                         f"📊 **Status** - View your account info\n"
