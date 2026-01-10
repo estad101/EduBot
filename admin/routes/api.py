@@ -1206,7 +1206,7 @@ async def get_dashboard_stats(db: Session = Depends(get_db)):
 
 @router.get("/settings")
 @admin_session_required
-async def get_settings(db: Session = Depends(get_db), request: Request = None):
+async def get_settings(request: Request, db: Session = Depends(get_db)):
     """Get admin settings from database."""
     try:
         # Get all settings from database
@@ -1316,7 +1316,7 @@ async def debug_settings(db: Session = Depends(get_db)):
 
 @router.post("/settings/update")
 @admin_session_required
-async def update_settings(data: dict, db: Session = Depends(get_db), request: Request = None):
+async def update_settings(request: Request, data: dict, db: Session = Depends(get_db)):
     """Update admin settings in database."""
     logger.info(f"=== SETTINGS UPDATE: Received {len(data)} keys ===")
     
@@ -1369,7 +1369,7 @@ async def update_settings(data: dict, db: Session = Depends(get_db), request: Re
 
 @router.post("/settings/validate-whatsapp")
 @admin_session_required
-async def validate_whatsapp(db: Session = Depends(get_db), request: Request = None):
+async def validate_whatsapp(request: Request, db: Session = Depends(get_db)):
     """Validate WhatsApp configuration."""
     try:
         # Get current settings
@@ -1418,7 +1418,7 @@ async def validate_whatsapp(db: Session = Depends(get_db), request: Request = No
 
 @router.post("/settings/validate-paystack")
 @admin_session_required
-async def validate_paystack(db: Session = Depends(get_db), request: Request = None):
+async def validate_paystack(request: Request, db: Session = Depends(get_db)):
     """Validate Paystack configuration."""
     try:
         # Get current settings

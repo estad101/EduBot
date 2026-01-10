@@ -123,8 +123,12 @@ def require_admin(func):
 def admin_session_required(func):
     """Decorator for API endpoints requiring admin auth."""
     @wraps(func)
-    async def wrapper(request: Request, *args, **kwargs):
+    async def wrapper(*args, **kwargs):
+        # Extract request from kwargs (FastAPI dependency injection passes it as kwarg)
+        request = kwargs.get('request')
+        if not request:
+            raise HTTPException(status_code=400, detail="Request object required")
         if not AdminAuth.is_authenticated(request):
             raise HTTPException(status_code=401, detail="Unauthorized")
-        return await func(request, *args, **kwargs)
+        return await func(*args, **kwargs)
     return wrapper
