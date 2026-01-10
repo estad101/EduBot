@@ -118,9 +118,9 @@ async def whatsapp_webhook(request: Request, background_tasks: BackgroundTasks, 
             logger.info(f"Prompting unregistered user {phone_number} to register")
             # Fetch bot name from admin_settings table
             try:
-                from models.admin_settings import AdminSettings
-                settings = db.query(AdminSettings).first()
-                bot_name = settings.bot_name if settings and settings.bot_name else "EduBot"
+                from models.settings import AdminSetting
+                bot_setting = db.query(AdminSetting).filter(AdminSetting.key == "bot_name").first()
+                bot_name = bot_setting.value if bot_setting and bot_setting.value else "EduBot"
             except Exception as e:
                 logger.warning(f"Could not fetch bot name: {str(e)}")
                 bot_name = "EduBot"
