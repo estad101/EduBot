@@ -26,6 +26,14 @@ interface SettingsData {
   [key: string]: string | undefined;
 }
 
+interface BotTemplate {
+  id: number;
+  template_name: string;
+  template_content: string;
+  variables: string[];
+  is_default: boolean;
+}
+
 interface ValidationError {
   [key: string]: string;
 }
@@ -39,12 +47,14 @@ export default function SettingsPage() {
   const [success, setSuccess] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [isTesting, setIsTesting] = useState(false);
-  const [activeTab, setActiveTab] = useState<'whatsapp' | 'paystack' | 'database' | 'bot' | 'messages'>('bot');
+  const [activeTab, setActiveTab] = useState<'whatsapp' | 'paystack' | 'database' | 'bot' | 'templates' | 'messages'>('bot');
   const [testPhoneNumber, setTestPhoneNumber] = useState('+2348109508833');
   const [isTestingSendToNumber, setIsTestingSendToNumber] = useState(false);
   const [validationErrors, setValidationErrors] = useState<ValidationError>({});
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
   const [showTokens, setShowTokens] = useState(false);
+  const [templates, setTemplates] = useState<BotTemplate[]>([]);
+  const [loadingTemplates, setLoadingTemplates] = useState(false);
 
   const isDirty = JSON.stringify(settings) !== JSON.stringify(originalSettings);
 
@@ -73,6 +83,32 @@ export default function SettingsPage() {
 
     fetchSettings();
   }, [router]);
+
+  // Fetch bot templates from database
+  useEffect(() => {
+    const fetchTemplates = async () => {
+      try {
+        setLoadingTemplates(true);
+        const response = await fetch('/api/bot-messages/templates/list', {
+          method: 'GET',
+          headers: {
+            'Authorization': `Bearer ${localStorage.getItem('admin_token')}`,
+            'Content-Type': 'application/json'
+          }
+        });
+        const data = await response.json();
+        if (data.status === 'success' && data.data?.templates) {
+          setTemplates(data.data.templates);
+        }
+      } catch (err: any) {
+        console.error('Failed to fetch templates:', err);
+      } finally {
+        setLoadingTemplates(false);
+      }
+    };
+
+    fetchTemplates();
+  }, []);
 
   // Validation functions
   const validatePhoneNumber = (phone: string): boolean => {
@@ -337,6 +373,16 @@ export default function SettingsPage() {
               <i className="fas fa-database mr-2"></i>Database
             </button>
             <button
+              onClick={() => setActiveTab('templates')}
+              className={`flex-1 py-4 px-6 font-medium border-b-2 transition ${
+                activeTab === 'templates'
+                  ? 'border-cyan-600 text-cyan-600 bg-cyan-50'
+                  : 'border-transparent text-gray-600 hover:text-gray-900'
+              }`}
+            >
+              <i className="fas fa-file-alt mr-2"></i>Templates
+            </button>
+            <button
               onClick={() => setActiveTab('messages')}
               className={`flex-1 py-4 px-6 font-medium border-b-2 transition ${
                 activeTab === 'messages'
@@ -354,8 +400,98 @@ export default function SettingsPage() {
           <MessageManagementTab />
         )}
 
+        {/* Templates Tab */}
+        {activeTab === 'templates' && (
+          <div className="bg-white rounded-lg shadow p-8 animate-in fade-in duration-300">
+            <h2 className="text-2xl font-bold text-gray-900 mb-2 flex items-center">
+              <i className="fas fa-file-alt text-cyan-600 mr-3"></i>Bot Message Templates
+            </h2>
+            <p className="text-gray-600 mb-6">View and manage reusable message templates from the database</p>
+
+            {loadingTemplates ? (
+              <div className="flex justify-center items-center py-12">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-cyan-600"></div>
+                <span className="ml-3 text-gray-600">Loading templates...</span>
+              </div>
+            ) : templates.length === 0 ? (
+              <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-6 text-center">
+                <i className="fas fa-inbox text-yellow-600 text-3xl mb-3"></i>
+                <p className="text-gray-600">No templates found in the database.</p>
+                <p className="text-sm text-gray-500 mt-2">Templates will appear here once they are seeded or created.</p>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {/* Summary Stats */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                  <div className="bg-cyan-50 border border-cyan-200 rounded-lg p-4">
+                    <p className="text-sm text-cyan-600 font-semibold">Total Templates</p>
+                    <p className="text-2xl font-bold text-cyan-900 mt-1">{templates.length}</p>
+                  </div>
+                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                    <p className="text-sm text-blue-600 font-semibold">Default Templates</p>
+                    <p className="text-2xl font-bold text-blue-900 mt-1">{templates.filter(t => t.is_default).length}</p>
+                  </div>
+                  <div className="bg-indigo-50 border border-indigo-200 rounded-lg p-4">
+                    <p className="text-sm text-indigo-600 font-semibold">Custom Templates</p>
+                    <p className="text-2xl font-bold text-indigo-900 mt-1">{templates.filter(t => !t.is_default).length}</p>
+                  </div>
+                </div>
+
+                {/* Templates List */}
+                <div className="space-y-3 max-h-[70vh] overflow-y-auto">
+                  {templates.map((template) => (
+                    <div key={template.id} className="bg-gray-50 border border-gray-200 rounded-lg p-4 hover:shadow-md transition">
+                      <div className="flex justify-between items-start mb-3">
+                        <div className="flex-1">
+                          <h3 className="font-semibold text-gray-900 flex items-center gap-2">
+                            <i className="fas fa-tag text-cyan-600 text-sm"></i>
+                            {template.template_name}
+                            {template.is_default && (
+                              <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
+                                ⭐ Default
+                              </span>
+                            )}
+                          </h3>
+                          <p className="text-xs text-gray-500 mt-1">ID: {template.id}</p>
+                        </div>
+                      </div>
+
+                      {/* Template Content */}
+                      <div className="bg-white border border-gray-200 rounded p-3 mb-3 font-mono text-sm max-h-32 overflow-y-auto whitespace-pre-wrap break-words">
+                        {template.template_content}
+                      </div>
+
+                      {/* Variables */}
+                      {template.variables && template.variables.length > 0 && (
+                        <div>
+                          <p className="text-xs font-semibold text-gray-700 mb-2 flex items-center gap-1">
+                            <i className="fas fa-code text-purple-600"></i>
+                            Variables:
+                          </p>
+                          <div className="flex flex-wrap gap-2">
+                            {template.variables.map((variable, idx) => (
+                              <span key={idx} className="inline-block bg-purple-100 text-purple-700 px-2 py-1 rounded text-xs font-mono">
+                                {typeof variable === 'string' ? variable : JSON.stringify(variable)}
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Messages Management Tab - Outside Form */}
+        {activeTab === 'messages' && (
+          <MessageManagementTab />
+        )}
+
         {/* Settings Form */}
-        {activeTab !== 'messages' && (
+        {activeTab !== 'messages' && activeTab !== 'templates' && (
         <form onSubmit={handleSave} className="space-y-6">
 
           {/* Bot Configuration Tab */}
