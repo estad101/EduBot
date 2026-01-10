@@ -1811,6 +1811,73 @@ async def get_conversation_messages(phone_number: str, db: Session = Depends(get
         }
 
 
+@router.post("/conversations/{phone_number}/chat-support/start")
+async def start_chat_support(
+    phone_number: str,
+    request_body: dict = Body(...),
+    db: Session = Depends(get_db)
+):
+    """
+    Admin initiates a chat support session with a user.
+    
+    Request body:
+    {
+        "message": "Optional greeting message to send to user"
+    }
+    """
+    try:
+        from services.conversation_service import ConversationService, ConversationState
+        from services.whatsapp_service import WhatsAppService
+        
+        greeting_message = request_body.get("message", "🎧 Chat Support: An admin is now available to help you. How can we assist you?")
+        
+        # Check if user is already in chat support
+        conv_state = ConversationService.get_state(phone_number)
+        is_already_in_chat = conv_state.get("data", {}).get("chat_support_active", False)
+        
+        if is_already_in_chat:
+            return {
+                "status": "error",
+                "message": "User is already in an active chat support session"
+            }
+        
+        # Initialize chat support session
+        ConversationService.set_data(phone_number, "chat_support_active", True)
+        ConversationService.set_data(phone_number, "in_chat_support", True)
+        ConversationService.set_data(phone_number, "chat_start_time", datetime.now().isoformat())
+        ConversationService.set_data(phone_number, "chat_messages", [])
+        ConversationService.set_state(phone_number, ConversationState.IN_CHAT_SUPPORT)
+        
+        # Send greeting message to user
+        try:
+            result = await WhatsAppService.send_message(
+                phone_number=phone_number,
+                message_text=greeting_message,
+                buttons=None
+            )
+        except Exception as msg_err:
+            logger.warning(f"Could not send greeting message: {str(msg_err)}")
+        
+        logger.info(f"Admin started chat support session with {phone_number}")
+        
+        return {
+            "status": "success",
+            "message": "Chat support session started",
+            "data": {
+                "phone_number": phone_number,
+                "session_started": datetime.now().isoformat(),
+                "initial_message_sent": True
+            }
+        }
+    
+    except Exception as e:
+        logger.error(f"Error starting chat support: {str(e)}")
+        return {
+            "status": "error",
+            "message": f"Error starting chat: {str(e)}"
+        }
+
+
 @router.post("/conversations/{phone_number}/chat-support/send")
 async def send_chat_support_message(
     phone_number: str,
