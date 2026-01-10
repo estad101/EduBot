@@ -67,9 +67,9 @@ export default function LoginPage() {
       <div className="absolute -bottom-8 left-1/2 w-96 h-96 bg-pink-500 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-blob animation-delay-4000"></div>
 
       {/* Centered container */}
-      <div className="w-full max-w-md mx-auto flex flex-col items-center justify-center relative z-10">
+      <div className="w-full max-w-md relative z-10">
         {/* Main card */}
-        <div className="bg-white/10 backdrop-blur-xl rounded-2xl shadow-2xl p-8 border border-white/20 relative w-full">
+        <div className="bg-white/10 backdrop-blur-xl rounded-2xl shadow-2xl p-8 border border-white/20 relative">
           {/* Gradient border effect */}
           <div className="absolute inset-0 bg-gradient-to-br from-white/10 to-transparent rounded-2xl opacity-0 hover:opacity-100 transition-opacity duration-500"></div>
 
@@ -185,9 +185,6 @@ export default function LoginPage() {
             </p>
           </div>
         </div>
-
-        {/* Decorative elements */}
-        <div className="absolute -bottom-24 left-1/2 -translate-x-1/2 w-full h-32 bg-gradient-to-t from-blue-500/20 to-transparent rounded-full blur-3xl opacity-50"></div>
       </div>
 
       <style jsx>{`
