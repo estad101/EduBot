@@ -7,7 +7,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     gcc \
     curl \
     python3-dev \
-    libmysqlclient-dev \
+    libmariadb-dev \
     pkg-config \
     && rm -rf /var/lib/apt/lists/*
 
