@@ -1,16 +1,70 @@
 """
 Bot Message Service - manages bot messages and templates.
+Integrates bot name from admin_settings for personalized messages.
 """
 import logging
+import time
 from typing import Optional, Dict, Any, List
 from sqlalchemy.orm import Session
 from models.bot_message import BotMessage, BotMessageTemplate, BotMessageWorkflow
 
 logger = logging.getLogger(__name__)
 
+# Bot name cache for message personalization
+_bot_name_cache = {'value': 'EduBot', 'timestamp': None}
+_CACHE_TTL = 3600  # 1 hour
+
 
 class BotMessageService:
     """Service for managing bot messages."""
+
+    @staticmethod
+    def get_bot_name(db: Session = None) -> str:
+        """
+        Get the bot name from database with caching.
+        Used for personalizing bot messages.
+        """
+        now = time.time()
+        
+        # Return cached value if still valid
+        if _bot_name_cache['timestamp'] and (now - _bot_name_cache['timestamp']) < _CACHE_TTL:
+            return _bot_name_cache['value']
+        
+        # Try to fetch from database
+        if db:
+            try:
+                from models.settings import AdminSetting
+                setting = db.query(AdminSetting).filter(
+                    AdminSetting.key == 'bot_name'
+                ).first()
+                if setting and setting.value:
+                    _bot_name_cache['value'] = setting.value
+                    _bot_name_cache['timestamp'] = now
+                    logger.info(f"Bot name updated to: {setting.value}")
+                    return setting.value
+            except Exception as e:
+                logger.warning(f"Failed to fetch bot name from DB: {e}")
+        
+        return _bot_name_cache['value']
+
+    @staticmethod
+    def personalize_message(content: str, db: Session = None, variables: Dict[str, str] = None) -> str:
+        """
+        Personalize message content with bot name and other variables.
+        Replaces {bot_name} placeholder with actual bot name from database.
+        """
+        bot_name = BotMessageService.get_bot_name(db)
+        
+        # Replace bot name placeholder
+        content = content.replace('{bot_name}', bot_name)
+        
+        # Replace other variables if provided
+        if variables:
+            for key, value in variables.items():
+                placeholder = '{' + key + '}'
+                content = content.replace(placeholder, str(value))
+        
+        return content
 
     @staticmethod
     def get_message_by_key(db: Session, message_key: str) -> Optional[BotMessage]:

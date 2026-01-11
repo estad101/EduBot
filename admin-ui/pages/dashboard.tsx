@@ -48,6 +48,7 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [unresolvedChats, setUnresolvedChats] = useState(0);
+  const [botName, setBotName] = useState('EduBot');
   const { setStats: setDashboardStats } = useDashboardStore();
 
   useEffect(() => {
@@ -58,6 +59,23 @@ export default function DashboardPage() {
         if (!token) {
           router.push('/login');
           return;
+        }
+
+        // Fetch bot name from admin_settings
+        try {
+          const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+          const settingsResponse = await fetch(`${apiUrl}/api/admin/settings`, {
+            method: 'GET',
+            headers: { 'Content-Type': 'application/json' },
+          });
+          if (settingsResponse.ok) {
+            const settingsData = await settingsResponse.json();
+            if (settingsData?.data?.bot_name) {
+              setBotName(settingsData.data.bot_name);
+            }
+          }
+        } catch (err) {
+          console.warn('Failed to fetch bot name:', err);
         }
 
         const response = await apiClient.getDashboardStats();
@@ -121,6 +139,11 @@ export default function DashboardPage() {
 
   return (
     <Layout>
+      {/* Bot Name Header - Display from database */}
+      <div className="mb-6 bg-blue-50 border-l-4 border-blue-500 rounded-lg p-4">
+        <p className="text-blue-800 font-semibold">Active Bot: <span className="text-lg font-bold">{botName}</span></p>
+      </div>
+
       {/* Unresolved Chat Support Notification */}
       {unresolvedChats > 0 && (
         <div className="mb-6 bg-red-50 border-l-4 border-red-500 rounded-lg p-4">

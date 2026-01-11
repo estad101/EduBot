@@ -9,8 +9,13 @@ import logging
 from datetime import datetime, timedelta
 from typing import Optional, Dict, Any, List
 from enum import Enum
+import time
 
 logger = logging.getLogger(__name__)
+
+# Global bot name cache (will be populated from database)
+_bot_name_cache = {'value': 'EduBot', 'timestamp': None}
+_BOT_NAME_CACHE_TTL = 3600  # 1 hour
 
 # Import NotificationTrigger for chat notifications
 try:
@@ -51,6 +56,43 @@ class ConversationService:
     """Service for managing user conversation state."""
 
     TIMEOUT_MINUTES = 30  # Conversation timeout
+
+    @staticmethod
+    def get_bot_name(db=None) -> str:
+        """
+        Get the bot name from database cache or default.
+        Caches for 1 hour to avoid repeated DB queries.
+        """
+        now = time.time()
+        
+        # Return cached value if still valid
+        if _bot_name_cache['timestamp'] and (now - _bot_name_cache['timestamp']) < _BOT_NAME_CACHE_TTL:
+            return _bot_name_cache['value']
+        
+        # Try to fetch from database
+        if db:
+            try:
+                from models.settings import AdminSetting
+                setting = db.query(AdminSetting).filter(
+                    AdminSetting.key == 'bot_name'
+                ).first()
+                if setting and setting.value:
+                    _bot_name_cache['value'] = setting.value
+                    _bot_name_cache['timestamp'] = now
+                    logger.info(f"Bot name updated to: {setting.value}")
+                    return setting.value
+            except Exception as e:
+                logger.warning(f"Failed to fetch bot name from DB: {e}")
+        
+        # Return cached value or default
+        return _bot_name_cache['value']
+    
+    @staticmethod
+    def set_bot_name_cache(bot_name: str):
+        """Update the cached bot name."""
+        _bot_name_cache['value'] = bot_name
+        _bot_name_cache['timestamp'] = time.time()
+        logger.info(f"Bot name cache updated to: {bot_name}")
 
     @staticmethod
     def get_state(phone_number: str) -> Dict[str, Any]:
