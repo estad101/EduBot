@@ -26,6 +26,7 @@ from utils.security import (
     get_client_ip, track_failed_login, record_failed_login, 
     clear_failed_login, create_session, generate_csrf_token
 )
+from api.routes.websocket import broadcast_conversation_update, broadcast_message_update
 
 logger = get_logger("admin_api")
 
@@ -1188,40 +1189,55 @@ async def get_overview_stats(db: Session = Depends(db_dependency)):
 
 
 @router.get("/dashboard/stats")
-async def get_dashboard_stats(db: Session = Depends(db_dependency)):
+async def get_dashboard_stats(db: AsyncSession = Depends(get_async_db)):
     """Get dashboard statistics (alias for /stats/overview).
     
     Only counts registered students (those with name, phone, and class_grade).
     """
-    from sqlalchemy import func
+    from sqlalchemy import func, select
     
     # Only count registered students (with name and non-pending class)
-    total_students = db.query(Student).filter(
-        Student.full_name != "",
-        Student.full_name.isnot(None),
-        Student.class_grade != "",
-        Student.class_grade != "Pending",
-        Student.class_grade.isnot(None),
-    ).count()
+    total_students_result = await db.execute(
+        select(func.count(Student.id)).where(
+            (Student.full_name != "") &
+            (Student.full_name.isnot(None)) &
+            (Student.class_grade != "") &
+            (Student.class_grade != "Pending") &
+            (Student.class_grade.isnot(None))
+        )
+    )
+    total_students = total_students_result.scalar() or 0
     
-    active_subscribers = db.query(Student).filter(
-        Student.status == UserStatus.ACTIVE_SUBSCRIBER,
-        Student.full_name != "",
-        Student.full_name.isnot(None),
-        Student.class_grade != "",
-        Student.class_grade != "Pending",
-        Student.class_grade.isnot(None),
-    ).count()
+    active_subscribers_result = await db.execute(
+        select(func.count(Student.id)).where(
+            (Student.status == UserStatus.ACTIVE_SUBSCRIBER) &
+            (Student.full_name != "") &
+            (Student.full_name.isnot(None)) &
+            (Student.class_grade != "") &
+            (Student.class_grade != "Pending") &
+            (Student.class_grade.isnot(None))
+        )
+    )
+    active_subscribers = active_subscribers_result.scalar() or 0
     
-    total_payments = db.query(Payment).filter_by(
-        status=PaymentStatus.SUCCESS
-    ).count()
+    total_payments_result = await db.execute(
+        select(func.count(Payment.id)).where(
+            Payment.status == PaymentStatus.SUCCESS
+        )
+    )
+    total_payments = total_payments_result.scalar() or 0
     
-    total_revenue = db.query(func.sum(Payment.amount)).filter_by(
-        status=PaymentStatus.SUCCESS
-    ).scalar() or 0
+    total_revenue_result = await db.execute(
+        select(func.sum(Payment.amount)).where(
+            Payment.status == PaymentStatus.SUCCESS
+        )
+    )
+    total_revenue = total_revenue_result.scalar() or 0
     
-    total_homework = db.query(Homework).count()
+    total_homework_result = await db.execute(
+        select(func.count(Homework.id))
+    )
+    total_homework = total_homework_result.scalar() or 0
     
     return {
         "status": "success",
@@ -1239,11 +1255,13 @@ async def get_dashboard_stats(db: Session = Depends(db_dependency)):
 
 @router.get("/settings")
 @admin_session_required
-async def get_settings(request: Request, db: Session = Depends(db_dependency)):
+async def get_settings(request: Request, db: AsyncSession = Depends(get_async_db)):
     """Get admin settings from database."""
     try:
         # Get all settings from database
-        db_settings = db.query(AdminSetting).all()
+        from sqlalchemy import select
+        result = await db.execute(select(AdminSetting))
+        db_settings = result.scalars().all()
         
         # Build settings dictionary
         settings_dict = {}
@@ -1319,10 +1337,12 @@ async def get_settings(request: Request, db: Session = Depends(db_dependency)):
 
 
 @router.get("/settings/debug")
-async def debug_settings(db: Session = Depends(db_dependency)):
+async def debug_settings(db: AsyncSession = Depends(get_async_db)):
     """Debug endpoint to verify token storage (admin only)."""
     try:
-        db_settings = db.query(AdminSetting).all()
+        from sqlalchemy import select
+        result = await db.execute(select(AdminSetting))
+        db_settings = result.scalars().all()
         
         debug_info = {}
         for setting in db_settings:
@@ -1781,7 +1801,7 @@ async def delete_lead(lead_id: int, db: Session = Depends(db_dependency)):
 @router.get("/conversations")
 async def get_conversations(
     limit: int = Query(20, ge=1, le=100),
-    db: Session = Depends(db_dependency)
+    db: AsyncSession = Depends(get_async_db)
 ):
     """
     Get list of recent conversations with WhatsApp users.
@@ -1803,12 +1823,13 @@ async def get_conversations(
         INACTIVITY_TIMEOUT_MINUTES = 3
         
         # Get ALL students, not just fully registered ones, to show activity
-        all_students = (
-            db.query(Student)
+        from sqlalchemy import select
+        result = await db.execute(
+            select(Student)
             .order_by(Student.updated_at.desc())
-            .limit(limit * 2)  # Get more to account for filtering
-            .all()
+            .limit(limit * 2)
         )
+        all_students = result.scalars().all()
         
         # Separate fully registered from partially registered
         for student in all_students:
@@ -1869,13 +1890,14 @@ async def get_conversations(
                 continue
         
         # Get unregistered leads (not in student table)
-        unregistered_leads = (
-            db.query(Lead)
-            .filter(Lead.is_active == True, Lead.converted_to_student == False)
+        from sqlalchemy import select
+        result = await db.execute(
+            select(Lead)
+            .where((Lead.is_active == True) & (Lead.converted_to_student == False))
             .order_by(Lead.last_message_time.desc())
             .limit(limit)
-            .all()
         )
+        unregistered_leads = result.scalars().all()
         
         for lead in unregistered_leads:
             if lead.phone_number not in conversation_phones:
@@ -1936,7 +1958,7 @@ async def get_conversations(
             "data": []
         }
 @router.get("/conversations/{phone_number}/messages")
-async def get_conversation_messages(phone_number: str, db: Session = Depends(db_dependency)):
+async def get_conversation_messages(phone_number: str, db: AsyncSession = Depends(get_async_db)):
     """
     Get message history for a specific phone number.
     Returns conversation thread with user and bot messages.
@@ -1960,18 +1982,34 @@ async def get_conversation_messages(phone_number: str, db: Session = Depends(db_
             messages = stored_messages
         else:
             # Get bot settings
-            bot_name_setting = db.query(AdminSetting).filter(AdminSetting.key == "bot_name").first()
+            from sqlalchemy import select
+            bot_name_result = await db.execute(
+                select(AdminSetting).where(AdminSetting.key == "bot_name")
+            )
+            bot_name_setting = bot_name_result.scalars().first()
             bot_name = bot_name_setting.value if bot_name_setting else "EduBot"
             
-            template_welcome_setting = db.query(AdminSetting).filter(AdminSetting.key == "template_welcome").first()
+            template_welcome_result = await db.execute(
+                select(AdminSetting).where(AdminSetting.key == "template_welcome")
+            )
+            template_welcome_setting = template_welcome_result.scalars().first()
             template_welcome = template_welcome_setting.value if template_welcome_setting else "👋 {name}, welcome to {bot_name}!"
             
-            template_status_setting = db.query(AdminSetting).filter(AdminSetting.key == "template_status").first()
+            template_status_result = await db.execute(
+                select(AdminSetting).where(AdminSetting.key == "template_status")
+            )
+            template_status_setting = template_status_result.scalars().first()
             template_status = template_status_setting.value if template_status_setting else "📋 Status: Awaiting registration\n\nPlease provide:\n1. Your full name\n2. Your class/grade\n3. Email address"
             
             # Check if it's a student or lead and create default conversation
-            student = db.query(Student).filter(Student.phone_number == phone_number).first()
-            lead = db.query(Lead).filter(Lead.phone_number == phone_number).first()
+            student_result = await db.execute(
+                select(Student).where(Student.phone_number == phone_number)
+            )
+            student = student_result.scalars().first()
+            lead_result = await db.execute(
+                select(Lead).where(Lead.phone_number == phone_number)
+            )
+            lead = lead_result.scalars().first()
             
             if student or lead:
                 # Create initial greeting message
@@ -2019,7 +2057,7 @@ async def get_conversation_messages(phone_number: str, db: Session = Depends(db_
 async def start_chat_support(
     phone_number: str,
     request_body: dict = Body(...),
-    db: Session = Depends(db_dependency)
+    db: AsyncSession = Depends(get_async_db)
 ):
     """
     Admin initiates a chat support session with a user.
@@ -2061,6 +2099,16 @@ async def start_chat_support(
         except Exception as msg_err:
             logger.warning(f"Could not send greeting message: {str(msg_err)}")
         
+        # Broadcast conversation update to all admins
+        try:
+            await broadcast_conversation_update({
+                "phone_number": phone_number,
+                "chat_support_started": True,
+                "started_at": datetime.now().isoformat()
+            }, user_type="admin")
+        except Exception as e:
+            logger.warning(f"Could not broadcast chat started: {str(e)}")
+        
         logger.info(f"Admin started chat support session with {phone_number}")
         
         return {
@@ -2085,7 +2133,7 @@ async def start_chat_support(
 async def send_chat_support_message(
     phone_number: str,
     request_body: dict = Body(...),
-    db: Session = Depends(db_dependency)
+    db: AsyncSession = Depends(get_async_db)
 ):
     """
     Admin sends a message to a user in active chat support.
@@ -2137,9 +2185,23 @@ async def send_chat_support_message(
             })
             ConversationService.set_data(phone_number, "chat_messages", chat_messages)
             
+            # Broadcast message to specific conversation
+            try:
+                await broadcast_message_update(phone_number, {
+                    "text": message_text,
+                    "sender": "admin",
+                    "timestamp": datetime.now().isoformat()
+                })
+            except Exception as e:
+                logger.warning(f"Could not broadcast message: {str(e)}")
+            
             # Trigger notification to user for admin message
             try:
-                student = db.query(Student).filter(Student.phone_number == phone_number).first()
+                from sqlalchemy import select
+                student_result = await db.execute(
+                    select(Student).where(Student.phone_number == phone_number)
+                )
+                student = student_result.scalars().first()
                 user_name = student.name if student else "Support Team"
                 NotificationTrigger.on_chat_message_received(
                     phone_number=phone_number,
@@ -2180,7 +2242,7 @@ async def send_chat_support_message(
 async def end_chat_support(
     phone_number: str,
     request_body: dict = Body(...) ,
-    db: Session = Depends(db_dependency)
+    db: AsyncSession = Depends(get_async_db)
 ):
     """
     Admin ends a chat support session with a user.
@@ -2235,7 +2297,11 @@ async def end_chat_support(
         
         # Trigger notification that chat has ended
         try:
-            student = db.query(Student).filter(Student.phone_number == phone_number).first()
+            from sqlalchemy import select
+            student_result = await db.execute(
+                select(Student).where(Student.phone_number == phone_number)
+            )
+            student = student_result.scalars().first()
             user_name = student.name if student else "User"
             NotificationTrigger.on_chat_support_ended_admin(
                 phone_number=phone_number,
@@ -2246,6 +2312,16 @@ async def end_chat_support(
             )
         except Exception as e:
             logger.warning(f"Could not send chat ended notification: {str(e)}")
+        
+        # Broadcast conversation update to all admins
+        try:
+            await broadcast_conversation_update({
+                "phone_number": phone_number,
+                "chat_support_ended": True,
+                "ended_at": datetime.now().isoformat()
+            }, user_type="admin")
+        except Exception as e:
+            logger.warning(f"Could not broadcast chat ended: {str(e)}")
         
         logger.info(f"Admin ended chat support session with {phone_number}")
         
