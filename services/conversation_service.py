@@ -162,6 +162,39 @@ class ConversationService:
         return faq_text
 
     @staticmethod
+    def get_template(template_name: str, db=None, variables: Dict[str, str] = None) -> str:
+        """
+        Generic template fetcher - gets any template by name.
+        Substitutes variables if provided.
+        
+        Args:
+            template_name: Name of the template to fetch
+            db: Database session
+            variables: Dict of variables to substitute (e.g., {full_name: "Victor"})
+        
+        Returns:
+            Template content with variables substituted
+        """
+        if db:
+            try:
+                from models.bot_message import BotMessageTemplate
+                template = db.query(BotMessageTemplate).filter(
+                    BotMessageTemplate.template_name == template_name
+                ).first()
+                if template and template.template_content:
+                    content = template.template_content
+                    # Substitute variables if provided
+                    if variables:
+                        for key, value in variables.items():
+                            content = content.replace(f"{{{key}}}", str(value))
+                    return content
+            except Exception as e:
+                logger.warning(f"Failed to fetch template '{template_name}' from DB: {e}")
+        
+        # Return empty string if not found
+        return ""
+
+    @staticmethod
     def get_state(phone_number: str) -> Dict[str, Any]:
         """
         Get conversation state for a user.
@@ -598,45 +631,38 @@ class MessageRouter:
 
         # Handle help command - Show comprehensive feature list
         if intent == "help":
-            help_text = (
-                f"📚 **STUDY BOT - COMPLETE FEATURES GUIDE** 📚\n\n"
-                f"Our bot helps you succeed academically with these tools:\n\n"
-                f"🎓 **KEY FEATURES:**\n\n"
-                f"📝 **HOMEWORK SUBMISSIONS**\n"
-                f"• Submit text-based answers or image uploads\n"
-                f"• Get detailed feedback from expert tutors\n"
-                f"• Response time: Within 24 hours\n\n"
-                f"💳 **SUBSCRIPTION PLANS**\n"
-                f"• FREE: Per-submission payment model\n"
-                f"• PREMIUM: ₦5,000/month for unlimited submissions\n"
-                f"• BONUS: Priority support for subscribers\n\n"
-                f"❓ **KNOWLEDGE BASE (FAQs)**\n"
-                f"• Registration guide: How to create your account\n"
-                f"• Homework help: Submission tips and limits\n"
-                f"• Payment info: Accepted methods and refund policy\n"
-                f"• Subscription details: Plans and benefits\n\n"
-                f"💬 **LIVE CHAT SUPPORT**\n"
-                f"• Talk directly with our support team\n"
-                f"• Available for all account types\n"
-                f"• Quick responses to your questions\n\n"
-                f"📊 **ACCOUNT MANAGEMENT**\n"
-                f"• Check your subscription status anytime\n"
-                f"• View your submission history\n"
-                f"• Track tutor feedback\n\n"
-                f"Ready to get started? Choose an option above!"
-            )
+            help_text = ConversationService.get_template("help_main", db)
+            if not help_text:
+                # Fallback if template not found
+                help_text = (
+                    "[?] Help & Features\n\n"
+                    "[Book] HOMEWORK SUBMISSION\n"
+                    "• Submit text or images easily\n"
+                    "• Get detailed tutor feedback within 24 hours\n"
+                    "• Track all your submissions\n\n"
+                    "[Card] PAYMENT OPTIONS\n"
+                    "• FREE: Per-submission payment\n"
+                    "• PREMIUM: 5000/month unlimited\n"
+                    "• Priority support for subscribers\n\n"
+                    "[Chat] LIVE CHAT SUPPORT\n"
+                    "• Talk directly with support team\n\n"
+                    "Ready to get started? Type a command!"
+                )
             return (help_text, ConversationState.IDLE)
 
         # Handle chat support command
         if intent == "support":
-            greeting = f"Hi {first_name}! 💬" if first_name else "💬"
-            support_text = (
-                f"{greeting}\n\n"
-                f"📞 Live Chat Support\n\n"
-                f"You are now connected to our support team! 🎯\n\n"
-                f"Please describe your issue and an admin will respond to you shortly.\n\n"
-                f"You can continue chatting until you select 'End Chat' to return to the main menu."
-            )
+            variables = {"first_name": first_name} if first_name else {}
+            support_text = ConversationService.get_template("support_welcome", db, variables)
+            if not support_text:
+                greeting = f"Hi {first_name}! 💬" if first_name else "💬"
+                support_text = (
+                    f"{greeting}\n\n"
+                    f"📞 Live Chat Support\n\n"
+                    f"You are now connected to our support team! 🎯\n\n"
+                    f"Please describe your issue and an admin will respond to you shortly.\n\n"
+                    f"You can continue chatting until you select 'End Chat' to return to the main menu."
+                )
             # Store that user is now in active chat support
             ConversationService.set_data(phone_number, "in_chat_support", True)
             ConversationService.set_data(phone_number, "chat_support_active", True)
@@ -783,14 +809,22 @@ class MessageRouter:
                         "Choose 'Register' to get started.",
                         ConversationState.IDLE,
                     )
-                status = "✅ ACTIVE" if student_data.get("has_subscription") else "❌ INACTIVE"
-                greeting = f"{first_name}, y" if first_name else "Y"
-                return (
-                    f"📊 Subscription Status\n\n"
-                    f"User: {greeting}our subscription\n"
-                    f"Status: {status}",
-                    ConversationState.IDLE,
-                )
+                variables = {
+                    "full_name": student_data.get("name", "User"),
+                    "email": student_data.get("email", "Not provided"),
+                    "has_subscription": "Yes" if student_data.get("has_subscription") else "No"
+                }
+                status_template = "status_subscribed" if student_data.get("has_subscription") else "status_not_subscribed"
+                status_text = ConversationService.get_template(status_template, db, variables)
+                if not status_text:
+                    status = "✅ ACTIVE" if student_data.get("has_subscription") else "❌ INACTIVE"
+                    greeting = f"{first_name}, y" if first_name else "Y"
+                    status_text = (
+                        f"📊 Subscription Status\n\n"
+                        f"User: {greeting}our subscription\n"
+                        f"Status: {status}"
+                    )
+                return (status_text, ConversationState.IDLE)
             elif intent == "main_menu":
                 # If user clicks main menu from IDLE/INITIAL, return to main options
                 menu_text = ConversationService.get_available_features_menu(db, first_name)
@@ -945,31 +979,39 @@ class MessageRouter:
         # Registered user - handle intents
         elif current_state == ConversationState.REGISTERED:
             if intent == "homework":
-                greeting = f"Hey {first_name}! 📝" if first_name else "📝"
-                return (
-                    f"{greeting}\n\nWhat subject is your homework for?\n\n"
-                    "(e.g., Mathematics, English, Science)",
-                    ConversationState.HOMEWORK_SUBJECT,
-                )
+                variables = {"first_name": first_name}
+                homework_subject_text = ConversationService.get_template("homework_subject", db, variables)
+                if not homework_subject_text:
+                    greeting = f"Hey {first_name}! 📝" if first_name else "📝"
+                    homework_subject_text = (
+                        f"{greeting}\n\nWhat subject is your homework for?\n\n"
+                        "(e.g., Mathematics, English, Science)"
+                    )
+                return (homework_subject_text, ConversationState.HOMEWORK_SUBJECT)
             elif intent == "pay":
-                greeting = f"Hi {first_name}! 💳" if first_name else "💳"
-                return (
-                    f"{greeting}\n\n💰 Monthly Subscription\n"
-                    f"Price: ₦5,000/month\n"
-                    f"Unlimited homework submissions\n\n"
-                    f"Tap 'Confirm Payment' to proceed.",
-                    ConversationState.PAYMENT_PENDING,
-                )
+                variables = {"first_name": first_name}
+                payment_text = ConversationService.get_template("payment_info", db, variables)
+                if not payment_text:
+                    greeting = f"Hi {first_name}! 💳" if first_name else "💳"
+                    payment_text = (
+                        f"{greeting}\n\n💰 Monthly Subscription\n"
+                        f"Price: ₦5,000/month\n"
+                        f"Unlimited homework submissions\n\n"
+                        f"Tap 'Confirm Payment' to proceed."
+                    )
+                return (payment_text, ConversationState.PAYMENT_PENDING)
             elif intent == "help":
-                return (
-                    f"📚 Help & Features\n\n"
-                    f"🎓 EduBot helps you with:"
-                    f"\n📝 Homework - Submit assignments and get tutor feedback"
-                    f"\n💳 Subscribe - Unlock unlimited homework submissions (₦5,000/month)"
-                    f"\n❓ FAQs - Quick answers to common questions"
-                    f"\n💬 Chat Support - Talk to our support team",
-                    ConversationState.REGISTERED,
-                )
+                help_text = ConversationService.get_template("help_main", db)
+                if not help_text:
+                    help_text = (
+                        f"📚 Help & Features\n\n"
+                        f"🎓 EduBot helps you with:"
+                        f"\n📝 Homework - Submit assignments and get tutor feedback"
+                        f"\n💳 Subscribe - Unlock unlimited homework submissions (₦5,000/month)"
+                        f"\n❓ FAQs - Quick answers to common questions"
+                        f"\n💬 Chat Support - Talk to our support team"
+                    )
+                return (help_text, ConversationState.REGISTERED)
             else:
                 # Default response for other intents while registered
                 greeting = f"Hey {first_name}! 👋" if first_name else "👋"
@@ -981,11 +1023,11 @@ class MessageRouter:
         # Homework flow
         elif current_state == ConversationState.HOMEWORK_SUBJECT:
             ConversationService.set_data(phone_number, "homework_subject", message_text)
-            return (
-                f"📚 Subject: {message_text}\n\n"
-                f"How would you like to submit your homework?",
-                ConversationState.HOMEWORK_TYPE,
-            )
+            variables = {"subject": message_text}
+            homework_type_text = ConversationService.get_template("homework_type", db, variables)
+            if not homework_type_text:
+                homework_type_text = f"📚 Subject: {message_text}\n\nHow would you like to submit your homework?"
+            return (homework_type_text, ConversationState.HOMEWORK_TYPE)
 
         elif current_state == ConversationState.HOMEWORK_TYPE:
             submission_type = "IMAGE" if "image" in message_text.lower() else "TEXT"
