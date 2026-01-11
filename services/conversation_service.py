@@ -134,6 +134,34 @@ class ConversationService:
         return feature_text
 
     @staticmethod
+    def get_faq_menu(db=None) -> str:
+        """
+        Get the FAQ menu message from database template.
+        Falls back to hardcoded version if template not found.
+        """
+        # Try to fetch from database
+        if db:
+            try:
+                from models.bot_message import BotMessageTemplate
+                template = db.query(BotMessageTemplate).filter(
+                    BotMessageTemplate.template_name == "faq_main"
+                ).first()
+                if template and template.template_content:
+                    return template.template_content
+            except Exception as e:
+                logger.warning(f"Failed to fetch FAQ template from DB: {e}")
+        
+        # Fallback to hardcoded version
+        faq_text = (
+            "[?] Frequently Asked Questions\n\n"
+            "[Pen] Registration: Create account with name, email, class - it's FREE!\n\n"
+            "[Book] Homework: Submit text or images. Get tutor responses within 24 hours.\n\n"
+            "[Card] Payment: Subscribers enjoy unlimited homework submissions.\n\n"
+            "[Star] Subscription: Get premium access for continuous learning support."
+        )
+        return faq_text
+
+    @staticmethod
     def get_state(phone_number: str) -> Dict[str, Any]:
         """
         Get conversation state for a user.
@@ -622,13 +650,7 @@ class MessageRouter:
 
         # Handle FAQ command
         if intent == "faq":
-            faq_text = (
-                "❓ Frequently Asked Questions\n\n"
-                "📝 Registration: Create account with name, email, class - it's FREE!\n\n"
-                "📚 Homework: Submit text or images. Get tutor responses within 24 hours.\n\n"
-                "💳 Payment: Subscribers enjoy unlimited homework submissions.\n\n"
-                "⭐ Subscription: Get premium access for continuous learning support."
-            )
+            faq_text = ConversationService.get_faq_menu(db)
             return (faq_text, ConversationState.IDLE)
 
         # Handle specific FAQ categories
