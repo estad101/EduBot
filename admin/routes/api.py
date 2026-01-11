@@ -1995,8 +1995,8 @@ async def start_chat_support(
         try:
             result = await WhatsAppService.send_message(
                 phone_number=phone_number,
-                message_text=greeting_message,
-                buttons=None
+                message_type="text",
+                text=greeting_message
             )
         except Exception as msg_err:
             logger.warning(f"Could not send greeting message: {str(msg_err)}")
@@ -2060,8 +2060,8 @@ async def send_chat_support_message(
         # Send message via WhatsApp
         result = await WhatsAppService.send_message(
             phone_number=phone_number,
-            message_text=f"🎧 Support Team: {message_text}",
-            buttons=None
+            message_type="text",
+            text=f"🎧 Support Team: {message_text}"
         )
         
         if result.get("status") == "success":
@@ -2150,10 +2150,8 @@ async def end_chat_support(
         try:
             await WhatsAppService.send_message(
                 phone_number=phone_number,
-                message_text=closing_message,
-                buttons=[
-                    {"id": "main_menu", "title": "📍 Main Menu"}
-                ]
+                message_type="text",
+                text=closing_message
             )
         except Exception as msg_err:
             logger.warning(f"Could not send closing message: {str(msg_err)}")
