@@ -2015,10 +2015,9 @@ async def start_chat_support(
         
         # Initialize chat support session
         ConversationService.set_data(phone_number, "chat_support_active", True)
-        ConversationService.set_data(phone_number, "in_chat_support", True)
         ConversationService.set_data(phone_number, "chat_start_time", datetime.now().isoformat())
         ConversationService.set_data(phone_number, "chat_messages", [])
-        ConversationService.set_state(phone_number, ConversationState.IN_CHAT_SUPPORT)
+        ConversationService.set_state(phone_number, ConversationState.CHAT_SUPPORT_ACTIVE)
         
         # Send greeting message to user
         try:
