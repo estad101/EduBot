@@ -63,7 +63,7 @@ export default function HomeworkUploadPage() {
   // Initialize countdown when upload succeeds
   useEffect(() => {
     if (state.success && countdown === null) {
-      console.log('Upload successful! Starting 3-second countdown...');
+      console.log('✅ Upload successful! Initializing 3-second countdown...');
       setCountdown(3);
     }
   }, [state.success, countdown]);
