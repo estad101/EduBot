@@ -39,9 +39,14 @@ class WhatsAppService:
         """
         logger.info(f"🔵 [send_interactive_message] Starting - phone: {phone_number}, buttons: {len(buttons)}")
         
-        if not settings.whatsapp_api_key or not settings.whatsapp_phone_number_id:
-            logger.error(f"🔴 [send_interactive_message] WhatsApp credentials not configured")
-            return {"status": "error", "message": "WhatsApp not configured"}
+        # Check if WhatsApp credentials are properly configured (not placeholders)
+        if not settings.whatsapp_api_key or settings.whatsapp_api_key == "placeholder_api_key":
+            logger.error(f"🔴 [send_interactive_message] WhatsApp API Key not configured")
+            return {"status": "error", "message": "WhatsApp API key not configured"}
+        
+        if not settings.whatsapp_phone_number_id or settings.whatsapp_phone_number_id == "placeholder_phone_id":
+            logger.error(f"🔴 [send_interactive_message] WhatsApp Phone Number ID not configured")
+            return {"status": "error", "message": "WhatsApp phone number ID not configured"}
 
         clean_phone = phone_number.replace("+", "")
         logger.info(f"🔵 [send_interactive_message] Clean phone: {clean_phone}")
@@ -144,9 +149,14 @@ class WhatsAppService:
         """
         logger.info(f"🔵 [send_message] Starting - phone: {phone_number}, type: {message_type}")
         
-        if not settings.whatsapp_api_key or not settings.whatsapp_phone_number_id:
-            logger.error(f"🔴 [send_message] WhatsApp credentials not configured")
-            return {"status": "error", "message": "WhatsApp not configured"}
+        # Check if WhatsApp credentials are properly configured (not placeholders)
+        if not settings.whatsapp_api_key or settings.whatsapp_api_key == "placeholder_api_key":
+            logger.error(f"🔴 [send_message] WhatsApp API Key not configured (WHATSAPP_API_KEY env var missing)")
+            return {"status": "error", "message": "WhatsApp API key not configured"}
+        
+        if not settings.whatsapp_phone_number_id or settings.whatsapp_phone_number_id == "placeholder_phone_id":
+            logger.error(f"🔴 [send_message] WhatsApp Phone Number ID not configured (WHATSAPP_PHONE_NUMBER_ID env var missing)")
+            return {"status": "error", "message": "WhatsApp phone number ID not configured"}
 
         logger.info(f"🔵 [send_message] API Key exists: {bool(settings.whatsapp_api_key)}")
         logger.info(f"🔵 [send_message] Phone ID: {settings.whatsapp_phone_number_id}")
