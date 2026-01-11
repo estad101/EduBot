@@ -341,21 +341,30 @@ class MessageRouter:
         # Already registered - user tried to register but has account - 2 options
         if current_state == ConversationState.ALREADY_REGISTERED:
             return [
-                {"id": "update", "title": "📝 Update"},
-                {"id": "home", "title": "↩️ Home"},
+                {"id": "update", "title": "[Pen] Update"},
+                {"id": "home", "title": "[Home] Home"},
             ]
         
         # Homework type selection - 2 options
         if current_state == ConversationState.HOMEWORK_TYPE:
             return [
-                {"id": "text", "title": "📄 Text"},
-                {"id": "image", "title": "📷 Image"},
+                {"id": "text", "title": "[Text] Text"},
+                {"id": "image", "title": "[Img] Image"},
             ]
         
         # Payment confirmation - 1 option  
         if current_state == ConversationState.PAYMENT_PENDING:
             return [
-                {"id": "confirm", "title": "✅ Confirm Payment"},
+                {"id": "confirm", "title": "[✓] Confirm Payment"},
+            ]
+        
+        # FAQ menu - 4 options
+        if intent == "faq":
+            return [
+                {"id": "faq_register", "title": "[Pen] Registration"},
+                {"id": "faq_homework", "title": "[Book] Homework"},
+                {"id": "faq_payment", "title": "[Card] Payment"},
+                {"id": "faq_subscription", "title": "[Star] Subscription"},
             ]
         
         # All other states - use text-based lists instead of buttons
