@@ -10,30 +10,30 @@ from datetime import datetime
 # Templates to create
 TEMPLATES = {
     "help_main": {
-        "content": """[?] Help & Features
+        "content": """❓ Help & Features
 
-[Book] HOMEWORK SUBMISSION
+📝 HOMEWORK SUBMISSION
 • Submit text or images easily
 • Get detailed tutor feedback within 24 hours
 • Track all your submissions in one place
 
-[Card] PAYMENT OPTIONS
+💳 PAYMENT OPTIONS
 • FREE: Per-submission payment model
 • PREMIUM: 5000/month for unlimited submissions
 • BONUS: Priority support for subscribers
 
-[Question] KNOWLEDGE BASE (FAQs)
+📚 KNOWLEDGE BASE (FAQs)
 • Registration guide: How to create your account
 • Homework help: Submission tips and limits
 • Payment info: Accepted methods and refund policy
 • Subscription details: Plans and benefits
 
-[Chat] LIVE CHAT SUPPORT
+💬 LIVE CHAT SUPPORT
 • Talk directly with our support team
 • Available for all account types
 • Quick responses to your questions
 
-[Info] ACCOUNT MANAGEMENT
+ℹ️ ACCOUNT MANAGEMENT
 • Check your subscription status anytime
 • View your submission history
 • Track tutor feedback
@@ -41,19 +41,19 @@ TEMPLATES = {
 Ready to get started? Choose an option above!"""
     },
     "support_welcome": {
-        "content": """[Chat] Welcome to Chat Support!
+        "content": """💬 Welcome to Chat Support!
 
 Thanks for reaching out. Our support team will respond shortly.
 
 In the meantime, here are quick answers to common questions:
-• How do I submit homework? Go to the [Book] Homework section
-• What's the pricing? Check the [Card] Subscribe section
-• I need help - Try the [?] Help menu
+• How do I submit homework? Go to the 📝 Homework section
+• What's the pricing? Check the 💳 Subscribe section
+• I need help - Try the ❓ Help menu
 
 Type your message below and we'll get back to you soon!"""
     },
     "homework_subject": {
-        "content": """[Book] What subject is your homework for?
+        "content": """📝 What subject is your homework for?
 
 Choose from these common subjects:
 1. Mathematics
@@ -66,70 +66,70 @@ Choose from these common subjects:
 Just type the subject name or number!"""
     },
     "homework_type": {
-        "content": """[Book] How would you like to submit?
+        "content": """📝 How would you like to submit?
 
-[Text] TEXT - Type your homework
-[Img] IMAGE - Take a photo or upload image
+📄 TEXT - Type your homework
+📷 IMAGE - Take a photo or upload image
 
 Which option works best for you?"""
     },
     "payment_info": {
-        "content": """[Card] Choose Your Plan
+        "content": """💳 Choose Your Plan
 
-[Free] FREE PLAN
+🆓 FREE PLAN
 • 5 free submissions per month
 • Standard support
 • 24-48 hour tutor response
 
-[Premium] PREMIUM PLAN - 5000/month
+⭐ PREMIUM PLAN - 5000/month
 • Unlimited submissions
 • Priority support
 • 12-24 hour tutor response
 • Exclusive learning resources
 
-Ready to upgrade? Tap [Premium] above!"""
+Ready to upgrade? Tap ⭐ above!"""
     },
     "subscription_details": {
-        "content": """[Star] Subscription Plans
+        "content": """⭐ Subscription Plans
 
-[Pen] ACTIVE SUBSCRIBER
+✏️ ACTIVE SUBSCRIBER
 You have unlimited homework submissions!
 
-[Check] BILLING INFO
+✅ BILLING INFO
 Next billing date: Check your account
 
-[Pause] PAUSE SUBSCRIPTION
+⏸️ PAUSE SUBSCRIPTION
 Need a break? You can pause anytime.
 
-[Stop] CANCEL SUBSCRIPTION
+❌ CANCEL SUBSCRIPTION
 Your subscription can be cancelled anytime.
 
-Need help? Use [Chat] Chat Support!"""
+Need help? Use 💬 Chat Support!"""
     },
     "status_not_subscribed": {
-        "content": """[Info] Your Account Status
+        "content": """ℹ️ Your Account Status
 
-[User] NAME: {full_name}
-[Mail] EMAIL: {email}
-[Graduation] CLASS: {class}
+👤 NAME: {full_name}
+📧 EMAIL: {email}
+🎓 CLASS: {class}
 
-[Free] PLAN: Free (5 submissions/month)
-[Clock] SUBMISSIONS LEFT: {submissions_left}
+🆓 PLAN: Free (5 submissions/month)
+⏰ SUBMISSIONS LEFT: {submissions_left}
 
-Want unlimited access? Tap [Card] Subscribe!"""
+Want unlimited access? Tap 💳 Subscribe!"""
     },
     "status_subscribed": {
-        "content": """[Info] Your Account Status
+        "content": """ℹ️ Your Account Status
 
-[User] NAME: {full_name}
-[Mail] EMAIL: {email}
-[Graduation] CLASS: {class}
+👤 NAME: {full_name}
+📧 EMAIL: {email}
+🎓 CLASS: {class}
 
-[Premium] PLAN: Premium Subscriber
-[Unlimited] SUBMISSIONS: Unlimited!
-[Check] VALID UNTIL: {subscription_end}
+⭐ PLAN: Premium Subscriber
+🎉 SUBMISSIONS: Unlimited!
+✅ VALID UNTIL: {subscription_end}
 
-Thank you for your support! [Heart]"""
+Thank you for your support! ❤️"""
     },
 }
 
