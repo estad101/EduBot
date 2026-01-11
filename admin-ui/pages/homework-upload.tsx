@@ -36,7 +36,6 @@ export default function HomeworkUploadPage() {
   const [preview, setPreview] = useState<string | null>(null);
   const [validation, setValidation] = useState<FileValidation>({ valid: true, errors: [], size: 0, type: '' });
   const [countdown, setCountdown] = useState<number | null>(null);
-  const countdownRef = useEffect(() => null, []); // Used to track if countdown started
 
   // Validate token on mount
   useEffect(() => {
@@ -54,43 +53,35 @@ export default function HomeworkUploadPage() {
     setState(prev => ({ ...prev, loading: false }));
   }, [router.isReady, student_id, homework_id, token]);
 
-  // Countdown timer for success page - FIXED VERSION
-  // Only runs once when success state becomes true
+  // Initialize countdown when upload succeeds
   useEffect(() => {
-    if (!state.success) {
-      setCountdown(null);
-      return;
-    }
-    
-    // Start countdown from 3
-    if (countdown === null) {
-      console.log('🎉 Upload successful! Starting 3-second countdown...');
+    if (state.success && countdown === null) {
+      console.log('Upload successful! Starting 3-second countdown...');
       setCountdown(3);
-      return;
     }
+  }, [state.success, countdown]);
+
+  // Countdown timer for success page
+  useEffect(() => {
+    if (countdown === null || countdown < 0) return;
     
-    // If countdown reached 0, try to close window
-    if (countdown <= 0) {
-      console.log('⏱️ Countdown complete. Attempting to close window...');
+    if (countdown === 0) {
+      console.log('Countdown reached 0, closing window...');
       try {
         window.close();
-        console.log('✓ Window closed successfully');
       } catch (e) {
-        console.log('ℹ️ Auto-close not available. User must close window manually.');
+        console.log('Could not close window (may be blocked by browser). Showing fallback message.');
       }
       return;
     }
     
-    // Decrement countdown every second
+    console.log(`Countdown: ${countdown}s remaining`);
     const timer = setTimeout(() => {
-      console.log(`⏳ Countdown: ${countdown - 1}s remaining`);
       setCountdown(countdown - 1);
     }, 1000);
     
-    return () => {
-      clearTimeout(timer);
-    };
-  }, [state.success, countdown]);
+    return () => clearTimeout(timer);
+  }, [countdown]);
 
   const formatFileSize = (bytes: number): string => {
     if (bytes === 0) return '0 Bytes';
@@ -195,9 +186,8 @@ export default function HomeworkUploadPage() {
         if (xhr.status === 200) {
           try {
             const data = JSON.parse(xhr.responseText);
-            console.log('✅ Upload response:', data);
+            console.log('Upload response:', data);
             
-            // Set success state - this will trigger countdown useEffect
             setState(prev => ({
               ...prev,
               uploading: false,
@@ -206,7 +196,7 @@ export default function HomeworkUploadPage() {
               uploadProgress: 100
             }));
             
-            console.log('✓ Upload successful! Page will auto-close in 3 seconds or user can close manually.');
+            console.log('✓ Upload successful. Success state set. Countdown will start automatically.');
           } catch (parseError) {
             console.error('JSON parse error:', parseError);
             throw new Error('Invalid response from server');
@@ -448,29 +438,15 @@ export default function HomeworkUploadPage() {
               animation: countdown-pulse 1s ease-in-out infinite;
             }
           `}</style>
-          
-          {countdown !== null && (
-            <p className="text-sm text-gray-500 mb-4 countdown-pulse">
-              {countdown > 0 ? (
-                <>
-                  This page will close in <strong>{countdown}</strong> second{countdown !== 1 ? 's' : ''}...
-                </>
-              ) : (
-                <>
-                  Attempting to close...
-                </>
-              )}
-            </p>
-          )}
+          <p className="text-sm text-gray-500 mb-4 countdown-pulse">
+            This page will close in <strong>{countdown !== null ? countdown : 3}</strong> second{countdown !== 1 ? 's' : ''}...
+          </p>
           
           <button
-            onClick={() => {
-              console.log('User clicked Close Now button');
-              window.close();
-            }}
+            onClick={() => window.close()}
             className="w-full px-6 py-3 bg-green-600 hover:bg-green-700 text-white rounded-lg font-bold transition flex items-center justify-center gap-2"
           >
-            <i className="fas fa-times"></i> Close Window
+            <i className="fas fa-times"></i> Close Now
           </button>
         </div>
       </div>

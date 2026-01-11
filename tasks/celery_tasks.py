@@ -377,34 +377,24 @@ def send_homework_submission_confirmation(self, student_phone: str, subject: str
     Send WhatsApp confirmation to student after homework image upload.
     
     This task runs asynchronously and doesn't block the upload response.
-    It includes retry logic with exponential backoff for reliability.
     
     Args:
-        student_phone: Student's phone number (with country code)
+        student_phone: Student's phone number (format: +1234567890)
         subject: Homework subject
         homework_id: Homework ID for reference
-    
-    Returns:
-        Dict with result status and message
     """
-    task_id = self.request.id
-    retry_count = self.request.retries
-    
     try:
-        logger.info(f"📸 [Task {task_id}] Sending homework confirmation to {student_phone}")
-        logger.info(f"   📚 Subject: {subject}")
-        logger.info(f"   📋 Homework ID: {homework_id}")
-        logger.info(f"   🔄 Attempt: {retry_count + 1}/4 (3 retries available)")
+        logger.info(f"📸 Starting homework submission confirmation task")
+        logger.info(f"   Phone: {student_phone}")
+        logger.info(f"   Subject: {subject}")
+        logger.info(f"   Homework ID: {homework_id}")
         
-        # Validate phone number
-        clean_phone = student_phone.replace('+', '').replace(' ', '')
-        if not clean_phone or not clean_phone.isdigit():
-            logger.error(f"❌ [Task {task_id}] Invalid phone number format: {student_phone}")
-            return {
-                'status': 'error',
-                'message': f'Invalid phone number format: {student_phone}',
-                'task_id': task_id
-            }
+        # Validate phone number format
+        if not student_phone:
+            raise ValueError("Student phone number is empty")
+        
+        if not student_phone.startswith('+'):
+            logger.warning(f"⚠️ Phone number doesn't start with '+': {student_phone}")
         
         loop = asyncio.new_event_loop()
         asyncio.set_event_loop(loop)
@@ -421,11 +411,10 @@ def send_homework_submission_confirmation(self, student_phone: str, subject: str
                 f"You'll receive feedback soon!"
             )
             
-            logger.info(f"   [Task {task_id}] Calling WhatsApp API...")
+            logger.info(f"Sending message to {student_phone}...")
             result = await WhatsAppService.send_message(
                 phone_number=student_phone,
-                message_type='text',
-                text=confirmation_message
+                message=confirmation_message
             )
             
             return result
@@ -434,48 +423,22 @@ def send_homework_submission_confirmation(self, student_phone: str, subject: str
         loop.close()
         
         if result.get('status') == 'success':
-            logger.info(f"✅ [Task {task_id}] Homework confirmation sent successfully to {student_phone}")
-            return {
-                'status': 'success',
-                'message': f'Confirmation sent to {student_phone}',
-                'task_id': task_id,
-                'api_response': result
-            }
+            logger.info(f"✅ Homework confirmation sent successfully to {student_phone}")
+            logger.info(f"   Message ID: {result.get('message_id')}")
+            return result
         else:
-            error_msg = result.get('error') or result.get('message', 'Unknown error')
-            logger.warning(f"⚠️ [Task {task_id}] Failed to send confirmation: {error_msg}")
-            logger.warning(f"   Response: {result}")
-            
-            # Retry on failure with exponential backoff
-            if retry_count < 3:
-                countdown = 30 * (retry_count + 1)  # 30s, 60s, 90s
-                logger.info(f"   🔄 Retrying in {countdown}s...")
-                self.retry(exc=Exception(error_msg), countdown=countdown, max_retries=3)
-            else:
-                logger.error(f"❌ [Task {task_id}] Max retries reached. Giving up.")
-                return {
-                    'status': 'error',
-                    'message': f'Failed after 3 retries: {error_msg}',
-                    'task_id': task_id
-                }
+            error_msg = result.get('error', 'Unknown error')
+            logger.error(f"❌ Failed to send confirmation to {student_phone}: {error_msg}")
+            # Retry on failure
+            logger.info(f"Retrying in 30 seconds... (attempt {self.request.retries + 1}/3)")
+            self.retry(exc=Exception(error_msg), countdown=30, max_retries=3)
         
     except Exception as e:
-        logger.error(f"❌ [Task {task_id}] Error sending homework confirmation: {str(e)}")
-        import traceback
-        logger.error(f"   Traceback:\n{traceback.format_exc()}")
-        
+        logger.error(f"❌ Error in homework confirmation task: {str(e)}")
+        logger.error(f"   Task will retry in 30 seconds... (attempt {self.request.retries + 1}/3)")
         # Retry with exponential backoff
-        if retry_count < 3:
-            countdown = 30 * (retry_count + 1)
-            logger.info(f"   🔄 Retrying in {countdown}s...")
-            self.retry(exc=e, countdown=countdown, max_retries=3)
-        else:
-            logger.error(f"❌ [Task {task_id}] Max retries reached after exception.")
-            return {
-                'status': 'error',
-                'message': str(e),
-                'task_id': task_id
-            }
+        self.retry(exc=e, countdown=30, max_retries=3)
+        self.retry(exc=e, countdown=30, max_retries=3)
 
 
 @celery_app.on_after_finalize.connect
