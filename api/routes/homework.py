@@ -451,17 +451,32 @@ async def upload_homework_image(
         try:
             from tasks.celery_tasks import send_homework_submission_confirmation
             
-            # Queue the confirmation task to run asynchronously
-            # This doesn't block the response
-            send_homework_submission_confirmation.delay(
-                student_phone=student.phone_number,
-                subject=homework.subject,
-                homework_id=homework.id
-            )
-            logger.info(f"✓ Homework confirmation task queued for {student.phone_number}")
+            # Validate phone number format before queueing task
+            if not student.phone_number:
+                logger.error(f"❌ Student {student.id} has no phone number stored")
+                # Don't queue task, but don't fail the upload
+            elif not student.phone_number.replace('+', '').replace(' ', '').isdigit():
+                logger.error(f"❌ Invalid phone number format: {student.phone_number}")
+                # Don't queue task, but don't fail the upload
+            else:
+                # Queue the confirmation task to run asynchronously
+                # This doesn't block the response
+                task = send_homework_submission_confirmation.delay(
+                    student_phone=student.phone_number,
+                    subject=homework.subject,
+                    homework_id=homework.id
+                )
+                logger.info(f"✅ Homework confirmation task queued successfully")
+                logger.info(f"   📞 Phone: {student.phone_number}")
+                logger.info(f"   📚 Subject: {homework.subject}")
+                logger.info(f"   📋 Homework ID: {homework.id}")
+                logger.info(f"   🔖 Task ID: {task.id}")
         except Exception as e:
-            logger.warning(f"⚠️ Could not queue homework confirmation task: {str(e)}")
+            logger.error(f"❌ Error queueing homework confirmation task: {str(e)}")
+            import traceback
+            logger.error(f"   Traceback: {traceback.format_exc()}")
             # Even if task fails to queue, we still return success since the homework is uploaded
+            # The user can always check the admin panel for confirmation status
         
         return JSONResponse(
             status_code=200,
