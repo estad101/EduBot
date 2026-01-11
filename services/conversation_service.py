@@ -121,14 +121,14 @@ class ConversationService:
         greeting = f"Hey {first_name}!" if first_name else "Hey there!"
         feature_text = (
             f"{greeting}\n\n"
-            f"🎁 **AVAILABLE FEATURES** 🎁\n\n"
-            f"👤 **Home** - Return to home menu\n"
-            f"❓ **FAQ** - Get answers to common questions\n"
-            f"📚 **Homework** - Submit your homework\n"
-            f"💬 **Support** - Chat with our team\n"
-            f"💳 **Subscribe** - View subscription plans\n"
-            f"📊 **Status** - Check your account details\n"
-            f"ℹ️ **Help** - Get help with the bot\n\n"
+            f"AVAILABLE FEATURES:\n\n"
+            f"[Home] **Home** - Return to home menu\n"
+            f"[?] **FAQ** - Get answers to common questions\n"
+            f"[Book] **Homework** - Submit your homework\n"
+            f"[Chat] **Support** - Chat with our team\n"
+            f"[Card] **Subscribe** - View subscription plans\n"
+            f"[Info] **Status** - Check your account details\n"
+            f"[Help] **Help** - Get help with the bot\n\n"
             f"Just type a command above to get started!"
         )
         return feature_text
