@@ -68,8 +68,8 @@ Just type the subject name or number!"""
     "homework_type": {
         "content": """📝 How would you like to submit?
 
-📄 TEXT - Type your homework
-📷 IMAGE - Take a photo or upload image
+� Type your homework
+📷 Take a photo or upload image
 
 Which option works best for you?"""
     },

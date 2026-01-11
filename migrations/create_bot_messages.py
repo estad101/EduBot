@@ -95,8 +95,8 @@ def seed_default_messages():
                 "content": "How would you like to submit?",
                 "has_menu": True,
                 "menu_items": [
-                    {"id": "text", "label": "📝 Text", "action": "text"},
-                    {"id": "image", "label": "🖼️ Image", "action": "image"}
+                    {"id": "text", "label": "📝", "action": "text"},
+                    {"id": "image", "label": "📷", "action": "image"}
                 ],
                 "next_states": ["HOMEWORK_CONTENT"],
                 "description": "Prompt for homework submission type (text or image)"
