@@ -314,13 +314,18 @@ else:
 
 
 # Export the right get_db depending on mode
-# This ensures admin routes always get sync sessions
-__all__ = ['Base', 'engine', 'get_db', 'SessionLocal', 'ASYNC_MODE', 'init_db', 'drop_db', 'get_db_sync', 'async_session_maker']
+# This ensures proper async/sync handling
+__all__ = ['Base', 'engine', 'get_db', 'SessionLocal', 'ASYNC_MODE', 'init_db', 'drop_db', 'get_db_sync', 'async_session_maker', 'AsyncSession']
 
-# Provide get_db_sync for consistency across modes
+# In async mode, provide async_session_maker and AsyncSession
+if ASYNC_MODE:
+    __all__.extend(['async_session_maker', 'AsyncSession'])
+
+# Provide get_db_sync for backwards compatibility
 if not ASYNC_MODE and 'get_db_sync' not in locals():
     get_db_sync = get_db
 
 # In sync mode, provide a dummy async_session_maker for code that expects it
 if not ASYNC_MODE:
     async_session_maker = None
+    AsyncSession = None

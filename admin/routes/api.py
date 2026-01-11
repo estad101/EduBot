@@ -3,12 +3,13 @@ Admin API routes for data operations.
 """
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, Body
 from sqlalchemy.orm import Session
+from sqlalchemy.ext.asyncio import AsyncSession
 from typing import List, Optional
 from datetime import datetime, timedelta
 from pydantic import BaseModel
 import secrets
 
-from config.database import get_db, get_db_sync, engine, ASYNC_MODE
+from config.database import get_db, get_db_sync, engine, ASYNC_MODE, AsyncSession as AsyncSessionType
 from config.settings import settings
 from admin.auth import AdminAuth, admin_session_required
 from models.student import Student, UserStatus
@@ -33,6 +34,34 @@ router = APIRouter(prefix="/api/admin", tags=["admin_api"])
 # Use sync database dependency for admin routes (they use .query() pattern)
 # In async mode, we created a sync SessionLocal for backward compatibility
 db_dependency = get_db_sync if ASYNC_MODE else get_db
+
+# ASYNC database dependency - for fully async endpoints
+# Falls back to sync wrapper if async not available
+async def get_async_db():
+    """Async dependency for AsyncSession."""
+    if ASYNC_MODE and AsyncSessionType:
+        from config.database import async_session_maker
+        async with async_session_maker() as session:
+            try:
+                yield session
+            except Exception as e:
+                logger.error(f"Async database session error: {e}")
+                await session.rollback()
+                raise
+            finally:
+                await session.close()
+    else:
+        # Fallback to sync in compatibility mode
+        # This is less efficient but ensures the app works
+        db = get_db_sync()
+        try:
+            yield db
+        except Exception as e:
+            logger.error(f"Database session error: {e}")
+            db.rollback()
+            raise
+        finally:
+            db.close()
 
 
 # ==================== AUTH MODELS ====================
@@ -1750,7 +1779,10 @@ async def delete_lead(lead_id: int, db: Session = Depends(db_dependency)):
 # ==================== CONVERSATIONS ENDPOINTS ====================
 
 @router.get("/conversations")
-async def get_conversations(limit: int = Query(20, ge=1, le=100), db: Session = Depends(db_dependency)):
+async def get_conversations(
+    limit: int = Query(20, ge=1, le=100),
+    db: Session = Depends(db_dependency)
+):
     """
     Get list of recent conversations with WhatsApp users.
     Includes both registered students AND unregistered leads.
