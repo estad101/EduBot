@@ -499,7 +499,7 @@ class MessageRouter:
             if student_data and student_data.get("name"):
                 # Registered user - return to main menu
                 first_name = student_data.get("name", "").split()[0] if student_data.get("name") else ""
-                feature_text = cls.get_available_features_menu(db, first_name)
+                feature_text = ConversationService.get_available_features_menu(db, first_name)
                 return (
                     feature_text,
                     ConversationState.IDLE,
@@ -546,14 +546,14 @@ class MessageRouter:
                 
                 greeting = f"Homework submission cancelled, {first_name}." if first_name else "Homework submission cancelled."
                 # Use template if available, otherwise use greeting + fallback menu
-                menu_text = greeting + "\n\n" + cls.get_available_features_menu(db).split("\n\n", 1)[1] if db else greeting + "\n\n" + cls.get_available_features_menu(None).split("\n\n", 1)[1]
+                menu_text = greeting + "\n\n" + ConversationService.get_available_features_menu(db).split("\n\n", 1)[1] if db else greeting + "\n\n" + ConversationService.get_available_features_menu(None).split("\n\n", 1)[1]
                 return (
                     menu_text,
                     ConversationState.IDLE,
                 )
             else:
                 # Generic cancel - just show menu
-                menu_text = cls.get_available_features_menu(db, first_name)
+                menu_text = ConversationService.get_available_features_menu(db, first_name)
                 return (
                     menu_text,
                     ConversationState.IDLE,
@@ -762,7 +762,7 @@ class MessageRouter:
                 )
             elif intent == "main_menu":
                 # If user clicks main menu from IDLE/INITIAL, return to main options
-                menu_text = cls.get_available_features_menu(db, first_name)
+                menu_text = ConversationService.get_available_features_menu(db, first_name)
                 return (
                     menu_text,
                     ConversationState.REGISTERED if student_data else ConversationState.IDLE,
@@ -771,7 +771,7 @@ class MessageRouter:
                 greeting = f"👋 Hey {first_name}!" if first_name else "👋 Hi!"
                 if first_name:
                     # Registered user - show feature list
-                    menu_text = cls.get_available_features_menu(db, first_name)
+                    menu_text = ConversationService.get_available_features_menu(db, first_name)
                     return (
                         menu_text,
                         ConversationState.IDLE,
@@ -796,7 +796,7 @@ class MessageRouter:
                 )
             elif intent == "home" or intent == "main_menu":
                 # User chose to return to main menu
-                menu_text = cls.get_available_features_menu(db, first_name)
+                menu_text = ConversationService.get_available_features_menu(db, first_name)
                 return (
                     menu_text,
                     ConversationState.IDLE,
@@ -836,7 +836,7 @@ class MessageRouter:
             first_name_reg = full_name.split()[0] if full_name else "there"
             
             # Show main menu after registration completion
-            menu_text = f"✅ Account Created!\n\n{cls.get_available_features_menu(db, first_name_reg)}"
+            menu_text = f"✅ Account Created!\n\n{ConversationService.get_available_features_menu(db, first_name_reg)}"
             return (
                 menu_text,
                 ConversationState.REGISTERED,
@@ -905,7 +905,7 @@ class MessageRouter:
 
         # Main menu - show welcome and main options (CHECK BEFORE REGISTERED STATE)
         elif intent == "main_menu":
-            menu_text = cls.get_available_features_menu(db, first_name)
+            menu_text = ConversationService.get_available_features_menu(db, first_name)
             return (
                 menu_text,
                 ConversationState.REGISTERED,
@@ -1032,25 +1032,25 @@ class MessageRouter:
                 if student_data and student_data.get("name"):
                     # Registered user - show main menu
                     return (
-                        cls.get_available_features_menu(db, first_name),
+                        ConversationService.get_available_features_menu(db, first_name),
                         ConversationState.IDLE,
                     )
                 else:
                     # Unregistered user - show main menu
                     return (
-                        cls.get_available_features_menu(db, ""),
+                        ConversationService.get_available_features_menu(db, ""),
                         ConversationState.INITIAL,
                     )
             else:
                 # In other states, return to idle with feature list
                 if student_data and student_data.get("name"):
                     return (
-                        cls.get_available_features_menu(db, first_name),
+                        ConversationService.get_available_features_menu(db, first_name),
                         ConversationState.IDLE,
                     )
                 else:
                     # Unregistered user in other state - show main menu
                     return (
-                        cls.get_available_features_menu(db, ""),
+                        ConversationService.get_available_features_menu(db, ""),
                         ConversationState.INITIAL,
                     )
