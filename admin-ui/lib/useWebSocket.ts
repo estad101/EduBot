@@ -97,7 +97,9 @@ export function useWebSocket(
       };
 
       ws.onerror = (error) => {
-        log('✗ WebSocket Error:', error);
+        const errorMsg = error instanceof Event ? 'Network error' : String(error);
+        log('✗ WebSocket Error:', errorMsg);
+        console.error(`[WebSocket] Connection failed to ${wsUrl}: ${errorMsg}`);
         setIsConnected(false);
       };
 

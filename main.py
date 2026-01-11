@@ -147,16 +147,18 @@ if settings.environment == "production":
         CORSMiddleware,
         allow_origin_regex=r"https://.*\.up\.railway\.app|http://localhost.*|http://127\.0\.0\.1.*",
         allow_credentials=True,
-        allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-        allow_headers=["Content-Type", "Authorization", "X-CSRF-Token"],
+        allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS", "WEBSOCKET"],
+        allow_headers=["Content-Type", "Authorization", "X-CSRF-Token", "Origin", "Sec-WebSocket-Key", "Sec-WebSocket-Version"],
+        expose_headers=["*"],
     )
 else:
     app.add_middleware(
         CORSMiddleware,
         allow_origins=cors_allowed_origins,
         allow_credentials=True,
-        allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-        allow_headers=["Content-Type", "Authorization", "X-CSRF-Token"],
+        allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS", "WEBSOCKET"],
+        allow_headers=["Content-Type", "Authorization", "X-CSRF-Token", "Origin", "Sec-WebSocket-Key", "Sec-WebSocket-Version"],
+        expose_headers=["*"],
     )
 
 # Session middleware for admin panel
