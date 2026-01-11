@@ -450,13 +450,12 @@ async def upload_homework_image(
         # Send WhatsApp confirmation to student
         try:
             from services.whatsapp_service import WhatsAppService
-            import asyncio
             
             # Validate student phone number before sending
             if not student.phone_number:
                 logger.error(f"❌ Cannot send confirmation: Student {student.id} has no phone number")
             else:
-                # Create async context and send message directly
+                # Create confirmation message
                 confirmation_message = (
                     f"✅ Homework Submitted Successfully!\n\n"
                     f"📚 Subject: {homework.subject}\n"
@@ -466,28 +465,31 @@ async def upload_homework_image(
                     f"You'll receive feedback soon!"
                 )
                 
-                # Run async WhatsApp call synchronously
-                loop = asyncio.new_event_loop()
-                asyncio.set_event_loop(loop)
+                # Send message asynchronously (endpoint is async)
+                logger.info(f"=" * 80)
+                logger.info(f"📱 SENDING WHATSAPP CONFIRMATION")
+                logger.info(f"   To: {student.phone_number}")
+                logger.info(f"   Subject: {homework.subject}")
+                logger.info(f"   Homework ID: {homework.id}")
                 
-                try:
-                    logger.info(f"📱 Sending WhatsApp confirmation to {student.phone_number}")
-                    result = loop.run_until_complete(
-                        WhatsAppService.send_message(
-                            phone_number=student.phone_number,
-                            message_type="text",
-                            text=confirmation_message
-                        )
-                    )
-                    loop.close()
-                    
-                    if result.get('status') == 'success':
-                        logger.info(f"✅ WhatsApp confirmation sent successfully to {student.phone_number}")
-                    else:
-                        logger.warning(f"⚠️ WhatsApp confirmation failed: {result.get('error', 'Unknown error')}")
-                except Exception as e:
-                    loop.close()
-                    logger.error(f"❌ Error sending WhatsApp confirmation: {str(e)}")
+                result = await WhatsAppService.send_message(
+                    phone_number=student.phone_number,
+                    message_type="text",
+                    text=confirmation_message
+                )
+                
+                logger.info(f"   Result: {result}")
+                if result.get('status') == 'success':
+                    logger.info(f"✅ WhatsApp confirmation sent successfully")
+                    logger.info(f"   Message ID: {result.get('data', {}).get('messages', [{}])[0].get('id', 'unknown')}")
+                else:
+                    logger.warning(f"⚠️ WhatsApp confirmation failed")
+                    logger.warning(f"   Error: {result.get('error', 'Unknown error')}")
+                logger.info(f"=" * 80)
+        except Exception as e:
+            logger.error(f"❌ Exception sending WhatsApp confirmation: {str(e)}")
+            import traceback
+            logger.error(f"   Traceback: {traceback.format_exc()}")
         except Exception as e:
             logger.warning(f"⚠️ Could not send WhatsApp confirmation: {str(e)}")
         
