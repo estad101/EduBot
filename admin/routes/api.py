@@ -178,7 +178,7 @@ async def database_status():
     try:
         # Try to connect to the database
         connection = engine.connect()
-        connection.close()
+        await connection.close()
         
         logger.info("Database connection check passed")
         return {
