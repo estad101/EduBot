@@ -447,26 +447,21 @@ async def upload_homework_image(
         except Exception as e:
             logger.warning(f"   Could not reset conversation state: {str(e)}")
         
-        # Send WhatsApp confirmation
+        # Send WhatsApp confirmation via background task
         try:
-            from services.whatsapp_service import WhatsAppService
-            subject = homework.subject
-            confirmation_message = (
-                f"✅ Homework Submitted Successfully!\n\n"
-                f"📚 Subject: {subject}\n"
-                f"📷 Type: Image\n"
-                f"⏱️ Submitted: {homework.created_at.strftime('%b %d, %I:%M %p')}\n\n"
-                f"🎓 A tutor has been assigned and will review your work shortly.\n"
-                f"You'll receive feedback soon!"
-            )
+            from tasks.celery_tasks import send_homework_submission_confirmation
             
-            await WhatsAppService.send_message(
-                phone_number=student.phone_number,
-                message=confirmation_message
+            # Queue the confirmation task to run asynchronously
+            # This doesn't block the response
+            send_homework_submission_confirmation.delay(
+                student_phone=student.phone_number,
+                subject=homework.subject,
+                homework_id=homework.id
             )
-            logger.info(f"✓ WhatsApp confirmation sent to {student.phone_number}")
+            logger.info(f"✓ Homework confirmation task queued for {student.phone_number}")
         except Exception as e:
-            logger.warning(f"⚠️ Could not send WhatsApp confirmation: {str(e)}")
+            logger.warning(f"⚠️ Could not queue homework confirmation task: {str(e)}")
+            # Even if task fails to queue, we still return success since the homework is uploaded
         
         return JSONResponse(
             status_code=200,
@@ -475,7 +470,8 @@ async def upload_homework_image(
                 "message": "Image uploaded successfully",
                 "homework_id": homework.id,
                 "file_path": homework.file_path,
-                "student_id": homework.student_id
+                "student_id": homework.student_id,
+                "confirmation": "A confirmation message will be sent to the student's WhatsApp shortly"
             }
         )
         

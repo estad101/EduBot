@@ -365,12 +365,22 @@ export default function HomeworkUploadPage() {
           </div>
 
           {/* Message */}
-          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6 text-left">
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6 text-left space-y-3">
             <p className="text-sm text-blue-900">
               <i className="fas fa-info-circle text-blue-600 mr-2"></i>
               <strong>What's Next?</strong><br/>
               A tutor will review your homework and send you feedback via WhatsApp shortly.
             </p>
+            
+            <div className="bg-white rounded-lg p-3 border border-blue-100">
+              <p className="text-xs font-semibold text-gray-700 flex items-center gap-2 mb-2">
+                <i className="fas fa-check-circle text-green-600"></i>
+                Confirmation Message Sent
+              </p>
+              <p className="text-xs text-gray-600">
+                ✓ A confirmation message has been sent to your WhatsApp with submission details.
+              </p>
+            </div>
           </div>
 
           {/* Auto-close countdown */}

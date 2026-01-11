@@ -367,6 +367,65 @@ def cleanup_old_sessions():
         raise
 
 
+# ============================================================================
+# HOMEWORK TASKS
+# ============================================================================
+
+@celery_app.task(name='tasks.homework.send_submission_confirmation', bind=True)
+def send_homework_submission_confirmation(self, student_phone: str, subject: str, homework_id: int):
+    """
+    Send WhatsApp confirmation to student after homework image upload.
+    
+    This task runs asynchronously and doesn't block the upload response.
+    
+    Args:
+        student_phone: Student's phone number
+        subject: Homework subject
+        homework_id: Homework ID for reference
+    """
+    try:
+        logger.info(f"📸 Sending homework submission confirmation to {student_phone}")
+        
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+        
+        async def send_confirmation():
+            from services.whatsapp_service import WhatsAppService
+            
+            confirmation_message = (
+                f"✅ Homework Submitted Successfully!\n\n"
+                f"📚 Subject: {subject}\n"
+                f"📷 Type: Image\n"
+                f"📊 Reference ID: {homework_id}\n\n"
+                f"🎓 A tutor has been assigned and will review your work shortly.\n"
+                f"You'll receive feedback soon!"
+            )
+            
+            result = await WhatsAppService.send_message(
+                phone_number=student_phone,
+                message=confirmation_message
+            )
+            
+            return result
+        
+        result = loop.run_until_complete(send_confirmation())
+        loop.close()
+        
+        if result.get('status') == 'success':
+            logger.info(f"✓ Homework confirmation sent successfully to {student_phone}")
+        else:
+            logger.warning(f"⚠️ Failed to send confirmation: {result.get('error')}")
+            # Retry on failure
+            self.retry(exc=Exception(result.get('error')), countdown=30, max_retries=3)
+        
+        return result
+        
+    except Exception as e:
+        logger.error(f"❌ Error sending homework confirmation: {str(e)}")
+        # Retry with exponential backoff
+        self.retry(exc=e, countdown=30, max_retries=3)
+
+
 @celery_app.on_after_finalize.connect
 def setup_periodic_tasks(sender, **kwargs):
     """
