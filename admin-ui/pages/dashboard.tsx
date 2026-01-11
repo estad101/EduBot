@@ -64,9 +64,12 @@ export default function DashboardPage() {
         // Fetch bot name from admin_settings
         try {
           const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
-          const settingsResponse = await fetch(`${apiUrl}/api/admin/settings`, {
+          const settingsResponse = await fetch(`${apiUrl}/api/admin/settings?t=${Date.now()}`, {
             method: 'GET',
-            headers: { 'Content-Type': 'application/json' },
+            headers: { 
+              'Content-Type': 'application/json',
+              'Cache-Control': 'no-cache',
+            },
           });
           if (settingsResponse.ok) {
             const settingsData = await settingsResponse.json();

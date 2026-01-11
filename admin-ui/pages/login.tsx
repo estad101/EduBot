@@ -20,7 +20,7 @@ export default function LoginPage() {
       try {
         // Get the API URL from environment
         const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
-        const settingsUrl = `${apiUrl}/api/admin/settings`;
+        const settingsUrl = `${apiUrl}/api/admin/settings?t=${Date.now()}`;
         
         console.log('Fetching bot name from:', settingsUrl);
         
@@ -29,6 +29,7 @@ export default function LoginPage() {
           method: 'GET',
           headers: {
             'Content-Type': 'application/json',
+            'Cache-Control': 'no-cache',
           },
         });
 
