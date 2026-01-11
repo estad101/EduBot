@@ -173,6 +173,24 @@ if ASYNC_MODE:
             logger.error(f"Failed to drop database tables: {e}")
             raise
 
+    # Also create a sync SessionLocal for backward compatibility
+    # (used by some scripts and routes that need sync db access)
+    from sqlalchemy import create_engine
+    from sqlalchemy.orm import sessionmaker
+    
+    sync_engine = create_engine(
+        settings.database_url,
+        poolclass=NullPool,
+        echo=settings.debug,
+        connect_args={
+            "charset": "utf8mb4",
+            "use_unicode": True,
+            "autocommit": True,
+            "connect_timeout": 10,
+        },
+    )
+    SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=sync_engine)
+
 else:
     # SYNC FALLBACK MODE - Blocking database operations (compatibility mode)
     from sqlalchemy import create_engine
