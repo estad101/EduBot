@@ -450,6 +450,7 @@ async def upload_homework_image(
         # Send WhatsApp confirmation to student
         try:
             from services.whatsapp_service import WhatsAppService
+            import asyncio
             
             # Validate student phone number before sending
             if not student.phone_number:
@@ -465,31 +466,40 @@ async def upload_homework_image(
                     f"You'll receive feedback soon!"
                 )
                 
-                # Send message asynchronously (endpoint is async)
+                # Send message asynchronously with timeout
                 logger.info(f"=" * 80)
                 logger.info(f"📱 SENDING WHATSAPP CONFIRMATION")
                 logger.info(f"   To: {student.phone_number}")
                 logger.info(f"   Subject: {homework.subject}")
                 logger.info(f"   Homework ID: {homework.id}")
                 
-                result = await WhatsAppService.send_message(
-                    phone_number=student.phone_number,
-                    message_type="text",
-                    text=confirmation_message
-                )
-                
-                logger.info(f"   Result: {result}")
-                if result.get('status') == 'success':
-                    logger.info(f"✅ WhatsApp confirmation sent successfully")
-                    logger.info(f"   Message ID: {result.get('data', {}).get('messages', [{}])[0].get('id', 'unknown')}")
-                else:
-                    logger.warning(f"⚠️ WhatsApp confirmation failed")
-                    logger.warning(f"   Error: {result.get('error', 'Unknown error')}")
-                logger.info(f"=" * 80)
+                try:
+                    # Add timeout of 10 seconds to prevent hanging
+                    result = await asyncio.wait_for(
+                        WhatsAppService.send_message(
+                            phone_number=student.phone_number,
+                            message_type="text",
+                            text=confirmation_message
+                        ),
+                        timeout=10.0
+                    )
+                    
+                    logger.info(f"   Result: {result}")
+                    if result.get('status') == 'success':
+                        logger.info(f"✅ WhatsApp confirmation sent successfully")
+                        logger.info(f"   Message ID: {result.get('data', {}).get('messages', [{}])[0].get('id', 'unknown')}")
+                    else:
+                        logger.warning(f"⚠️ WhatsApp confirmation failed")
+                        logger.warning(f"   Error: {result.get('error', 'Unknown error')}")
+                    logger.info(f"=" * 80)
+                except asyncio.TimeoutError:
+                    logger.error(f"❌ WhatsApp API timeout (10 seconds)")
+                    logger.info(f"   Message may still be delivered, proceeding with upload")
         except Exception as e:
             logger.error(f"❌ Exception sending WhatsApp confirmation: {str(e)}")
             import traceback
             logger.error(f"   Traceback: {traceback.format_exc()}")
+            # Don't block upload if WhatsApp fails
         except Exception as e:
             logger.warning(f"⚠️ Could not send WhatsApp confirmation: {str(e)}")
         
