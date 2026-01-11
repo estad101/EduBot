@@ -8,7 +8,7 @@ interface LayoutProps {
 
 export default function Layout({ children }: LayoutProps) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [appName, setAppName] = useState('WhatsApp Bot');
+  const [appName, setAppName] = useState('Loading...');
 
   // Fetch app name from admin_settings table on component mount
   useEffect(() => {
@@ -28,12 +28,21 @@ export default function Layout({ children }: LayoutProps) {
 
         if (response.ok) {
           const data = await response.json();
+          console.log('Settings response:', data);
           if (data?.data?.bot_name && data.data.bot_name.trim()) {
+            console.log('Setting app name to:', data.data.bot_name);
             setAppName(data.data.bot_name);
+          } else {
+            console.log('No bot_name in response, using default');
+            setAppName('EduBot');
           }
+        } else {
+          console.log('Settings API response not ok:', response.status);
+          setAppName('EduBot');
         }
       } catch (err) {
         console.error('Error fetching app name:', err);
+        setAppName('EduBot');
       }
     };
 
