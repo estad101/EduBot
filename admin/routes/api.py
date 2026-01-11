@@ -3,7 +3,7 @@ Admin API routes for data operations.
 """
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, Body
 from sqlalchemy.orm import Session
-from typing import List
+from typing import List, Optional
 from datetime import datetime, timedelta
 from pydantic import BaseModel
 import secrets
