@@ -1,21 +1,24 @@
 """
-Database configuration and session management - ASYNC VERSION with FALLBACK.
+Database configuration and session management - ASYNC-FIRST VERSION.
 This provides full async/await support for non-blocking database operations.
-Falls back to sync mode if aiomysql is not available.
+Production configured for Railway with asyncmy/aiomysql drivers.
 """
 from sqlalchemy.orm import declarative_base
 from sqlalchemy.pool import NullPool
 from config.settings import settings
 import logging
 import sys
+import os
 
 logger = logging.getLogger(__name__)
 
 # Base class for all ORM models (define first, before any conditional imports)
 Base = declarative_base()
 
-# Initialize ASYNC_MODE flag
-ASYNC_MODE = False
+# ASYNC-FIRST MODE: Force async unless explicitly disabled
+# Railway should use asyncmy driver
+FORCE_ASYNC = os.getenv("FORCE_ASYNC", "true").lower() == "true"
+ASYNC_MODE = FORCE_ASYNC  # Default to async for Railway
 
 # Try to import async dependencies
 try:
@@ -30,7 +33,7 @@ try:
     from sqlalchemy import select, event, text
     ASYNC_MODE = True
     ASYNC_DRIVER = "aiomysql"
-    logger.info("✓ Async mode enabled (aiomysql available)")
+    logger.info("✓ Async mode enabled (aiomysql available) - PRODUCTION READY")
 except ImportError as e:
     logger.warning(f"⚠ aiomysql not available, trying asyncmy fallback...")
     try:
