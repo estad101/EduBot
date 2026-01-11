@@ -57,6 +57,23 @@ async def lifespan(app: FastAPI):
     except Exception as e:
         logger.warning(f"Could not initialize database: {e}")
     
+    # Initialize WhatsApp credentials from database
+    try:
+        import asyncio
+        from services.whatsapp_service import init_whatsapp_credentials
+        
+        async def load_whatsapp_async():
+            try:
+                await init_whatsapp_credentials()
+                logger.info("✓ WhatsApp credentials loaded from database")
+            except Exception as e:
+                logger.warning(f"WhatsApp credential loading failed: {e}")
+        
+        asyncio.create_task(load_whatsapp_async())
+        logger.info("Async WhatsApp initialization started")
+    except Exception as e:
+        logger.warning(f"Could not start WhatsApp initialization: {e}")
+    
     # Initialize settings from database in background
     # App will use environment variables as fallback until settings load
     try:

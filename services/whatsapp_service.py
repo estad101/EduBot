@@ -18,44 +18,74 @@ WHATSAPP_API_URL = "https://graph.facebook.com/v22.0"
 _credentials_cache: Optional[tuple[Optional[str], Optional[str]]] = None
 
 
+async def load_whatsapp_credentials_from_db() -> tuple[Optional[str], Optional[str]]:
+    """
+    Load WhatsApp credentials from database asynchronously.
+    Called once on startup to populate the cache.
+    
+    Returns:
+        Tuple of (api_key, phone_number_id)
+    """
+    try:
+        from config.database import async_session_maker
+        from models.settings import AdminSetting
+        
+        async with async_session_maker() as session:
+            # Query for API key
+            from sqlalchemy import select
+            api_key_query = select(AdminSetting).where(
+                AdminSetting.key == "WHATSAPP_API_KEY"
+            )
+            api_key_result = await session.execute(api_key_query)
+            api_key_obj = api_key_result.scalar_one_or_none()
+            
+            # Query for phone ID
+            phone_id_query = select(AdminSetting).where(
+                AdminSetting.key == "WHATSAPP_PHONE_NUMBER_ID"
+            )
+            phone_id_result = await session.execute(phone_id_query)
+            phone_id_obj = phone_id_result.scalar_one_or_none()
+            
+            # Extract values with fallback to env vars
+            api_key = api_key_obj.value if api_key_obj and api_key_obj.value else settings.whatsapp_api_key
+            phone_id = phone_id_obj.value if phone_id_obj and phone_id_obj.value else settings.whatsapp_phone_number_id
+            
+            if api_key and phone_id:
+                logger.info("✅ [WhatsApp] Loaded credentials from database")
+                return (api_key, phone_id)
+            else:
+                logger.warning("⚠️ [WhatsApp] Using environment variable fallback")
+                return (settings.whatsapp_api_key, settings.whatsapp_phone_number_id)
+    except Exception as e:
+        logger.warning(f"⚠️ [WhatsApp] Error loading from DB, using env vars: {str(e)}")
+        return (settings.whatsapp_api_key, settings.whatsapp_phone_number_id)
+
+
 def get_whatsapp_credentials() -> tuple[Optional[str], Optional[str]]:
     """
-    Get WhatsApp API credentials from cache (or database on first call).
-    Falls back to environment variables if not in database.
+    Get cached WhatsApp credentials. Must be loaded via load_whatsapp_credentials_from_db() first.
     
     Returns:
         Tuple of (api_key, phone_number_id)
     """
     global _credentials_cache
     
-    # If cached, return immediately without database query
-    if _credentials_cache is not None:
-        return _credentials_cache
+    if _credentials_cache is None:
+        logger.error("❌ [WhatsApp] Credentials not loaded! Call load_whatsapp_credentials_from_db() on startup")
+        # Fallback to environment variables as last resort
+        _credentials_cache = (settings.whatsapp_api_key, settings.whatsapp_phone_number_id)
     
-    try:
-        # For now, use environment variables as primary source
-        # Avoid database queries in sync function - use cache instead
-        final_api_key = settings.whatsapp_api_key
-        final_phone_id = settings.whatsapp_phone_number_id
-        
-        if final_api_key and final_phone_id:
-            logger.info(f"🔵 [get_whatsapp_credentials] Using environment variables")
-            # Cache the credentials for future calls
-            _credentials_cache = (final_api_key, final_phone_id)
-            return _credentials_cache
-        
-        # If env vars don't exist, try database (only on first request)
-        # This requires async context, so we'll load on startup instead
-        logger.warning("⚠️ WhatsApp credentials not in environment variables")
-        result = (None, None)
-        _credentials_cache = result
-        return result
-        
-    except Exception as e:
-        logger.warning(f"⚠️ Error fetching WhatsApp credentials: {str(e)}")
-        result = (settings.whatsapp_api_key, settings.whatsapp_phone_number_id)
-        _credentials_cache = result
-        return result
+    return _credentials_cache
+
+
+async def init_whatsapp_credentials():
+    """
+    Initialize WhatsApp credentials from database on app startup.
+    Call this in the FastAPI startup event.
+    """
+    global _credentials_cache
+    _credentials_cache = await load_whatsapp_credentials_from_db()
+    logger.info(f"🔵 [WhatsApp] Credentials initialized")
 
 
 def refresh_whatsapp_credentials():
@@ -65,7 +95,7 @@ def refresh_whatsapp_credentials():
     """
     global _credentials_cache
     _credentials_cache = None  # Clear cache
-    logger.info("🔵 [refresh_whatsapp_credentials] Cache cleared, will reload on next call")
+    logger.info("🔵 [WhatsApp] Credentials cache cleared, will reload on next init")
 
 
 class WhatsAppService:
