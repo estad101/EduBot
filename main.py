@@ -15,7 +15,7 @@ import logging
 import os
 
 from config.settings import settings
-from config.database import init_db, drop_db, SessionLocal
+from config.database import init_db, drop_db, async_session_maker
 from api.routes import users, students, homework, payments, subscriptions, whatsapp, tutors, health, bot_messages
 from admin.routes import api as admin_api
 from utils.logger import get_logger
@@ -41,43 +41,30 @@ async def lifespan(app: FastAPI):
     except Exception as e:
         logger.warning(f"Sentry initialization failed: {e}")
     
-    # Initialize database in background - DON'T WAIT
+    # Initialize database in background - ASYNC VERSION
     try:
         import asyncio
-        db_task = asyncio.create_task(
-            asyncio.to_thread(init_db)
-        )
-        logger.info("Database initialization started in background")
+        db_task = asyncio.create_task(init_db())
+        logger.info("Async database initialization started")
     except Exception as e:
-        logger.warning(f"Could not start database initialization: {e}")
+        logger.warning(f"Could not start async database initialization: {e}")
     
-    # Initialize settings from database in background - DON'T WAIT
+    # Initialize settings from database in background
     # App will use environment variables as fallback until settings load
     try:
         import asyncio
         async def load_settings_async():
             try:
-                from threading import Thread
-                def load_settings():
-                    try:
-                        db = SessionLocal()
-                        try:
-                            if init_settings_from_db(db):
-                                logger.info("WhatsApp settings loaded from database")
-                            else:
-                                logger.info("Using environment variables as fallback for settings")
-                        finally:
-                            db.close()
-                    except Exception as e:
-                        logger.warning(f"Settings load failed, using env vars: {e}")
-                
-                thread = Thread(target=load_settings, daemon=True)
-                thread.start()
+                from services.settings_service import init_settings_from_db as sync_init
+                async with async_session_maker() as session:
+                    # Use sync version wrapped in thread
+                    await asyncio.to_thread(sync_init, session)
+                    logger.info("WhatsApp settings loaded from database (async)")
             except Exception as e:
-                logger.warning(f"Could not start settings load: {e}")
+                logger.warning(f"Settings load failed, using env vars: {e}")
         
         asyncio.create_task(load_settings_async())
-        logger.info("Settings initialization started in background")
+        logger.info("Async settings initialization started")
     except Exception as e:
         logger.warning(f"Could not start settings initialization: {e}")
     

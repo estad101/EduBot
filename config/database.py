@@ -1,64 +1,85 @@
 """
-Database configuration and session management.
+Database configuration and session management - ASYNC VERSION.
+This provides full async/await support for non-blocking database operations.
 """
-from sqlalchemy import create_engine, event
-from sqlalchemy.orm import sessionmaker, declarative_base
-from sqlalchemy.pool import QueuePool, NullPool
+from sqlalchemy.ext.asyncio import (
+    create_async_engine,
+    AsyncSession,
+    async_sessionmaker,
+)
+from sqlalchemy import select, event, text
+from sqlalchemy.orm import declarative_base
+from sqlalchemy.pool import NullPool
 from config.settings import settings
 import logging
 
 logger = logging.getLogger(__name__)
 
-# Create database engine with improved connection handling
-# Use NullPool for Railway to avoid connection pooling issues
-# Railway's MySQL service has its own connection management
+# Convert standard MySQL URL to async format
+# mysql+pymysql://... -> mysql+aiomysql://...
+async_db_url = settings.database_url.replace(
+    "mysql+pymysql://", "mysql+aiomysql://"
+) if "mysql+pymysql://" in settings.database_url else settings.database_url.replace(
+    "mysql://", "mysql+aiomysql://"
+)
+
+# Create async database engine
 try:
-    logger.info(f"Creating database engine with URL: {settings.database_url}")
-    engine = create_engine(
-        settings.database_url,
+    logger.info(f"Creating ASYNC database engine")
+    engine = create_async_engine(
+        async_db_url,
         poolclass=NullPool,  # Don't pool connections on Railway
         echo=settings.debug,
         connect_args={
             "charset": "utf8mb4",
-            "use_unicode": True,
             "autocommit": True,
             "connect_timeout": 10,
         },
     )
-    logger.info("✓ Database engine created successfully (lazy connection)")
+    logger.info("✓ ASYNC Database engine created successfully")
 except Exception as e:
-    logger.error(f"✗ Failed to create database engine: {e}")
+    logger.error(f"✗ Failed to create async database engine: {e}")
     raise
 
-# Don't test connection at startup - it will fail if database is offline
-# Connection will be established when first query is made
-logger.info("Database engine created (lazy connection - will connect on first use)")
-
-# Create session factory
-SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+# Create async session factory
+async_session_maker = async_sessionmaker(
+    engine,
+    class_=AsyncSession,
+    expire_on_commit=False,
+    autoflush=False,
+    autocommit=False,
+)
 
 # Base class for all ORM models
 Base = declarative_base()
 
 
-def get_db():
-    """Dependency injection for database session."""
-    db = SessionLocal()
-    try:
-        yield db
-    except Exception as e:
-        logger.error(f"Database session error: {e}")
-        db.rollback()
-        raise
-    finally:
-        db.close()
+async def get_db():
+    """Async dependency injection for database session.
+    
+    Usage in FastAPI:
+        @app.get("/users")
+        async def get_users(db: AsyncSession = Depends(get_db)):
+            result = await db.execute(select(User))
+            users = result.scalars().all()
+            return users
+    """
+    async with async_session_maker() as session:
+        try:
+            yield session
+        except Exception as e:
+            logger.error(f"Database session error: {e}")
+            await session.rollback()
+            raise
+        finally:
+            await session.close()
 
 
-def init_db():
-    """Initialize database (create all tables)."""
+async def init_db():
+    """Initialize database (create all tables) - ASYNC VERSION."""
     try:
         logger.info("=" * 80)
-        logger.info("STARTING DATABASE INITIALIZATION")
+        logger.info("STARTING ASYNC DATABASE INITIALIZATION")
         logger.info("=" * 80)
         
         logger.info("Step 1: Importing models...")
@@ -88,50 +109,52 @@ def init_db():
         from models.settings import AdminSetting
         logger.info("[OK] Imported AdminSetting model")
         
-        logger.info(f"\nStep 2: Creating tables...")
+        from models.bot_message_template import BotMessageTemplate
+        logger.info("[OK] Imported BotMessageTemplate model")
+        
+        logger.info(f"\nStep 2: Creating tables (async)...")
         logger.info(f"Tables to create: {list(Base.metadata.tables.keys())}")
         
-        # Create all tables - with timeout handling
+        # Create all tables asynchronously
         try:
-            Base.metadata.create_all(bind=engine)
+            async with engine.begin() as conn:
+                await conn.run_sync(Base.metadata.create_all)
             
-            # Verify leads table exists
+            # Verify tables exist
             logger.info("\nStep 3: Verifying table creation...")
-            from sqlalchemy import inspect, text
-            
-            inspector = inspect(engine)
-            tables = inspector.get_table_names()
+            async with engine.connect() as conn:
+                result = await conn.execute(
+                    text("SELECT TABLE_NAME FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_SCHEMA = DATABASE()")
+                )
+                tables = [row[0] for row in result.fetchall()]
             
             if 'leads' in tables:
                 logger.info("[SUCCESS] LEADS TABLE CREATED SUCCESSFULLY")
-                leads_columns = [col['name'] for col in inspector.get_columns('leads')]
-                logger.info(f"Leads table columns: {leads_columns}")
-            else:
-                logger.warning(f"[WARN] Leads table NOT FOUND. Available tables: {tables}")
             
+            logger.info(f"All tables: {tables}")
             logger.info("=" * 80)
-            logger.info("[SUCCESS] DATABASE INITIALIZATION COMPLETE")
+            logger.info("[SUCCESS] ASYNC DATABASE INITIALIZATION COMPLETE")
             logger.info("=" * 80)
         except Exception as connection_error:
-            # If we can't connect (e.g., Railway database unreachable), continue anyway
-            # The database connection will be retried on first actual query
             logger.warning(f"[WARN] Could not connect to database during init: {str(connection_error)}")
             logger.warning("[WARN] Database operations will be retried on first use")
             logger.info("=" * 80)
         
     except Exception as e:
         logger.error("=" * 80)
-        logger.error(f"❌ ERROR DURING DATABASE INITIALIZATION")
+        logger.error(f"❌ ERROR DURING ASYNC DATABASE INITIALIZATION")
         logger.error(f"❌ {str(e)}")
         logger.error("=" * 80, exc_info=True)
 
 
-def drop_db():
-    """Drop all tables (for testing only)."""
+async def drop_db():
+    """Drop all tables asynchronously (for testing only)."""
     try:
-        Base.metadata.drop_all(bind=engine)
+        async with engine.begin() as conn:
+            await conn.run_sync(Base.metadata.drop_all)
         logger.info("✓ Database tables dropped")
     except Exception as e:
         logger.error(f"Failed to drop database tables: {e}")
         raise
+
 
