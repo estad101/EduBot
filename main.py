@@ -15,7 +15,7 @@ import logging
 import os
 
 from config.settings import settings
-from config.database import init_db, drop_db, async_session_maker
+from config.database import init_db, drop_db, ASYNC_MODE
 from api.routes import users, students, homework, payments, subscriptions, whatsapp, tutors, health, bot_messages
 from admin.routes import api as admin_api
 from utils.logger import get_logger
@@ -33,6 +33,7 @@ async def lifespan(app: FastAPI):
     # Startup
     logger.info("Starting WhatsApp Chatbot API")
     logger.info(f"Environment: {settings.environment}")
+    logger.info(f"Database Mode: {'ASYNC' if ASYNC_MODE else 'SYNC (Fallback)'}")
     logger.info(f"Database URL: {settings.database_url.split('@')[0]}...{settings.database_url.split('/')[-1] if '/' in settings.database_url else 'invalid'}")
     
     # Initialize Sentry for error tracking (non-blocking)
@@ -41,13 +42,20 @@ async def lifespan(app: FastAPI):
     except Exception as e:
         logger.warning(f"Sentry initialization failed: {e}")
     
-    # Initialize database in background - ASYNC VERSION
+    # Initialize database - supports both async and sync
     try:
         import asyncio
-        db_task = asyncio.create_task(init_db())
-        logger.info("Async database initialization started")
+        
+        if ASYNC_MODE:
+            # Async mode - non-blocking initialization
+            db_task = asyncio.create_task(init_db())
+            logger.info("✓ Async database initialization started")
+        else:
+            # Sync fallback mode - blocking but compatible
+            init_db()
+            logger.info("✓ Sync database initialization complete (fallback mode)")
     except Exception as e:
-        logger.warning(f"Could not start async database initialization: {e}")
+        logger.warning(f"Could not initialize database: {e}")
     
     # Initialize settings from database in background
     # App will use environment variables as fallback until settings load
