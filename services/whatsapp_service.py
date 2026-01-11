@@ -8,8 +8,6 @@ import json
 import logging
 from typing import Optional, List, Dict, Any
 from config.settings import settings
-from config.database import SessionLocal
-from models.settings import AdminSetting
 
 logger = logging.getLogger(__name__)
 
@@ -26,6 +24,10 @@ def get_whatsapp_credentials() -> tuple[Optional[str], Optional[str]]:
         Tuple of (api_key, phone_number_id)
     """
     try:
+        # Import inside function to avoid circular imports and load-time issues
+        from config.database import SessionLocal
+        from models.settings import AdminSetting
+        
         db = SessionLocal()
         api_key = db.query(AdminSetting).filter(
             AdminSetting.key == "WHATSAPP_API_KEY"
