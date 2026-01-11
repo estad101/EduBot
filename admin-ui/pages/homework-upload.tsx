@@ -409,9 +409,12 @@ export default function HomeworkUploadPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-blue-50 to-blue-100 py-6 px-4 safe-area">
+    <div className="bg-gradient-to-b from-blue-50 to-blue-100 py-6 px-4 safe-area min-h-screen overflow-y-auto">
       {/* Mobile Safe Area */}
       <style>{`
+        html, body, #__next {
+          height: 100%;
+        }
         body {
           padding-top: max(12px, env(safe-area-inset-top));
           padding-bottom: max(12px, env(safe-area-inset-bottom));
