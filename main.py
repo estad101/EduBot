@@ -16,7 +16,7 @@ import os
 
 from config.settings import settings
 from config.database import init_db, drop_db, ASYNC_MODE
-from api.routes import users, students, homework, payments, subscriptions, whatsapp, tutors, health, bot_messages
+from api.routes import users, students, homework, payments, subscriptions, whatsapp, tutors, health, bot_messages, websocket
 from admin.routes import api as admin_api
 from utils.logger import get_logger
 from services.monitoring_service import init_sentry
@@ -203,6 +203,7 @@ app.include_router(whatsapp.router)  # WhatsApp webhook endpoint
 app.include_router(health.router)  # Health check endpoints
 app.include_router(tutors.router)  # Tutor endpoints
 app.include_router(bot_messages.router)  # Bot message management
+app.include_router(websocket.router)  # WebSocket for real-time updates
 
 # Include notification router
 from api.routes.notifications import router as notifications_router

@@ -4,6 +4,7 @@ import { useEffect, useState, useRef } from 'react';
 import { useRouter } from 'next/router';
 import Layout from '../components/Layout';
 import { apiClient } from '../lib/api-client';
+import { useWebSocket } from '../lib/useWebSocket';
 
 interface Conversation {
   phone_number: string;
@@ -14,6 +15,7 @@ interface Conversation {
   is_active: boolean;
   type?: 'student' | 'lead' | 'memory';
   is_chat_support?: boolean;
+  inactivity_minutes?: number;
 }
 
 interface Message {
@@ -49,18 +51,52 @@ export default function ConversationsPage() {
   const [chatSession, setChatSession] = useState<ChatSupportSession | null>(null);
   const [activatingChat, setActivatingChat] = useState(false);
   const [endingChat, setEndingChat] = useState(false);
-  const [refreshing, setRefreshing] = useState(false);
-  const [lastRefresh, setLastRefresh] = useState<number>(Date.now());
+  const [wsConnected, setWsConnected] = useState(false);
+
+  // WebSocket for real-time conversation updates
+  const { isConnected: conversationWsConnected, sendMessage: sendConversationWsMsg } = useWebSocket(
+    {
+      url: '/ws/conversations?user_type=admin',
+      debug: process.env.NODE_ENV === 'development'
+    },
+    (data) => {
+      // Handle real-time conversation updates
+      if (data.event === 'conversation_updated' || data.event === 'message_received') {
+        // Refresh conversations without full page reload
+        fetchConversations();
+      }
+    },
+    () => setWsConnected(true),
+    () => setWsConnected(false)
+  );
+
+  // WebSocket for specific conversation messages
+  const { isConnected: messageWsConnected, sendMessage: sendMessageWsMsg } = useWebSocket(
+    {
+      url: selectedPhone ? `/ws/conversation/${selectedPhone}` : '',
+      debug: process.env.NODE_ENV === 'development'
+    },
+    (data) => {
+      // Handle real-time message updates
+      if (data.event === 'message_received' && selectedPhone) {
+        fetchMessages();
+      }
+    },
+    () => console.log('Message WebSocket connected'),
+    () => console.log('Message WebSocket disconnected')
+  );
 
   // Auto-scroll to bottom when messages change
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
-  // Fetch conversations on mount and periodically
+  // Fetch conversations on mount
   useEffect(() => {
     fetchConversations();
-    const interval = setInterval(fetchConversations, 8000); // Refresh every 8 seconds
+    
+    // Fallback polling in case WebSocket fails (every 8 seconds)
+    const interval = setInterval(fetchConversations, 8000);
     return () => clearInterval(interval);
   }, [router]);
 
@@ -68,7 +104,9 @@ export default function ConversationsPage() {
   useEffect(() => {
     if (selectedPhone) {
       fetchMessages();
-      const interval = setInterval(fetchMessages, 4000); // Refresh every 4 seconds
+      
+      // Fallback polling in case WebSocket fails (every 4 seconds)
+      const interval = setInterval(fetchMessages, 4000);
       return () => clearInterval(interval);
     }
     return undefined;
@@ -268,6 +306,18 @@ export default function ConversationsPage() {
 
   return (
     <Layout>
+      {/* Real-time Connection Status Indicator */}
+      <div className="mb-4 flex items-center gap-2">
+        <div className={`px-3 py-1 rounded-full text-xs font-semibold flex items-center gap-2 ${
+          conversationWsConnected
+            ? 'bg-green-100 text-green-800'
+            : 'bg-yellow-100 text-yellow-800'
+        }`}>
+          <span className={`w-2 h-2 rounded-full ${conversationWsConnected ? 'bg-green-600 animate-pulse' : 'bg-yellow-600'}`}></span>
+          {conversationWsConnected ? '🟢 Real-time Connected' : '🟡 Using Polling (WebSocket unavailable)'}
+        </div>
+      </div>
+
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 h-[calc(100vh-200px)]">
         {/* Conversations List */}
         <div className={`${showChat ? 'hidden md:flex' : 'flex'} md:col-span-1 bg-white rounded-lg shadow overflow-hidden flex flex-col border border-gray-200`}>
