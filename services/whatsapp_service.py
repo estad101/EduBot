@@ -14,15 +14,24 @@ logger = logging.getLogger(__name__)
 # WhatsApp Cloud API endpoints
 WHATSAPP_API_URL = "https://graph.facebook.com/v22.0"
 
+# Credential cache (loaded once on startup, updated when admin changes settings)
+_credentials_cache: Optional[tuple[Optional[str], Optional[str]]] = None
+
 
 def get_whatsapp_credentials() -> tuple[Optional[str], Optional[str]]:
     """
-    Get WhatsApp API credentials from database.
+    Get WhatsApp API credentials from cache (or database on first call).
     Falls back to environment variables if not in database.
     
     Returns:
         Tuple of (api_key, phone_number_id)
     """
+    global _credentials_cache
+    
+    # If cached, return immediately without database query
+    if _credentials_cache is not None:
+        return _credentials_cache
+    
     try:
         # Import inside function to avoid circular imports and load-time issues
         from config.database import SessionLocal
@@ -44,11 +53,26 @@ def get_whatsapp_credentials() -> tuple[Optional[str], Optional[str]]:
         logger.info(f"🔵 [get_whatsapp_credentials] API Key source: {'database' if api_key and api_key.value else 'environment'}")
         logger.info(f"🔵 [get_whatsapp_credentials] Phone ID source: {'database' if phone_id and phone_id.value else 'environment'}")
         
-        return final_api_key, final_phone_id
+        # Cache the credentials for future calls
+        _credentials_cache = (final_api_key, final_phone_id)
+        
+        return _credentials_cache
     except Exception as e:
         logger.warning(f"⚠️ Error fetching WhatsApp credentials from database: {str(e)}")
         logger.info(f"🔵 Falling back to environment variables")
-        return settings.whatsapp_api_key, settings.whatsapp_phone_number_id
+        result = (settings.whatsapp_api_key, settings.whatsapp_phone_number_id)
+        _credentials_cache = result
+        return result
+
+
+def refresh_whatsapp_credentials():
+    """
+    Refresh the cached WhatsApp credentials from database.
+    Call this when admin settings are updated.
+    """
+    global _credentials_cache
+    _credentials_cache = None  # Clear cache
+    logger.info("🔵 [refresh_whatsapp_credentials] Cache cleared, will reload on next call")
 
 
 class WhatsAppService:
