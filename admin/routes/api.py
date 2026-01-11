@@ -2554,3 +2554,107 @@ async def admin_bot_messages_stats(
     except Exception as e:
         logger.error(f"Error getting bot messages stats: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
+
+
+# ==================== SETTINGS ENDPOINTS ====================
+
+@router.get("/settings")
+async def get_public_settings(db: Session = Depends(db_dependency)):
+    """Get public settings from admin_settings table (no auth required for login page)."""
+    try:
+        from models.settings import AdminSetting
+        
+        # Fetch all settings from database
+        settings = db.query(AdminSetting).all()
+        
+        # Build response dict with all settings
+        settings_dict = {}
+        for setting in settings:
+            settings_dict[setting.key] = setting.value
+        
+        return {
+            "status": "success",
+            "data": settings_dict
+        }
+    except Exception as e:
+        logger.error(f"Error getting settings: {str(e)}")
+        # Return default values on error
+        return {
+            "status": "success",
+            "data": {
+                "bot_name": "EduBot"
+            }
+        }
+
+
+@router.get("/settings/{key}")
+async def get_setting(key: str, db: Session = Depends(db_dependency)):
+    """Get a specific setting from admin_settings table."""
+    try:
+        from models.settings import AdminSetting
+        
+        setting = db.query(AdminSetting).filter(AdminSetting.key == key).first()
+        
+        if not setting:
+            return {
+                "status": "error",
+                "message": f"Setting '{key}' not found",
+                "data": None
+            }
+        
+        return {
+            "status": "success",
+            "data": {
+                "key": setting.key,
+                "value": setting.value,
+                "description": setting.description
+            }
+        }
+    except Exception as e:
+        logger.error(f"Error getting setting '{key}': {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.put("/settings/{key}")
+@admin_session_required
+async def update_setting(
+    key: str,
+    value: str = Body(...),
+    request: Request = None,
+    db: Session = Depends(db_dependency)
+):
+    """Update a specific setting in admin_settings table (admin only)."""
+    try:
+        from models.settings import AdminSetting
+        
+        setting = db.query(AdminSetting).filter(AdminSetting.key == key).first()
+        
+        if not setting:
+            # Create new setting if it doesn't exist
+            setting = AdminSetting(key=key, value=value)
+            db.add(setting)
+        else:
+            # Update existing setting
+            setting.value = value
+        
+        # Track who made the update
+        admin_username = request.session.get("admin_username", "unknown") if request else "api"
+        setting.description = f"Last updated by {admin_username}"
+        
+        db.commit()
+        db.refresh(setting)
+        
+        logger.info(f"Admin {admin_username} updated setting: {key}")
+        
+        return {
+            "status": "success",
+            "message": f"Setting '{key}' updated successfully",
+            "data": {
+                "key": setting.key,
+                "value": setting.value
+            }
+        }
+    except Exception as e:
+        db.rollback()
+        logger.error(f"Error updating setting '{key}': {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
