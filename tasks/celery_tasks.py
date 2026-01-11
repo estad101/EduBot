@@ -384,23 +384,35 @@ def send_homework_submission_confirmation(self, student_phone: str, subject: str
         homework_id: Homework ID for reference
     """
     try:
-        logger.info(f"📸 Starting homework submission confirmation task")
+        logger.info(f"=" * 80)
+        logger.info(f"📸 HOMEWORK CONFIRMATION TASK STARTED")
+        logger.info(f"=" * 80)
         logger.info(f"   Phone: {student_phone}")
         logger.info(f"   Subject: {subject}")
         logger.info(f"   Homework ID: {homework_id}")
+        logger.info(f"   Task ID: {self.request.id}")
         
         # Validate phone number format
         if not student_phone:
+            logger.error(f"❌ Student phone number is empty")
             raise ValueError("Student phone number is empty")
         
         if not student_phone.startswith('+'):
             logger.warning(f"⚠️ Phone number doesn't start with '+': {student_phone}")
         
+        logger.info(f"🔵 Creating event loop for async execution...")
         loop = asyncio.new_event_loop()
         asyncio.set_event_loop(loop)
         
         async def send_confirmation():
-            from services.whatsapp_service import WhatsAppService
+            logger.info(f"🔵 Async function started - loading WhatsApp service...")
+            from services.whatsapp_service import WhatsAppService, get_whatsapp_credentials
+            
+            # Verify credentials are loaded
+            api_key, phone_id = get_whatsapp_credentials()
+            logger.info(f"🔵 Credentials check:")
+            logger.info(f"    API Key exists: {bool(api_key)}")
+            logger.info(f"    Phone ID: {phone_id}")
             
             confirmation_message = (
                 f"✅ Homework Submitted Successfully!\n\n"
@@ -411,30 +423,49 @@ def send_homework_submission_confirmation(self, student_phone: str, subject: str
                 f"You'll receive feedback soon!"
             )
             
-            logger.info(f"Sending message to {student_phone}...")
+            logger.info(f"🔵 Prepared confirmation message for {student_phone}")
+            logger.info(f"🔵 Message preview: {confirmation_message[:100]}...")
+            logger.info(f"🔵 Calling WhatsAppService.send_message()...")
+            
             result = await WhatsAppService.send_message(
                 phone_number=student_phone,
                 message_type="text",
                 text=confirmation_message
             )
             
+            logger.info(f"🔵 WhatsAppService.send_message() returned: {result}")
             return result
         
+        logger.info(f"🔵 Running async confirmation send...")
         result = loop.run_until_complete(send_confirmation())
         loop.close()
         
+        logger.info(f"=" * 80)
         if result.get('status') == 'success':
-            logger.info(f"✅ Homework confirmation sent successfully to {student_phone}")
-            logger.info(f"   Message ID: {result.get('message_id')}")
+            logger.info(f"✅ HOMEWORK CONFIRMATION SENT SUCCESSFULLY")
+            logger.info(f"   To: {student_phone}")
+            logger.info(f"   Message ID: {result.get('data', {}).get('messages', [{}])[0].get('id', 'unknown')}")
+            logger.info(f"=" * 80)
             return result
         else:
             error_msg = result.get('error', 'Unknown error')
-            logger.error(f"❌ Failed to send confirmation to {student_phone}: {error_msg}")
+            logger.error(f"=" * 80)
+            logger.error(f"❌ HOMEWORK CONFIRMATION FAILED")
+            logger.error(f"   To: {student_phone}")
+            logger.error(f"   Error: {error_msg}")
+            logger.error(f"   Retrying in 30 seconds... (attempt {self.request.retries + 1}/3)")
+            logger.error(f"=" * 80)
             # Retry on failure
-            logger.info(f"Retrying in 30 seconds... (attempt {self.request.retries + 1}/3)")
             self.retry(exc=Exception(error_msg), countdown=30, max_retries=3)
         
     except Exception as e:
+        logger.error(f"=" * 80)
+        logger.error(f"❌ HOMEWORK CONFIRMATION EXCEPTION")
+        logger.error(f"   To: {student_phone}")
+        logger.error(f"   Error: {str(e)}")
+        logger.error(f"=" * 80)
+        import traceback
+        logger.error(f"   Traceback: {traceback.format_exc()}")
         logger.error(f"❌ Error in homework confirmation task: {str(e)}")
         logger.error(f"   Task will retry in 30 seconds... (attempt {self.request.retries + 1}/3)")
         # Retry with exponential backoff
