@@ -140,7 +140,7 @@ export default function HomeworkUploadPage() {
       return;
     }
 
-    setState(prev => ({ ...prev, uploading: true, error: null }));
+    setState(prev => ({ ...prev, uploading: true, error: null, uploadProgress: 0 }));
 
     try {
       const formData = new FormData();
@@ -155,40 +155,76 @@ export default function HomeworkUploadPage() {
       
       console.log('Uploading to:', uploadUrl);
 
-      const response = await fetch(uploadUrl, {
-        method: 'POST',
-        body: formData,
-        headers: {
-          // Don't set Content-Type, let browser handle it for FormData
+      // Use XMLHttpRequest for progress tracking
+      const xhr = new XMLHttpRequest();
+
+      // Track upload progress
+      xhr.upload.addEventListener('progress', (event) => {
+        if (event.lengthComputable) {
+          const progress = Math.round((event.loaded / event.total) * 100);
+          console.log(`Upload progress: ${progress}%`);
+          setState(prev => ({ ...prev, uploadProgress: progress }));
         }
       });
 
-      // Try to parse as JSON
-      let data: any;
-      try {
-        data = await response.json();
-      } catch (parseError) {
-        console.error('JSON parse error:', parseError);
-        console.error('Response status:', response.status);
-        console.error('Response text:', await response.text());
-        throw new Error(`Server error: Invalid response from server (${response.status})`);
-      }
+      // Handle completion
+      xhr.addEventListener('load', () => {
+        console.log('Upload complete. Status:', xhr.status);
+        
+        if (xhr.status === 200) {
+          try {
+            const data = JSON.parse(xhr.responseText);
+            console.log('Upload response:', data);
+            
+            setState(prev => ({
+              ...prev,
+              uploading: false,
+              success: true,
+              error: null,
+              uploadProgress: 100
+            }));
 
-      if (!response.ok) {
-        throw new Error(data.error || data.message || `Upload failed (${response.status})`);
-      }
+            // Auto-close after countdown
+            setTimeout(() => {
+              window.close();
+            }, 3000);
+          } catch (parseError) {
+            console.error('JSON parse error:', parseError);
+            throw new Error('Invalid response from server');
+          }
+        } else {
+          try {
+            const errorData = JSON.parse(xhr.responseText);
+            throw new Error(errorData.error || errorData.message || `Upload failed (${xhr.status})`);
+          } catch {
+            throw new Error(`Upload failed (${xhr.status})`);
+          }
+        }
+      });
 
-      setState(prev => ({
-        ...prev,
-        uploading: false,
-        success: true,
-        error: null
-      }));
+      // Handle errors
+      xhr.addEventListener('error', () => {
+        console.error('Upload error');
+        setState(prev => ({
+          ...prev,
+          uploading: false,
+          error: 'Network error during upload. Please check your connection.'
+        }));
+      });
 
-      // Auto-close after 3 seconds
-      setTimeout(() => {
-        window.close();
-      }, 3000);
+      // Handle abort
+      xhr.addEventListener('abort', () => {
+        console.error('Upload aborted');
+        setState(prev => ({
+          ...prev,
+          uploading: false,
+          error: 'Upload was cancelled'
+        }));
+      });
+
+      // Send request
+      xhr.open('POST', uploadUrl);
+      xhr.send(formData);
     } catch (error) {
       console.error('Upload error:', error);
       setState(prev => ({
