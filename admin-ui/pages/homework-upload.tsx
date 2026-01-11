@@ -23,6 +23,13 @@ interface FileValidation {
 export default function HomeworkUploadPage() {
   const router = useRouter();
   const { student_id, homework_id, subject, token } = router.query;
+  
+  // DEBUG: Log version info to console
+  useEffect(() => {
+    console.log('📦 Homework Upload Page v2.0 (with auto-close and WhatsApp fixes)');
+    console.log('🔧 Features: Countdown initialization fix, Celery logging enhancements');
+    console.log('📅 Deployed: Jan 11 2026');
+  }, []);
   const [state, setState] = useState<UploadState>({
     loading: true,
     uploading: false,
