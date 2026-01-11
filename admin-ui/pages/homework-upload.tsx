@@ -55,21 +55,26 @@ export default function HomeworkUploadPage() {
 
   // Countdown timer for success page
   useEffect(() => {
-    if (!state.success || countdown <= 0) return;
+    if (!state.success) return;
+    
+    if (countdown <= 0) {
+      console.log('Countdown reached 0, closing window...');
+      // Try to close the window
+      try {
+        window.close();
+      } catch (e) {
+        console.log('Could not close window:', e);
+      }
+      return;
+    }
     
     const timer = setTimeout(() => {
+      console.log(`Countdown: ${countdown - 1}`);
       setCountdown(countdown - 1);
     }, 1000);
     
     return () => clearTimeout(timer);
   }, [state.success, countdown]);
-
-  // Auto-close when countdown reaches 0
-  useEffect(() => {
-    if (countdown === 0 && state.success) {
-      window.close();
-    }
-  }, [countdown, state.success]);
 
   const formatFileSize = (bytes: number): string => {
     if (bytes === 0) return '0 Bytes';
@@ -183,11 +188,10 @@ export default function HomeworkUploadPage() {
               error: null,
               uploadProgress: 100
             }));
-
-            // Auto-close after countdown
-            setTimeout(() => {
-              window.close();
-            }, 3000);
+            
+            // Reset countdown and trigger auto-close
+            setCountdown(3);
+            console.log('✓ Upload successful. Success state set. Countdown (3s) started.');
           } catch (parseError) {
             console.error('JSON parse error:', parseError);
             throw new Error('Invalid response from server');
