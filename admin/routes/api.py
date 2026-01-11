@@ -1266,10 +1266,20 @@ async def get_settings(request: Request, db: AsyncSession = Depends(get_async_db
         result = await db.execute(select(AdminSetting))
         db_settings = result.scalars().all()
         
+        logger.info(f"DEBUG: Retrieved {len(db_settings)} settings from database")
+        
         # Build settings dictionary
         settings_dict = {}
         for setting in db_settings:
             settings_dict[setting.key] = setting.value or ""
+            if setting.key == "bot_name":
+                logger.info(f"DEBUG: Found bot_name in database: '{setting.value}'")
+        
+        # Check if bot_name exists and log
+        if "bot_name" not in settings_dict:
+            logger.warning("DEBUG: bot_name NOT found in database, will use default")
+        else:
+            logger.info(f"DEBUG: bot_name exists in settings_dict: '{settings_dict.get('bot_name')}'")
         
         # Fallback to environment variables if not in database
         if not settings_dict.get("whatsapp_api_key"):
@@ -1283,7 +1293,10 @@ async def get_settings(request: Request, db: AsyncSession = Depends(get_async_db
         if not settings_dict.get("database_url"):
             settings_dict["database_url"] = settings.database_url or ""
         if not settings_dict.get("bot_name"):
+            logger.warning("DEBUG: bot_name is empty/falsy, setting default to EduBot")
             settings_dict["bot_name"] = "EduBot"
+        else:
+            logger.info(f"DEBUG: bot_name has value: '{settings_dict['bot_name']}'")
         if not settings_dict.get("template_welcome"):
             settings_dict["template_welcome"] = "👋 {name}, welcome to {bot_name}!"
         if not settings_dict.get("template_status"):
