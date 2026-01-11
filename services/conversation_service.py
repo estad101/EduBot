@@ -95,6 +95,41 @@ class ConversationService:
         logger.info(f"Bot name cache updated to: {bot_name}")
 
     @staticmethod
+    def get_available_features_menu(db=None, first_name: str = "") -> str:
+        """
+        Get the available features menu message from database template.
+        Falls back to hardcoded version if template not found.
+        """
+        greeting = f"Hey {first_name}!" if first_name else "Hey there!"
+        
+        # Try to fetch from database
+        if db:
+            try:
+                from models.bot_message import BotMessageTemplate
+                template = db.query(BotMessageTemplate).filter(
+                    BotMessageTemplate.template_name == "available_features"
+                ).first()
+                if template and template.template_content:
+                    return f"{greeting}\n\n{template.template_content}"
+            except Exception as e:
+                logger.warning(f"Failed to fetch template from DB: {e}")
+        
+        # Fallback to hardcoded version
+        feature_text = (
+            f"{greeting}\n\n"
+            f"📚 **AVAILABLE FEATURES** 📚\n\n"
+            f"🏠 **Home** - Return to home menu\n"
+            f"❓ **FAQ** - Get answers to common questions\n"
+            f"📝 **Homework** - Submit your homework\n"
+            f"💬 **Support** - Chat with our team\n"
+            f"💳 **Subscribe** - View subscription plans\n"
+            f"📊 **Status** - Check your account details\n"
+            f"ℹ️ **Help** - Get help with the bot\n\n"
+            f"Just type a command above to get started!"
+        )
+        return feature_text
+
+    @staticmethod
     def get_state(phone_number: str) -> Dict[str, Any]:
         """
         Get conversation state for a user.
@@ -459,19 +494,8 @@ class MessageRouter:
             # Return to appropriate state based on registration
             if student_data and student_data.get("name"):
                 # Registered user - return to main menu
-                greeting = f"Hey {first_name}!" if first_name else "Hey there!"
-                feature_text = (
-                    f"{greeting}\n\n"
-                    f"📚 **AVAILABLE FEATURES** 📚\n\n"
-                    f"🏠 **Home** - Return to home menu\n"
-                    f"❓ **FAQ** - Get answers to common questions\n"
-                    f"📝 **Homework** - Submit your homework\n"
-                    f"💬 **Support** - Chat with our team\n"
-                    f"💳 **Subscribe** - View subscription plans\n"
-                    f"📊 **Status** - Check your account details\n"
-                    f"ℹ️ **Help** - Get help with the bot\n\n"
-                    f"Just type a command above to get started!"
-                )
+                first_name = student_data.get("name", "").split()[0] if student_data.get("name") else ""
+                feature_text = cls.get_available_features_menu(db, first_name)
                 return (
                     feature_text,
                     ConversationState.IDLE,
@@ -517,37 +541,15 @@ class MessageRouter:
                 ConversationService.set_data(phone_number, "homework_content", None)
                 
                 greeting = f"Homework submission cancelled, {first_name}." if first_name else "Homework submission cancelled."
-                menu_text = (
-                    f"{greeting}\n\n"
-                    f"📚 **AVAILABLE FEATURES** 📚\n\n"
-                    f"🏠 **Home** - Return to home menu\n"
-                    f"❓ **FAQ** - Get answers to common questions\n"
-                    f"📝 **Homework** - Submit your homework\n"
-                    f"💬 **Support** - Chat with our team\n"
-                    f"💳 **Subscribe** - View subscription plans\n"
-                    f"📊 **Status** - Check your account details\n"
-                    f"ℹ️ **Help** - Get help with the bot\n\n"
-                    f"Just type a command above to get started!"
-                )
+                # Use template if available, otherwise use greeting + fallback menu
+                menu_text = greeting + "\n\n" + cls.get_available_features_menu(db).split("\n\n", 1)[1] if db else greeting + "\n\n" + cls.get_available_features_menu(None).split("\n\n", 1)[1]
                 return (
                     menu_text,
                     ConversationState.IDLE,
                 )
             else:
                 # Generic cancel - just show menu
-                greeting = f"Hey {first_name}!" if first_name else "Hey there!"
-                menu_text = (
-                    f"{greeting}\n\n"
-                    f"📚 **AVAILABLE FEATURES** 📚\n\n"
-                    f"🏠 **Home** - Return to home menu\n"
-                    f"❓ **FAQ** - Get answers to common questions\n"
-                    f"📝 **Homework** - Submit your homework\n"
-                    f"💬 **Support** - Chat with our team\n"
-                    f"💳 **Subscribe** - View subscription plans\n"
-                    f"📊 **Status** - Check your account details\n"
-                    f"ℹ️ **Help** - Get help with the bot\n\n"
-                    f"Just type a command above to get started!"
-                )
+                menu_text = cls.get_available_features_menu(db, first_name)
                 return (
                     menu_text,
                     ConversationState.IDLE,
