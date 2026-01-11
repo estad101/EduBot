@@ -8,11 +8,45 @@ import json
 import logging
 from typing import Optional, List, Dict, Any
 from config.settings import settings
+from config.database import SessionLocal
+from models.settings import AdminSetting
 
 logger = logging.getLogger(__name__)
 
 # WhatsApp Cloud API endpoints
 WHATSAPP_API_URL = "https://graph.facebook.com/v22.0"
+
+
+def get_whatsapp_credentials() -> tuple[Optional[str], Optional[str]]:
+    """
+    Get WhatsApp API credentials from database.
+    Falls back to environment variables if not in database.
+    
+    Returns:
+        Tuple of (api_key, phone_number_id)
+    """
+    try:
+        db = SessionLocal()
+        api_key = db.query(AdminSetting).filter(
+            AdminSetting.key == "WHATSAPP_API_KEY"
+        ).first()
+        phone_id = db.query(AdminSetting).filter(
+            AdminSetting.key == "WHATSAPP_PHONE_NUMBER_ID"
+        ).first()
+        db.close()
+        
+        # Return database values if they exist, otherwise fall back to env vars
+        final_api_key = api_key.value if api_key and api_key.value else settings.whatsapp_api_key
+        final_phone_id = phone_id.value if phone_id and phone_id.value else settings.whatsapp_phone_number_id
+        
+        logger.info(f"🔵 [get_whatsapp_credentials] API Key source: {'database' if api_key and api_key.value else 'environment'}")
+        logger.info(f"🔵 [get_whatsapp_credentials] Phone ID source: {'database' if phone_id and phone_id.value else 'environment'}")
+        
+        return final_api_key, final_phone_id
+    except Exception as e:
+        logger.warning(f"⚠️ Error fetching WhatsApp credentials from database: {str(e)}")
+        logger.info(f"🔵 Falling back to environment variables")
+        return settings.whatsapp_api_key, settings.whatsapp_phone_number_id
 
 
 class WhatsAppService:
@@ -39,12 +73,15 @@ class WhatsAppService:
         """
         logger.info(f"🔵 [send_interactive_message] Starting - phone: {phone_number}, buttons: {len(buttons)}")
         
-        # Check if WhatsApp credentials are properly configured (not placeholders)
-        if not settings.whatsapp_api_key or settings.whatsapp_api_key == "placeholder_api_key":
+        # Get WhatsApp credentials from database
+        whatsapp_api_key, whatsapp_phone_number_id = get_whatsapp_credentials()
+        
+        # Check if WhatsApp credentials are properly configured
+        if not whatsapp_api_key or whatsapp_api_key == "placeholder_api_key":
             logger.error(f"🔴 [send_interactive_message] WhatsApp API Key not configured")
             return {"status": "error", "message": "WhatsApp API key not configured"}
         
-        if not settings.whatsapp_phone_number_id or settings.whatsapp_phone_number_id == "placeholder_phone_id":
+        if not whatsapp_phone_number_id or whatsapp_phone_number_id == "placeholder_phone_id":
             logger.error(f"🔴 [send_interactive_message] WhatsApp Phone Number ID not configured")
             return {"status": "error", "message": "WhatsApp phone number ID not configured"}
 
@@ -83,9 +120,9 @@ class WhatsAppService:
                     }
                 }
 
-                url = f"{WHATSAPP_API_URL}/{settings.whatsapp_phone_number_id}/messages"
+                url = f"{WHATSAPP_API_URL}/{whatsapp_phone_number_id}/messages"
                 headers = {
-                    "Authorization": f"Bearer {settings.whatsapp_api_key}",
+                    "Authorization": f"Bearer {whatsapp_api_key}",
                     "Content-Type": "application/json",
                 }
 
@@ -149,17 +186,20 @@ class WhatsAppService:
         """
         logger.info(f"🔵 [send_message] Starting - phone: {phone_number}, type: {message_type}")
         
+        # Get WhatsApp credentials from database
+        whatsapp_api_key, whatsapp_phone_number_id = get_whatsapp_credentials()
+        
         # Check if WhatsApp credentials are properly configured (not placeholders)
-        if not settings.whatsapp_api_key or settings.whatsapp_api_key == "placeholder_api_key":
+        if not whatsapp_api_key or whatsapp_api_key == "placeholder_api_key":
             logger.error(f"🔴 [send_message] WhatsApp API Key not configured (WHATSAPP_API_KEY env var missing)")
             return {"status": "error", "message": "WhatsApp API key not configured"}
         
-        if not settings.whatsapp_phone_number_id or settings.whatsapp_phone_number_id == "placeholder_phone_id":
+        if not whatsapp_phone_number_id or whatsapp_phone_number_id == "placeholder_phone_id":
             logger.error(f"🔴 [send_message] WhatsApp Phone Number ID not configured (WHATSAPP_PHONE_NUMBER_ID env var missing)")
             return {"status": "error", "message": "WhatsApp phone number ID not configured"}
 
-        logger.info(f"🔵 [send_message] API Key exists: {bool(settings.whatsapp_api_key)}")
-        logger.info(f"🔵 [send_message] Phone ID: {settings.whatsapp_phone_number_id}")
+        logger.info(f"🔵 [send_message] API Key exists: {bool(whatsapp_api_key)}")
+        logger.info(f"🔵 [send_message] Phone ID: {whatsapp_phone_number_id}")
         logger.info(f"🔵 [send_message] API URL base: {WHATSAPP_API_URL}")
 
         # Clean phone number - ensure it starts with country code (no +)
@@ -215,9 +255,9 @@ class WhatsAppService:
                     }
 
                 # Make API request
-                url = f"{WHATSAPP_API_URL}/{settings.whatsapp_phone_number_id}/messages"
+                url = f"{WHATSAPP_API_URL}/{whatsapp_phone_number_id}/messages"
                 headers = {
-                    "Authorization": f"Bearer {settings.whatsapp_api_key}",
+                    "Authorization": f"Bearer {whatsapp_api_key}",
                     "Content-Type": "application/json",
                 }
 
@@ -246,7 +286,7 @@ class WhatsAppService:
                         f"❌ WhatsApp API error ({response.status_code}) sending to {phone_number}"
                     )
                     logger.error(f"   Status: {response.status_code}")
-                    logger.error(f"   Phone ID: {settings.whatsapp_phone_number_id}")
+                    logger.error(f"   Phone ID: {whatsapp_phone_number_id}")
                     logger.error(f"   Response: {error_text}")
                     return {
                         "status": "error",
@@ -385,7 +425,10 @@ class WhatsAppService:
         Returns:
             Media bytes or None if failed
         """
-        if not settings.whatsapp_api_key or not settings.whatsapp_phone_number_id:
+        # Get WhatsApp credentials from database
+        whatsapp_api_key, whatsapp_phone_number_id = get_whatsapp_credentials()
+        
+        if not whatsapp_api_key or not whatsapp_phone_number_id:
             logger.error("WhatsApp API credentials not configured")
             return None
 
@@ -394,7 +437,7 @@ class WhatsAppService:
                 # Get media URL
                 url = f"{WHATSAPP_API_URL}/{media_id}"
                 headers = {
-                    "Authorization": f"Bearer {settings.whatsapp_api_key}",
+                    "Authorization": f"Bearer {whatsapp_api_key}",
                 }
 
                 response = await client.get(url, headers=headers)
@@ -412,7 +455,7 @@ class WhatsAppService:
                     return None
 
                 media_response = await client.get(
-                    media_url, headers={"Authorization": f"Bearer {settings.whatsapp_api_key}"}
+                    media_url, headers={"Authorization": f"Bearer {whatsapp_api_key}"}
                 )
 
                 if media_response.status_code == 200:
