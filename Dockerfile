@@ -14,7 +14,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 # Copy requirements and install dependencies
 COPY requirements.txt .
 RUN pip install --upgrade pip && \
-    pip install --no-cache-dir -r requirements.txt
+    pip install --no-cache-dir -r requirements.txt && \
+    pip install honcho
 
 # Copy application code
 COPY . .
@@ -22,5 +23,5 @@ COPY . .
 # Expose port (for documentation, Railway assigns its own)
 EXPOSE 8000
 
-# Start the application
-CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
+# Start with Procfile using honcho (runs web and worker processes)
+CMD ["honcho", "-f", "Procfile", "start"]
