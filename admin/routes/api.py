@@ -2208,3 +2208,349 @@ async def end_chat_support(
             "status": "error",
             "message": f"Error ending chat: {str(e)}"
         }
+
+# ==================== BOT MESSAGE MANAGEMENT ====================
+# Full admin control over preformatted bot responses
+
+@router.get("/bot-messages/list")
+@admin_session_required
+async def admin_list_bot_messages(
+    request: Request,
+    active_only: bool = Query(False),
+    context: Optional[str] = Query(None),
+    db: Session = Depends(db_dependency)
+):
+    """List all bot messages (admin only)."""
+    try:
+        from models.bot_message import BotMessage
+        
+        query = db.query(BotMessage)
+        
+        if active_only:
+            query = query.filter(BotMessage.is_active == True)
+        
+        if context:
+            query = query.filter(BotMessage.context == context)
+        
+        messages = query.all()
+        
+        return {
+            "status": "success",
+            "data": [
+                {
+                    "id": msg.id,
+                    "message_key": msg.message_key,
+                    "message_type": msg.message_type,
+                    "context": msg.context,
+                    "content": msg.content,
+                    "has_menu": msg.has_menu,
+                    "menu_items": msg.menu_items,
+                    "next_states": msg.next_states,
+                    "variables": msg.variables,
+                    "is_active": msg.is_active,
+                    "description": msg.description,
+                    "created_by": msg.created_by,
+                    "updated_by": msg.updated_by,
+                    "created_at": msg.created_at.isoformat() if msg.created_at else None,
+                    "updated_at": msg.updated_at.isoformat() if msg.updated_at else None
+                }
+                for msg in messages
+            ],
+            "count": len(messages)
+        }
+    except Exception as e:
+        logger.error(f"Error listing bot messages: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/bot-messages/{message_key}")
+@admin_session_required
+async def admin_get_bot_message(
+    request: Request,
+    message_key: str,
+    db: Session = Depends(db_dependency)
+):
+    """Get a specific bot message by key (admin only)."""
+    try:
+        from models.bot_message import BotMessage
+        
+        msg = db.query(BotMessage).filter(BotMessage.message_key == message_key).first()
+        
+        if not msg:
+            raise HTTPException(status_code=404, detail=f"Message '{message_key}' not found")
+        
+        return {
+            "status": "success",
+            "data": {
+                "id": msg.id,
+                "message_key": msg.message_key,
+                "message_type": msg.message_type,
+                "context": msg.context,
+                "content": msg.content,
+                "has_menu": msg.has_menu,
+                "menu_items": msg.menu_items,
+                "next_states": msg.next_states,
+                "variables": msg.variables,
+                "is_active": msg.is_active,
+                "description": msg.description,
+                "created_by": msg.created_by,
+                "updated_by": msg.updated_by,
+                "created_at": msg.created_at.isoformat() if msg.created_at else None,
+                "updated_at": msg.updated_at.isoformat() if msg.updated_at else None
+            }
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error getting bot message: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/bot-messages/create")
+@admin_session_required
+async def admin_create_bot_message(
+    request: Request,
+    data: dict = Body(...),
+    db: Session = Depends(db_dependency)
+):
+    """Create a new bot message (admin only)."""
+    try:
+        from models.bot_message import BotMessage
+        
+        # Validate required fields
+        required_fields = ["message_key", "message_type", "context", "content"]
+        for field in required_fields:
+            if field not in data:
+                raise HTTPException(status_code=400, detail=f"Missing required field: {field}")
+        
+        # Check if message already exists
+        existing = db.query(BotMessage).filter(
+            BotMessage.message_key == data["message_key"]
+        ).first()
+        
+        if existing:
+            raise HTTPException(status_code=400, detail=f"Message key '{data['message_key']}' already exists")
+        
+        # Get admin username from session
+        admin_username = request.session.get("admin_username", "unknown")
+        
+        # Create new message
+        new_msg = BotMessage(
+            message_key=data["message_key"],
+            message_type=data["message_type"],
+            context=data["context"],
+            content=data["content"],
+            has_menu=data.get("has_menu", False),
+            menu_items=data.get("menu_items"),
+            next_states=data.get("next_states"),
+            variables=data.get("variables"),
+            is_active=data.get("is_active", True),
+            description=data.get("description"),
+            created_by=admin_username,
+            updated_by=admin_username
+        )
+        
+        db.add(new_msg)
+        db.commit()
+        db.refresh(new_msg)
+        
+        logger.info(f"Admin {admin_username} created bot message: {data['message_key']}")
+        
+        return {
+            "status": "success",
+            "message": f"Bot message '{data['message_key']}' created successfully",
+            "data": {
+                "id": new_msg.id,
+                "message_key": new_msg.message_key
+            }
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        db.rollback()
+        logger.error(f"Error creating bot message: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.put("/bot-messages/{message_key}/update")
+@admin_session_required
+async def admin_update_bot_message(
+    request: Request,
+    message_key: str,
+    data: dict = Body(...),
+    db: Session = Depends(db_dependency)
+):
+    """Update a bot message (admin only)."""
+    try:
+        from models.bot_message import BotMessage
+        
+        msg = db.query(BotMessage).filter(BotMessage.message_key == message_key).first()
+        
+        if not msg:
+            raise HTTPException(status_code=404, detail=f"Message '{message_key}' not found")
+        
+        # Get admin username from session
+        admin_username = request.session.get("admin_username", "unknown")
+        
+        # Update fields
+        if "content" in data:
+            msg.content = data["content"]
+        if "message_type" in data:
+            msg.message_type = data["message_type"]
+        if "context" in data:
+            msg.context = data["context"]
+        if "has_menu" in data:
+            msg.has_menu = data["has_menu"]
+        if "menu_items" in data:
+            msg.menu_items = data["menu_items"]
+        if "next_states" in data:
+            msg.next_states = data["next_states"]
+        if "variables" in data:
+            msg.variables = data["variables"]
+        if "is_active" in data:
+            msg.is_active = data["is_active"]
+        if "description" in data:
+            msg.description = data["description"]
+        
+        msg.updated_by = admin_username
+        msg.updated_at = datetime.utcnow()
+        
+        db.commit()
+        db.refresh(msg)
+        
+        logger.info(f"Admin {admin_username} updated bot message: {message_key}")
+        
+        return {
+            "status": "success",
+            "message": f"Bot message '{message_key}' updated successfully",
+            "data": {
+                "id": msg.id,
+                "message_key": msg.message_key
+            }
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        db.rollback()
+        logger.error(f"Error updating bot message: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.delete("/bot-messages/{message_key}")
+@admin_session_required
+async def admin_delete_bot_message(
+    request: Request,
+    message_key: str,
+    db: Session = Depends(db_dependency)
+):
+    """Delete a bot message (admin only)."""
+    try:
+        from models.bot_message import BotMessage
+        
+        msg = db.query(BotMessage).filter(BotMessage.message_key == message_key).first()
+        
+        if not msg:
+            raise HTTPException(status_code=404, detail=f"Message '{message_key}' not found")
+        
+        # Get admin username from session
+        admin_username = request.session.get("admin_username", "unknown")
+        
+        db.delete(msg)
+        db.commit()
+        
+        logger.info(f"Admin {admin_username} deleted bot message: {message_key}")
+        
+        return {
+            "status": "success",
+            "message": f"Bot message '{message_key}' deleted successfully"
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        db.rollback()
+        logger.error(f"Error deleting bot message: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.put("/bot-messages/{message_key}/toggle")
+@admin_session_required
+async def admin_toggle_bot_message(
+    request: Request,
+    message_key: str,
+    db: Session = Depends(db_dependency)
+):
+    """Toggle bot message active status (admin only)."""
+    try:
+        from models.bot_message import BotMessage
+        
+        msg = db.query(BotMessage).filter(BotMessage.message_key == message_key).first()
+        
+        if not msg:
+            raise HTTPException(status_code=404, detail=f"Message '{message_key}' not found")
+        
+        # Get admin username from session
+        admin_username = request.session.get("admin_username", "unknown")
+        
+        msg.is_active = not msg.is_active
+        msg.updated_by = admin_username
+        msg.updated_at = datetime.utcnow()
+        
+        db.commit()
+        db.refresh(msg)
+        
+        logger.info(f"Admin {admin_username} toggled bot message '{message_key}' to {msg.is_active}")
+        
+        return {
+            "status": "success",
+            "message": f"Bot message '{message_key}' is now {'active' if msg.is_active else 'inactive'}",
+            "data": {
+                "is_active": msg.is_active
+            }
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        db.rollback()
+        logger.error(f"Error toggling bot message: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/bot-messages/stats/overview")
+@admin_session_required
+async def admin_bot_messages_stats(
+    request: Request,
+    db: Session = Depends(db_dependency)
+):
+    """Get bot messages statistics (admin only)."""
+    try:
+        from models.bot_message import BotMessage
+        
+        total = db.query(BotMessage).count()
+        active = db.query(BotMessage).filter(BotMessage.is_active == True).count()
+        inactive = db.query(BotMessage).filter(BotMessage.is_active == False).count()
+        
+        # Count by type
+        by_type = {}
+        for msg in db.query(BotMessage).all():
+            msg_type = msg.message_type
+            by_type[msg_type] = by_type.get(msg_type, 0) + 1
+        
+        # Count by context
+        by_context = {}
+        for msg in db.query(BotMessage).all():
+            context = msg.context
+            by_context[context] = by_context.get(context, 0) + 1
+        
+        return {
+            "status": "success",
+            "data": {
+                "total_messages": total,
+                "active": active,
+                "inactive": inactive,
+                "by_type": by_type,
+                "by_context": by_context
+            }
+        }
+    except Exception as e:
+        logger.error(f"Error getting bot messages stats: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
