@@ -293,16 +293,20 @@ export default function ConversationsPage() {
                     setSelectedPhone(conv.phone_number);
                     setShowChat(true);
                   }}
-                  className={`p-3 sm:p-4 border-b cursor-pointer transition hover:bg-gray-50 ${
+                  className={`p-3 sm:p-4 border-b cursor-pointer transition ${
+                    conv.is_active 
+                      ? 'bg-green-50 hover:bg-green-100 border-l-4 border-green-500'
+                      : 'bg-gray-50 hover:bg-gray-100 border-l-4 border-gray-300'
+                  } ${
                     selectedPhone === conv.phone_number
-                      ? 'bg-green-50 border-l-4 border-green-600'
+                      ? conv.is_active ? 'bg-green-100 border-l-4 border-green-600' : 'bg-gray-200 border-l-4 border-gray-500'
                       : ''
                   }`}
                 >
                   <div className="flex justify-between items-start gap-2">
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 flex-wrap">
-                        <p className="font-bold text-gray-800 text-sm truncate">
+                        <p className={`font-bold text-sm truncate ${conv.is_active ? 'text-green-800' : 'text-gray-600'}`}>
                           {conv.student_name || 'Unknown'}
                         </p>
                         {conv.is_chat_support && (
@@ -312,14 +316,26 @@ export default function ConversationsPage() {
                           </span>
                         )}
                       </div>
-                      <p className="text-xs sm:text-sm text-gray-600 truncate mt-1">{conv.last_message}</p>
-                      <p className="text-xs text-gray-400 mt-1">
+                      <p className={`text-xs sm:text-sm truncate mt-1 ${conv.is_active ? 'text-gray-700' : 'text-gray-500'}`}>
+                        {conv.last_message}
+                      </p>
+                      <p className={`text-xs mt-1 ${conv.is_active ? 'text-gray-500' : 'text-gray-400'}`}>
                         {new Date(conv.last_message_time).toLocaleString()}
                       </p>
                     </div>
-                    {conv.is_active && (
-                      <span className="inline-block w-3 h-3 bg-green-500 rounded-full flex-shrink-0 mt-1 animate-pulse"></span>
-                    )}
+                    <div className="flex flex-col items-center gap-1 flex-shrink-0">
+                      {conv.is_active ? (
+                        <>
+                          <span className="inline-block w-3 h-3 bg-green-500 rounded-full animate-pulse"></span>
+                          <span className="text-xs text-green-700 font-semibold">Online</span>
+                        </>
+                      ) : (
+                        <>
+                          <span className="inline-block w-3 h-3 bg-gray-400 rounded-full"></span>
+                          <span className="text-xs text-gray-600 font-semibold">Offline</span>
+                        </>
+                      )}
+                    </div>
                   </div>
                 </div>
               ))
@@ -332,12 +348,16 @@ export default function ConversationsPage() {
           {selectedPhone ? (
             <>
               {/* Chat Header */}
-              <div className="bg-gradient-to-r from-green-600 to-green-700 text-white p-3 sm:p-4 flex justify-between items-center gap-2 border-b border-green-800">
+              <div className={`text-white p-3 sm:p-4 flex justify-between items-center gap-2 border-b ${
+                conversations.find((c) => c.phone_number === selectedPhone)?.is_active 
+                  ? 'bg-gradient-to-r from-green-600 to-green-700 border-green-800'
+                  : 'bg-gradient-to-r from-gray-500 to-gray-600 border-gray-700'
+              }`}>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2">
                     <button
                       onClick={() => setShowChat(false)}
-                      className="md:hidden p-2 hover:bg-green-700 rounded transition"
+                      className="md:hidden p-2 hover:opacity-80 rounded transition"
                       title="Back"
                     >
                       <i className="fas fa-arrow-left"></i>
@@ -346,14 +366,17 @@ export default function ConversationsPage() {
                       <p className="font-bold text-sm sm:text-base truncate">
                         {conversations.find((c) => c.phone_number === selectedPhone)?.student_name || selectedPhone}
                       </p>
-                      <p className="text-green-100 text-xs flex items-center gap-1">
+                      <p className="text-xs flex items-center gap-1">
                         {conversations.find((c) => c.phone_number === selectedPhone)?.is_active ? (
                           <>
-                            <span className="inline-block w-2 h-2 bg-green-400 rounded-full"></span>
-                            Active
+                            <span className="inline-block w-2 h-2 bg-green-300 rounded-full animate-pulse"></span>
+                            <span className="text-green-100">Online</span>
                           </>
                         ) : (
-                          'Offline'
+                          <>
+                            <span className="inline-block w-2 h-2 bg-gray-300 rounded-full"></span>
+                            <span className="text-gray-200">Offline</span>
+                          </>
                         )}
                       </p>
                     </div>
