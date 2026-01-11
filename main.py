@@ -15,7 +15,7 @@ import logging
 import os
 
 from config.settings import settings
-from config.database import init_db, drop_db, ASYNC_MODE
+from config.database import init_db, drop_db, ASYNC_MODE, async_session_maker
 from api.routes import users, students, homework, payments, subscriptions, whatsapp, tutors, health, bot_messages, websocket
 from admin.routes import api as admin_api
 from utils.logger import get_logger

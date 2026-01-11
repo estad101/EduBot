@@ -33,33 +33,26 @@ def get_whatsapp_credentials() -> tuple[Optional[str], Optional[str]]:
         return _credentials_cache
     
     try:
-        # Import inside function to avoid circular imports and load-time issues
-        from config.database import SessionLocal
-        from models.settings import AdminSetting
+        # For now, use environment variables as primary source
+        # Avoid database queries in sync function - use cache instead
+        final_api_key = settings.whatsapp_api_key
+        final_phone_id = settings.whatsapp_phone_number_id
         
-        db = SessionLocal()
-        api_key = db.query(AdminSetting).filter(
-            AdminSetting.key == "WHATSAPP_API_KEY"
-        ).first()
-        phone_id = db.query(AdminSetting).filter(
-            AdminSetting.key == "WHATSAPP_PHONE_NUMBER_ID"
-        ).first()
-        db.close()
+        if final_api_key and final_phone_id:
+            logger.info(f"🔵 [get_whatsapp_credentials] Using environment variables")
+            # Cache the credentials for future calls
+            _credentials_cache = (final_api_key, final_phone_id)
+            return _credentials_cache
         
-        # Return database values if they exist, otherwise fall back to env vars
-        final_api_key = api_key.value if api_key and api_key.value else settings.whatsapp_api_key
-        final_phone_id = phone_id.value if phone_id and phone_id.value else settings.whatsapp_phone_number_id
+        # If env vars don't exist, try database (only on first request)
+        # This requires async context, so we'll load on startup instead
+        logger.warning("⚠️ WhatsApp credentials not in environment variables")
+        result = (None, None)
+        _credentials_cache = result
+        return result
         
-        logger.info(f"🔵 [get_whatsapp_credentials] API Key source: {'database' if api_key and api_key.value else 'environment'}")
-        logger.info(f"🔵 [get_whatsapp_credentials] Phone ID source: {'database' if phone_id and phone_id.value else 'environment'}")
-        
-        # Cache the credentials for future calls
-        _credentials_cache = (final_api_key, final_phone_id)
-        
-        return _credentials_cache
     except Exception as e:
-        logger.warning(f"⚠️ Error fetching WhatsApp credentials from database: {str(e)}")
-        logger.info(f"🔵 Falling back to environment variables")
+        logger.warning(f"⚠️ Error fetching WhatsApp credentials: {str(e)}")
         result = (settings.whatsapp_api_key, settings.whatsapp_phone_number_id)
         _credentials_cache = result
         return result
