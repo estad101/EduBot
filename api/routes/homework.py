@@ -15,9 +15,13 @@ from services.paystack_service import PaystackService
 from services.tutor_service import TutorService
 from services.whatsapp_service import WhatsAppService
 from services.conversation_service import ConversationState
-from config.database import get_db
+from config.database import get_db, get_db_sync, ASYNC_MODE
 from utils.logger import get_logger
 from utils.validators import validate_phone_number
+
+
+# Use sync database dependency
+db_dependency = get_db_sync if ASYNC_MODE else get_db
 
 router = APIRouter(prefix="/api/homework", tags=["homework"])
 logger = get_logger("homework_route")
@@ -25,7 +29,7 @@ logger = get_logger("homework_route")
 
 @router.post("/submit", response_model=StandardResponse)
 async def submit_homework(
-    request: HomeworkSubmissionRequest, db: Session = Depends(get_db)
+    request: HomeworkSubmissionRequest, db: Session = Depends(db_dependency)
 ):
     """
     Submit homework assignment.
@@ -183,7 +187,7 @@ async def submit_homework(
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.get("/{homework_id}/image-status")
-async def check_image_status(homework_id: int, db: Session = Depends(get_db)):
+async def check_image_status(homework_id: int, db: Session = Depends(db_dependency)):
     """
     Check if an image homework submission has a valid image file.
     
@@ -273,7 +277,7 @@ async def upload_homework_image(
     student_id: int = Form(...),
     homework_id: int = Form(...),
     token: str = Form(...),
-    db: Session = Depends(get_db)
+    db: Session = Depends(db_dependency)
 ):
     """
     Upload homework image from the mobile upload page.

@@ -12,8 +12,12 @@ from services.student_service import StudentService
 from models.payment import PaymentStatus
 from models.homework import Homework
 from models.student import Student
-from config.database import get_db
+from config.database import get_db, get_db_sync, ASYNC_MODE
 from utils.logger import get_logger
+
+
+# Use sync database dependency
+db_dependency = get_db_sync if ASYNC_MODE else get_db
 
 router = APIRouter(prefix="/api/payments", tags=["payments"])
 logger = get_logger("payments_route")
@@ -21,7 +25,7 @@ logger = get_logger("payments_route")
 
 @router.post("/initiate", response_model=StandardResponse)
 async def initiate_payment(
-    request: PaymentInitiationRequest, db: Session = Depends(get_db)
+    request: PaymentInitiationRequest, db: Session = Depends(db_dependency)
 ):
     """
     Initiate payment for homework submission or subscription.
@@ -117,7 +121,7 @@ async def initiate_payment(
 
 @router.post("/verify", response_model=StandardResponse)
 async def verify_payment(
-    request: PaymentVerificationRequest, db: Session = Depends(get_db)
+    request: PaymentVerificationRequest, db: Session = Depends(db_dependency)
 ):
     """
     Verify payment status with Paystack.
@@ -222,7 +226,7 @@ async def verify_payment(
 
 
 @router.post("/webhook/paystack", response_model=StandardResponse)
-async def paystack_webhook(request: Request, db: Session = Depends(get_db)):
+async def paystack_webhook(request: Request, db: Session = Depends(db_dependency)):
     """
     Receive Paystack webhook for payment events.
     

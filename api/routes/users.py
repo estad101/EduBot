@@ -6,9 +6,13 @@ from sqlalchemy.orm import Session
 from schemas.student import UserIdentificationRequest
 from schemas.response import UserIdentificationResponse, StandardResponse
 from services.student_service import StudentService
-from config.database import get_db
+from config.database import get_db, get_db_sync, ASYNC_MODE
 from utils.validators import validate_phone_number
 from utils.logger import get_logger
+
+
+# Use sync database dependency
+db_dependency = get_db_sync if ASYNC_MODE else get_db
 
 router = APIRouter(prefix="/api/users", tags=["users"])
 logger = get_logger("users_route")
@@ -16,7 +20,7 @@ logger = get_logger("users_route")
 
 @router.post("/identify", response_model=StandardResponse)
 async def identify_user(
-    request: UserIdentificationRequest, db: Session = Depends(get_db)
+    request: UserIdentificationRequest, db: Session = Depends(db_dependency)
 ):
     """
     Identify user by WhatsApp phone number.

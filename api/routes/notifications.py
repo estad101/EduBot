@@ -4,11 +4,15 @@ import logging
 from typing import Optional, List
 from fastapi import APIRouter, Depends, Body, HTTPException
 from sqlalchemy.orm import Session
-from config.database import get_db
+from config.database import get_db, get_db_sync, ASYNC_MODE
 from models.notification import NotificationType, NotificationPriority
 from services.notification_service import NotificationService
 
 logger = logging.getLogger(__name__)
+
+# Use sync database dependency
+db_dependency = get_db_sync if ASYNC_MODE else get_db
+
 router = APIRouter(prefix="/api/notifications", tags=["notifications"])
 
 
@@ -19,7 +23,7 @@ async def get_notifications(
     offset: int = 0,
     unread_only: bool = False,
     notification_type: Optional[str] = None,
-    db: Session = Depends(get_db)
+    db: Session = Depends(db_dependency)
 ):
     """
     Get notifications for a user.
@@ -85,7 +89,7 @@ async def get_notifications(
 @router.get("/unread-count")
 async def get_unread_count(
     phone_number: str,
-    db: Session = Depends(get_db)
+    db: Session = Depends(db_dependency)
 ):
     """Get count of unread notifications."""
     try:
@@ -109,7 +113,7 @@ async def get_unread_count(
 @router.get("/stats")
 async def get_notification_stats(
     phone_number: str,
-    db: Session = Depends(get_db)
+    db: Session = Depends(db_dependency)
 ):
     """Get notification statistics."""
     try:
@@ -130,7 +134,7 @@ async def get_notification_stats(
 @router.post("/{notification_id}/mark-as-read")
 async def mark_as_read(
     notification_id: int,
-    db: Session = Depends(get_db)
+    db: Session = Depends(db_dependency)
 ):
     """Mark a notification as read."""
     try:
@@ -158,7 +162,7 @@ async def mark_as_read(
 @router.post("/mark-all-as-read")
 async def mark_all_as_read(
     phone_number: str,
-    db: Session = Depends(get_db)
+    db: Session = Depends(db_dependency)
 ):
     """Mark all notifications as read for a user."""
     try:
@@ -186,7 +190,7 @@ async def mark_all_as_read(
 @router.delete("/{notification_id}")
 async def delete_notification(
     notification_id: int,
-    db: Session = Depends(get_db)
+    db: Session = Depends(db_dependency)
 ):
     """Delete a notification."""
     try:
@@ -214,7 +218,7 @@ async def delete_notification(
 @router.post("/clear")
 async def clear_notifications(
     phone_number: str,
-    db: Session = Depends(get_db)
+    db: Session = Depends(db_dependency)
 ):
     """Clear all notifications for a user."""
     try:
@@ -244,7 +248,7 @@ async def clear_notifications(
 @router.get("/preferences")
 async def get_preferences(
     phone_number: str,
-    db: Session = Depends(get_db)
+    db: Session = Depends(db_dependency)
 ):
     """Get notification preferences for a user."""
     try:
@@ -287,7 +291,7 @@ async def get_preferences(
 async def update_preferences(
     phone_number: str,
     request_body: dict = Body(...),
-    db: Session = Depends(get_db)
+    db: Session = Depends(db_dependency)
 ):
     """
     Update notification preferences.

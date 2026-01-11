@@ -6,7 +6,7 @@ from sqlalchemy.orm import Session
 from typing import List, Optional
 import logging
 
-from config.database import get_db
+from config.database import get_db, get_db_sync, ASYNC_MODE
 from models.bot_message import BotMessage, BotMessageWorkflow, BotMessageTemplate
 from services.bot_message_service import BotMessageService, BotMessageWorkflowService
 from schemas.response import StandardResponse
@@ -15,12 +15,15 @@ logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/bot-messages", tags=["bot-messages"])
 
+# Use sync database dependency for bot message routes
+db_dependency = get_db_sync if ASYNC_MODE else get_db
+
 
 @router.get("/list", response_model=StandardResponse)
 async def get_messages(
     active_only: bool = Query(True),
     context: Optional[str] = Query(None),
-    db: Session = Depends(get_db)
+    db: Session = Depends(db_dependency)
 ):
     """Get all bot messages with optional filtering."""
     try:
@@ -56,7 +59,7 @@ async def get_messages(
 
 
 @router.get("/{message_key}", response_model=StandardResponse)
-async def get_message(message_key: str, db: Session = Depends(get_db)):
+async def get_message(message_key: str, db: Session = Depends(db_dependency)):
     """Get a specific message by key."""
     try:
         message = BotMessageService.get_message_by_key(db, message_key)
@@ -96,7 +99,7 @@ async def create_message(
     has_menu: bool = False,
     menu_items: List[dict] = None,
     next_states: List[str] = None,
-    db: Session = Depends(get_db)
+    db: Session = Depends(db_dependency)
 ):
     """Create a new bot message."""
     try:
@@ -140,7 +143,7 @@ async def update_message(
     menu_items: Optional[List[dict]] = None,
     next_states: Optional[List[str]] = None,
     is_active: Optional[bool] = None,
-    db: Session = Depends(get_db)
+    db: Session = Depends(db_dependency)
 ):
     """Update a bot message."""
     try:
@@ -171,7 +174,7 @@ async def update_message(
 
 
 @router.delete("/{message_key}", response_model=StandardResponse)
-async def delete_message(message_key: str, db: Session = Depends(get_db)):
+async def delete_message(message_key: str, db: Session = Depends(db_dependency)):
     """Soft-delete a message by marking as inactive."""
     try:
         message = BotMessageService.update_message(
@@ -195,7 +198,7 @@ async def delete_message(message_key: str, db: Session = Depends(get_db)):
 
 
 @router.get("/workflow/diagram", response_model=StandardResponse)
-async def get_workflow_diagram(db: Session = Depends(get_db)):
+async def get_workflow_diagram(db: Session = Depends(db_dependency)):
     """Get the complete message workflow diagram."""
     try:
         diagram = BotMessageWorkflowService.get_workflow_diagram(db)
@@ -211,7 +214,7 @@ async def get_workflow_diagram(db: Session = Depends(get_db)):
 @router.get("/workflow/next/{message_key}", response_model=StandardResponse)
 async def get_next_messages(
     message_key: str,
-    db: Session = Depends(get_db)
+    db: Session = Depends(db_dependency)
 ):
     """Get all possible next messages from a given message."""
     try:
@@ -237,7 +240,7 @@ async def get_next_messages(
 
 # Template Endpoints
 @router.get("/templates/list", response_model=StandardResponse)
-async def get_templates(db: Session = Depends(get_db)):
+async def get_templates(db: Session = Depends(db_dependency)):
     """Get all message templates."""
     try:
         templates = db.query(BotMessageTemplate).all()
@@ -263,7 +266,7 @@ async def get_templates(db: Session = Depends(get_db)):
 
 
 @router.get("/templates/{template_name}", response_model=StandardResponse)
-async def get_template(template_name: str, db: Session = Depends(get_db)):
+async def get_template(template_name: str, db: Session = Depends(db_dependency)):
     """Get a specific template by name."""
     try:
         template = db.query(BotMessageTemplate).filter(
@@ -291,7 +294,7 @@ async def get_template(template_name: str, db: Session = Depends(get_db)):
 
 
 @router.put("/templates/{template_id}", response_model=StandardResponse)
-async def update_template(template_id: int, data: dict, db: Session = Depends(get_db)):
+async def update_template(template_id: int, data: dict, db: Session = Depends(db_dependency)):
     """Update a bot message template."""
     try:
         template = db.query(BotMessageTemplate).filter(

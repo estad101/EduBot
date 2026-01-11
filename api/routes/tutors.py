@@ -7,9 +7,13 @@ from typing import Optional
 from schemas.response import StandardResponse
 from services.tutor_service import TutorService
 from models.tutor_assignment import AssignmentStatus
-from config.database import get_db
+from config.database import get_db, get_db_sync, ASYNC_MODE
 from utils.logger import get_logger
 import json
+
+
+# Use sync database dependency
+db_dependency = get_db_sync if ASYNC_MODE else get_db
 
 router = APIRouter(prefix="/api/tutors", tags=["tutors"])
 logger = get_logger("tutors_route")
@@ -19,7 +23,7 @@ logger = get_logger("tutors_route")
 async def get_tutor_assignments(
     tutor_id: int,
     status: Optional[str] = None,
-    db: Session = Depends(get_db),
+    db: Session = Depends(db_dependency),
 ):
     """
     Get assignments for a tutor.
@@ -90,7 +94,7 @@ async def submit_solution(
     tutor_id: int,
     assignment_id: int,
     request: Request,
-    db: Session = Depends(get_db),
+    db: Session = Depends(db_dependency),
 ):
     """
     Submit a solution for assigned homework.
@@ -192,7 +196,7 @@ async def submit_solution(
 @router.get("/{tutor_id}")
 async def get_tutor_profile(
     tutor_id: int,
-    db: Session = Depends(get_db),
+    db: Session = Depends(db_dependency),
 ):
     """Get tutor profile."""
     try:

@@ -7,8 +7,12 @@ from schemas.student import StudentRegistrationRequest
 from schemas.response import StudentRegistrationResponse, StandardResponse
 from services.student_service import StudentService
 from services.lead_service import LeadService
-from config.database import get_db
+from config.database import get_db, get_db_sync, ASYNC_MODE
 from utils.logger import get_logger
+
+
+# Use sync database dependency
+db_dependency = get_db_sync if ASYNC_MODE else get_db
 
 router = APIRouter(prefix="/api/students", tags=["students"])
 logger = get_logger("students_route")
@@ -16,7 +20,7 @@ logger = get_logger("students_route")
 
 @router.post("/register", response_model=StandardResponse)
 async def register_student(
-    request: StudentRegistrationRequest, db: Session = Depends(get_db)
+    request: StudentRegistrationRequest, db: Session = Depends(db_dependency)
 ):
     """
     Register a new student.

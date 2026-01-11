@@ -10,7 +10,7 @@ import json
 import logging
 import time
 
-from config.database import get_db, SessionLocal
+from config.database import get_db, SessionLocal, get_db_sync, ASYNC_MODE
 from services.whatsapp_service import WhatsAppService
 from services.conversation_service import ConversationService, MessageRouter, ConversationState
 from services.student_service import StudentService
@@ -22,9 +22,12 @@ logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/webhook", tags=["webhooks"])
 
+# Use sync database dependency for webhook routes (they use .query() pattern)
+db_dependency = get_db_sync if ASYNC_MODE else get_db
+
 
 @router.post("/whatsapp", response_model=StandardResponse)
-async def whatsapp_webhook(request: Request, background_tasks: BackgroundTasks, db: Session = Depends(get_db)):
+async def whatsapp_webhook(request: Request, background_tasks: BackgroundTasks, db: Session = Depends(db_dependency)):
     """
     Receive WhatsApp Cloud API webhooks.
 

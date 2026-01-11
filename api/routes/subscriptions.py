@@ -6,15 +6,19 @@ from sqlalchemy.orm import Session
 from schemas.response import StandardResponse
 from services.student_service import StudentService
 from services.subscription_service import SubscriptionService
-from config.database import get_db
+from config.database import get_db, get_db_sync, ASYNC_MODE
 from utils.logger import get_logger
+
+
+# Use sync database dependency
+db_dependency = get_db_sync if ASYNC_MODE else get_db
 
 router = APIRouter(prefix="/api/subscriptions", tags=["subscriptions"])
 logger = get_logger("subscriptions_route")
 
 
 @router.get("/check/{student_id}", response_model=StandardResponse)
-async def check_subscription_status(student_id: int, db: Session = Depends(get_db)):
+async def check_subscription_status(student_id: int, db: Session = Depends(db_dependency)):
     """
     Check subscription status for a student.
     
