@@ -46,6 +46,12 @@ export function useWebSocket(
 
   // Connect to WebSocket
   const connect = useCallback(() => {
+    if (!url || url.trim() === '') {
+      log('No URL provided, skipping WebSocket connection');
+      setIsConnected(false);
+      return;
+    }
+
     if (wsRef.current?.readyState === WebSocket.OPEN) {
       log('Already connected');
       return;
@@ -91,7 +97,7 @@ export function useWebSocket(
       };
 
       ws.onerror = (error) => {
-        log('✗ Error', error);
+        log('✗ WebSocket Error:', error);
         setIsConnected(false);
       };
 
@@ -103,13 +109,13 @@ export function useWebSocket(
         // Attempt reconnect
         if (reconnectCountRef.current < maxReconnectAttempts) {
           reconnectCountRef.current++;
-          log(`Reconnecting in ${reconnectInterval}ms (attempt ${reconnectCountRef.current})`);
+          log(`Reconnecting in ${reconnectInterval}ms (attempt ${reconnectCountRef.current}/${maxReconnectAttempts})`);
           
           reconnectTimeoutRef.current = setTimeout(() => {
             connect();
           }, reconnectInterval);
         } else {
-          log('Max reconnect attempts reached');
+          log('Max reconnect attempts reached, giving up');
         }
       };
 

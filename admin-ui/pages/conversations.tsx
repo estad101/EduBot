@@ -72,10 +72,11 @@ export default function ConversationsPage() {
     () => setWsConnected(false)
   );
 
-  // WebSocket for specific conversation messages
+  // WebSocket for specific conversation messages - only connect when phone selected
+  const messageWsUrl = selectedPhone ? `/ws/conversation/${selectedPhone}` : '';
   const { isConnected: messageWsConnected, sendMessage: sendMessageWsMsg } = useWebSocket(
     {
-      url: selectedPhone ? `/ws/conversation/${selectedPhone}` : '',
+      url: messageWsUrl,
       debug: process.env.NODE_ENV === 'development'
     },
     (data) => {
