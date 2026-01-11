@@ -437,7 +437,7 @@ async def send_whatsapp_test_message(request: Request, request_body: dict = Body
 async def list_students(
     skip: int = Query(0, ge=0),
     limit: int = Query(50, ge=1, le=100),
-    db: Session = Depends(db_dependency)
+    db: AsyncSession = Depends(get_async_db)
 ):
     """List all registered students with pagination.
     
@@ -446,19 +446,20 @@ async def list_students(
     - Must have phone_number
     - Must have non-empty/non-pending class_grade
     """
-    students = (
-        db.query(Student)
-        .filter(
-            Student.full_name != "",
-            Student.full_name.isnot(None),
-            Student.class_grade != "",
-            Student.class_grade != "Pending",
-            Student.class_grade.isnot(None),
+    from sqlalchemy import select
+    result = await db.execute(
+        select(Student)
+        .where(
+            (Student.full_name != "") &
+            (Student.full_name.isnot(None)) &
+            (Student.class_grade != "") &
+            (Student.class_grade != "Pending") &
+            (Student.class_grade.isnot(None))
         )
         .offset(skip)
         .limit(limit)
-        .all()
     )
+    students = result.scalars().all()
     
     return {
         "status": "success",
@@ -478,9 +479,11 @@ async def list_students(
 
 
 @router.get("/students/{student_id}")
-async def get_student(student_id: int, db: Session = Depends(db_dependency)):
+async def get_student(student_id: int, db: AsyncSession = Depends(get_async_db)):
     """Get a specific student by ID."""
-    student = db.query(Student).filter_by(id=student_id).first()
+    from sqlalchemy import select
+    result = await db.execute(select(Student).where(Student.id == student_id))
+    student = result.scalars().first()
     if not student:
         raise HTTPException(status_code=404, detail="Student not found")
     
