@@ -447,26 +447,49 @@ async def upload_homework_image(
         except Exception as e:
             logger.warning(f"   Could not reset conversation state: {str(e)}")
         
-        # Send WhatsApp confirmation via background task
+        # Send WhatsApp confirmation to student
         try:
-            from tasks.celery_tasks import send_homework_submission_confirmation
+            from services.whatsapp_service import WhatsAppService
+            import asyncio
             
-            # Validate student phone number before queuing
+            # Validate student phone number before sending
             if not student.phone_number:
                 logger.error(f"❌ Cannot send confirmation: Student {student.id} has no phone number")
             else:
-                # Queue the confirmation task to run asynchronously
-                # This doesn't block the response
-                result = send_homework_submission_confirmation.delay(
-                    student_phone=student.phone_number,
-                    subject=homework.subject,
-                    homework_id=homework.id
+                # Create async context and send message directly
+                confirmation_message = (
+                    f"✅ Homework Submitted Successfully!\n\n"
+                    f"📚 Subject: {homework.subject}\n"
+                    f"📷 Type: Image\n"
+                    f"📊 Reference ID: {homework.id}\n\n"
+                    f"🎓 A tutor has been assigned and will review your work shortly.\n"
+                    f"You'll receive feedback soon!"
                 )
-                logger.info(f"✓ Homework confirmation task queued for {student.phone_number}")
-                logger.info(f"  Task ID: {result.id}")
+                
+                # Run async WhatsApp call synchronously
+                loop = asyncio.new_event_loop()
+                asyncio.set_event_loop(loop)
+                
+                try:
+                    logger.info(f"📱 Sending WhatsApp confirmation to {student.phone_number}")
+                    result = loop.run_until_complete(
+                        WhatsAppService.send_message(
+                            phone_number=student.phone_number,
+                            message_type="text",
+                            text=confirmation_message
+                        )
+                    )
+                    loop.close()
+                    
+                    if result.get('status') == 'success':
+                        logger.info(f"✅ WhatsApp confirmation sent successfully to {student.phone_number}")
+                    else:
+                        logger.warning(f"⚠️ WhatsApp confirmation failed: {result.get('error', 'Unknown error')}")
+                except Exception as e:
+                    loop.close()
+                    logger.error(f"❌ Error sending WhatsApp confirmation: {str(e)}")
         except Exception as e:
-            logger.warning(f"⚠️ Could not queue homework confirmation task: {str(e)}")
-            # Even if task fails to queue, we still return success since the homework is uploaded
+            logger.warning(f"⚠️ Could not send WhatsApp confirmation: {str(e)}")
         
         return JSONResponse(
             status_code=200,
