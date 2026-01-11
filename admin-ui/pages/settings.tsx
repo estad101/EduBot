@@ -42,6 +42,30 @@ interface EditingTemplate extends BotTemplate {
   // For tracking edits
 }
 
+// Predefined menu button options commonly used in the system
+const PREDEFINED_MENU_BUTTONS = [
+  { id: 'update', label: '[Pen] Update', description: 'Profile update' },
+  { id: 'home', label: '[Home] Home', description: 'Go to home/main menu' },
+  { id: 'text', label: '[Text] Text', description: 'Text submission' },
+  { id: 'image', label: '[Img] Image', description: 'Image submission' },
+  { id: 'confirm', label: '[✓] Confirm Payment', description: 'Payment confirmation' },
+  { id: 'faq_register', label: '[Pen] Registration', description: 'FAQ about registration' },
+  { id: 'faq_homework', label: '[Book] Homework', description: 'FAQ about homework' },
+  { id: 'faq_payment', label: '[Card] Payment', description: 'FAQ about payment' },
+  { id: 'faq_subscription', label: '[Star] Subscription', description: 'FAQ about subscription' },
+  { id: 'support', label: '[Help] Support', description: 'Contact support' },
+  { id: 'menu', label: '[Menu] Menu', description: 'Back to menu' },
+  { id: 'yes', label: '[✓] Yes', description: 'Yes/Confirm' },
+  { id: 'no', label: '[✕] No', description: 'No/Decline' },
+  { id: 'more', label: '[+] More', description: 'Show more options' },
+  { id: 'back', label: '[←] Back', description: 'Go back' },
+  { id: 'next', label: '[→] Next', description: 'Go to next' },
+  { id: 'submit', label: '[↑] Submit', description: 'Submit information' },
+  { id: 'cancel', label: '[✕] Cancel', description: 'Cancel action' },
+  { id: 'learn_more', label: '[?] Learn More', description: 'Learn more details' },
+  { id: 'help', label: '[Help] Help', description: 'Get help' },
+];
+
 export default function SettingsPage() {
   const router = useRouter();
   const [settings, setSettings] = useState<SettingsData>({});
@@ -60,6 +84,7 @@ export default function SettingsPage() {
   const [editingTemplate, setEditingTemplate] = useState<EditingTemplate | null>(null);
   const [showEditModal, setShowEditModal] = useState(false);
   const [templateMenuId, setTemplateMenuId] = useState<number | null>(null);
+  const [showButtonPresets, setShowButtonPresets] = useState(false);
 
   const isDirty = JSON.stringify(settings) !== JSON.stringify(originalSettings);
 
@@ -1049,6 +1074,51 @@ export default function SettingsPage() {
                     <label className="block text-sm font-bold text-gray-800 mb-3 uppercase tracking-wide">
                       <i className="fas fa-bars text-orange-600 mr-2"></i>Menu Buttons (Optional)
                     </label>
+                    
+                    {/* Predefined Buttons Quick Add */}
+                    <div className="mb-4">
+                      <button
+                        type="button"
+                        onClick={() => setShowButtonPresets(!showButtonPresets)}
+                        className="flex items-center gap-2 px-4 py-2 bg-orange-100 text-orange-700 rounded-lg hover:bg-orange-200 transition font-bold text-sm mb-2"
+                      >
+                        <i className="fas fa-star"></i>
+                        {showButtonPresets ? 'Hide Presets' : 'Show Common Menu Buttons'}
+                      </button>
+                      
+                      {showButtonPresets && (
+                        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2 p-3 bg-orange-50 rounded-lg border border-orange-200 mb-3">
+                          {PREDEFINED_MENU_BUTTONS.map((btn) => {
+                            const isAlreadyAdded = editingTemplate.menu_items?.includes(btn.label);
+                            return (
+                              <button
+                                key={btn.id}
+                                type="button"
+                                onClick={() => {
+                                  if (!isAlreadyAdded) {
+                                    setEditingTemplate({
+                                      ...editingTemplate,
+                                      menu_items: [...(editingTemplate.menu_items || []), btn.label]
+                                    });
+                                  }
+                                }}
+                                disabled={isAlreadyAdded}
+                                title={btn.description}
+                                className={`px-3 py-2 rounded-lg font-mono text-xs transition border ${
+                                  isAlreadyAdded
+                                    ? 'bg-green-100 text-green-600 border-green-300 opacity-50 cursor-not-allowed'
+                                    : 'bg-white text-gray-700 border-orange-200 hover:bg-orange-50 cursor-pointer'
+                                }`}
+                              >
+                                {btn.label}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Display current menu items */}
                     <div className="space-y-3 mb-4 p-4 bg-orange-50 rounded-lg border border-orange-100 min-h-20">
                       {editingTemplate.menu_items && editingTemplate.menu_items.length > 0 ? (
                         editingTemplate.menu_items.map((item, idx) => (
@@ -1084,6 +1154,8 @@ export default function SettingsPage() {
                         <span className="text-gray-500 text-sm italic">No menu buttons added yet</span>
                       )}
                     </div>
+                    
+                    {/* Custom button input */}
                     <div className="flex gap-2">
                       <input
                         type="text"
@@ -1123,7 +1195,7 @@ export default function SettingsPage() {
                       </button>
                     </div>
                     <p className="text-xs text-gray-600 mt-2 flex items-center gap-1">
-                      <i className="fas fa-info-circle"></i> Add menu buttons that will appear below the message (optional)
+                      <i className="fas fa-info-circle"></i> Add menu buttons that will appear below the message (optional). Click "Show Common Menu Buttons" to see predefined options.
                     </p>
                   </div>
 
