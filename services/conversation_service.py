@@ -153,11 +153,11 @@ class ConversationService:
         
         # Fallback to hardcoded version
         faq_text = (
-            "[?] Frequently Asked Questions\n\n"
-            "[Pen] Registration: Create account with name, email, class - it's FREE!\n\n"
-            "[Book] Homework: Submit text or images. Get tutor responses within 24 hours.\n\n"
-            "[Card] Payment: Subscribers enjoy unlimited homework submissions.\n\n"
-            "[Star] Subscription: Get premium access for continuous learning support."
+            "❓ Frequently Asked Questions\n\n"
+            "✏️ Registration: Create account with name, email, class - it's FREE!\n\n"
+            "📝 Homework: Submit text or images. Get tutor responses within 24 hours.\n\n"
+            "💳 Payment: Subscribers enjoy unlimited homework submissions.\n\n"
+            "⭐ Subscription: Get premium access for continuous learning support."
         )
         return faq_text
 

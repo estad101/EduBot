@@ -22,15 +22,15 @@ try:
         template = BotMessageTemplate(template_name="faq_main")
     
     # Set the FAQ content
-    template.template_content = """[?] Frequently Asked Questions
+    template.template_content = """❓ Frequently Asked Questions
 
-[Pen] Registration: Create account with name, email, class - it's FREE!
+✏️ Registration: Create account with name, email, class - it's FREE!
 
-[Book] Homework: Submit text or images. Get tutor responses within 24 hours.
+📝 Homework: Submit text or images. Get tutor responses within 24 hours.
 
-[Card] Payment: Subscribers enjoy unlimited homework submissions.
+💳 Payment: Subscribers enjoy unlimited homework submissions.
 
-[Star] Subscription: Get premium access for continuous learning support."""
+⭐ Subscription: Get premium access for continuous learning support."""
     
     template.variables = []
     template.is_default = True
