@@ -8,21 +8,26 @@ from models.settings import AdminSetting
 
 db = SessionLocal()
 try:
-    # Check existing bot_name
-    bot_name = db.query(AdminSetting).filter(AdminSetting.key == 'bot_name').first()
+    # Delete any existing bot_name entries
+    existing = db.query(AdminSetting).filter(AdminSetting.key == 'bot_name').all()
+    for e in existing:
+        db.delete(e)
+        print(f"✓ Deleted old bot_name entry: {e.value}")
     
-    if bot_name:
-        print(f"✓ Current bot_name: {bot_name.value}")
-        # Update it to ensure it's properly set
-        bot_name.value = "SIL EduBot 101"
-        db.commit()
-        print(f"✓ Updated bot_name to: {bot_name.value}")
+    db.commit()
+    
+    # Create fresh bot_name entry
+    new_setting = AdminSetting(key='bot_name', value='SIL EduBot 101')
+    db.add(new_setting)
+    db.commit()
+    print(f"✓ Created fresh bot_name: SIL EduBot 101")
+    
+    # Verify it was created
+    verify = db.query(AdminSetting).filter(AdminSetting.key == 'bot_name').first()
+    if verify:
+        print(f"✓ Verified bot_name in database: {verify.value}")
     else:
-        print("✗ bot_name not found in database - creating it")
-        new_setting = AdminSetting(key='bot_name', value='SIL EduBot 101')
-        db.add(new_setting)
-        db.commit()
-        print(f"✓ Created bot_name: SIL EduBot 101")
+        print("✗ Failed to verify bot_name")
     
 except Exception as e:
     print(f"✗ Error: {e}")
