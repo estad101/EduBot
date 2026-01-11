@@ -99,9 +99,8 @@ class ConversationService:
         """
         Get the available features menu message from database template.
         Falls back to hardcoded version if template not found.
+        Substitutes variables like {full_name} and {bot_name}.
         """
-        greeting = f"Hey {first_name}!" if first_name else "Hey there!"
-        
         # Try to fetch from database
         if db:
             try:
@@ -110,17 +109,22 @@ class ConversationService:
                     BotMessageTemplate.template_name == "available_features"
                 ).first()
                 if template and template.template_content:
-                    return f"{greeting}\n\n{template.template_content}"
+                    content = template.template_content
+                    # Replace variables in template
+                    content = content.replace("{full_name}", first_name if first_name else "there")
+                    content = content.replace("{bot_name}", ConversationService.get_bot_name(db))
+                    return content
             except Exception as e:
                 logger.warning(f"Failed to fetch template from DB: {e}")
         
         # Fallback to hardcoded version
+        greeting = f"Hey {first_name}!" if first_name else "Hey there!"
         feature_text = (
             f"{greeting}\n\n"
-            f"📚 **AVAILABLE FEATURES** 📚\n\n"
-            f"🏠 **Home** - Return to home menu\n"
+            f"🎁 **AVAILABLE FEATURES** 🎁\n\n"
+            f"👤 **Home** - Return to home menu\n"
             f"❓ **FAQ** - Get answers to common questions\n"
-            f"📝 **Homework** - Submit your homework\n"
+            f"📚 **Homework** - Submit your homework\n"
             f"💬 **Support** - Chat with our team\n"
             f"💳 **Subscribe** - View subscription plans\n"
             f"📊 **Status** - Check your account details\n"
@@ -758,19 +762,7 @@ class MessageRouter:
                 )
             elif intent == "main_menu":
                 # If user clicks main menu from IDLE/INITIAL, return to main options
-                greeting = f"Welcome back, {first_name}! 👋" if first_name else "Welcome back! 👋"
-                menu_text = (
-                    f"{greeting}\n\n"
-                    f"📚 **AVAILABLE FEATURES** 📚\n\n"
-                    f"🏠 **Home** - Return to home menu\n"
-                    f"❓ **FAQ** - Get answers to common questions\n"
-                    f"📝 **Homework** - Submit your homework\n"
-                    f"💬 **Support** - Chat with our team\n"
-                    f"💳 **Subscribe** - View subscription plans\n"
-                    f"📊 **Status** - Check your account details\n"
-                    f"ℹ️ **Help** - Get help with the bot\n\n"
-                    f"Just type a command above to get started!"
-                )
+                menu_text = cls.get_available_features_menu(db, first_name)
                 return (
                     menu_text,
                     ConversationState.REGISTERED if student_data else ConversationState.IDLE,
@@ -779,18 +771,7 @@ class MessageRouter:
                 greeting = f"👋 Hey {first_name}!" if first_name else "👋 Hi!"
                 if first_name:
                     # Registered user - show feature list
-                    menu_text = (
-                        f"{greeting}\n\n"
-                        f"📚 **AVAILABLE FEATURES** 📚\n\n"
-                        f"🏠 **Home** - Return to home menu\n"
-                        f"❓ **FAQ** - Get answers to common questions\n"
-                        f"📝 **Homework** - Submit your homework\n"
-                        f"💬 **Support** - Chat with our team\n"
-                        f"💳 **Subscribe** - View subscription plans\n"
-                        f"📊 **Status** - Check your account details\n"
-                        f"ℹ️ **Help** - Get help with the bot\n\n"
-                        f"Just type a command above to get started!"
-                    )
+                    menu_text = cls.get_available_features_menu(db, first_name)
                     return (
                         menu_text,
                         ConversationState.IDLE,
@@ -815,18 +796,9 @@ class MessageRouter:
                 )
             elif intent == "home" or intent == "main_menu":
                 # User chose to return to main menu
-                greeting = f"Welcome back, {first_name}! 👋" if first_name else "Welcome back! 👋"
+                menu_text = cls.get_available_features_menu(db, first_name)
                 return (
-                    f"{greeting}\n\n"
-                    f"📚 **AVAILABLE FEATURES** 📚\n\n"
-                    f"🏠 **Home** - Return to home menu\n"
-                    f"❓ **FAQ** - Get answers to common questions\n"
-                    f"📝 **Homework** - Submit your homework\n"
-                    f"💬 **Support** - Chat with our team\n"
-                    f"💳 **Subscribe** - View subscription plans\n"
-                    f"📊 **Status** - Check your account details\n"
-                    f"ℹ️ **Help** - Get help with the bot\n\n"
-                    f"Just type a command above to get started!",
+                    menu_text,
                     ConversationState.IDLE,
                 )
             else:
@@ -864,19 +836,7 @@ class MessageRouter:
             first_name_reg = full_name.split()[0] if full_name else "there"
             
             # Show main menu after registration completion
-            menu_text = (
-                f"✅ Account Created!\n\n"
-                f"Welcome, {first_name_reg}! 👋\n\n"
-                f"📚 **AVAILABLE FEATURES** 📚\n\n"
-                f"🏠 **Home** - Return to home menu\n"
-                f"❓ **FAQ** - Get answers to common questions\n"
-                f"📝 **Homework** - Submit your homework\n"
-                f"💬 **Support** - Chat with our team\n"
-                f"💳 **Subscribe** - View subscription plans\n"
-                f"📊 **Status** - Check your account details\n"
-                f"ℹ️ **Help** - Get help with the bot\n\n"
-                f"Just type a command above to get started!"
-            )
+            menu_text = f"✅ Account Created!\n\n{cls.get_available_features_menu(db, first_name_reg)}"
             return (
                 menu_text,
                 ConversationState.REGISTERED,
@@ -945,19 +905,7 @@ class MessageRouter:
 
         # Main menu - show welcome and main options (CHECK BEFORE REGISTERED STATE)
         elif intent == "main_menu":
-            greeting = f"Welcome back, {first_name}! 👋" if first_name else "Welcome back! 👋"
-            menu_text = (
-                f"{greeting}\n\n"
-                f"📚 **AVAILABLE FEATURES** 📚\n\n"
-                f"🏠 **Home** - Return to home menu\n"
-                f"❓ **FAQ** - Get answers to common questions\n"
-                f"📝 **Homework** - Submit your homework\n"
-                f"💬 **Support** - Chat with our team\n"
-                f"💳 **Subscribe** - View subscription plans\n"
-                f"📊 **Status** - Check your account details\n"
-                f"ℹ️ **Help** - Get help with the bot\n\n"
-                f"Just type a command above to get started!"
-            )
+            menu_text = cls.get_available_features_menu(db, first_name)
             return (
                 menu_text,
                 ConversationState.REGISTERED,
@@ -1083,60 +1031,26 @@ class MessageRouter:
             if current_state in [ConversationState.INITIAL, ConversationState.IDLE, ConversationState.IDENTIFYING]:
                 if student_data and student_data.get("name"):
                     # Registered user - show main menu
-                    greeting = f"Hey {first_name}!" if first_name else "Hey there!"
                     return (
-                        f"{greeting}\n\n"
-                        f"📚 **AVAILABLE FEATURES** 📚\n\n"
-                        f"🏠 **Home** - Return to home menu\n"
-                        f"❓ **FAQ** - Get answers to common questions\n"
-                        f"📝 **Homework** - Submit your homework\n"
-                        f"💬 **Support** - Chat with our team\n"
-                        f"💳 **Subscribe** - View subscription plans\n"
-                        f"📊 **Status** - Check your account details\n"
-                        f"ℹ️ **Help** - Get help with the bot\n\n"
-                        f"Just type a command above to get started!",
+                        cls.get_available_features_menu(db, first_name),
                         ConversationState.IDLE,
                     )
                 else:
                     # Unregistered user - show main menu
                     return (
-                        f"📚 **AVAILABLE FEATURES** 📚\n\n"
-                        f"🏠 **Home** - Return to home menu\n"
-                        f"❓ **FAQ** - Get answers to common questions\n"
-                        f"📝 **Homework** - Submit your homework\n"
-                        f"💬 **Support** - Chat with our support team\n"
-                        f"💳 **Subscribe** - Check subscription plans & pricing\n"
-                        f"📊 **Status** - View your account info\n"
-                        f"ℹ️ **Help** - Learn how to use me\n\n"
-                        f"To get started, type any command above or enter your full name to create an account!",
+                        cls.get_available_features_menu(db, ""),
                         ConversationState.INITIAL,
                     )
             else:
                 # In other states, return to idle with feature list
                 if student_data and student_data.get("name"):
                     return (
-                        f"📚 **AVAILABLE FEATURES** 📚\n\n"
-                        f"🏠 **Home** - Return to home menu\n"
-                        f"❓ **FAQ** - Get answers to common questions\n"
-                        f"📝 **Homework** - Submit your homework\n"
-                        f"💬 **Support** - Chat with our team\n"
-                        f"💳 **Subscribe** - View subscription plans\n"
-                        f"📊 **Status** - Check your account details\n"
-                        f"ℹ️ **Help** - Get help with the bot\n\n"
-                        f"Just type a command above to get started!",
+                        cls.get_available_features_menu(db, first_name),
                         ConversationState.IDLE,
                     )
                 else:
                     # Unregistered user in other state - show main menu
                     return (
-                        f"📚 **AVAILABLE FEATURES** 📚\n\n"
-                        f"🏠 **Home** - Return to home menu\n"
-                        f"❓ **FAQ** - Get answers to common questions\n"
-                        f"📝 **Homework** - Submit your homework\n"
-                        f"💬 **Support** - Chat with our support team\n"
-                        f"💳 **Subscribe** - Check subscription plans & pricing\n"
-                        f"📊 **Status** - View your account info\n"
-                        f"ℹ️ **Help** - Learn how to use me\n\n"
-                        f"To get started, type any command above or enter your full name to create an account!",
+                        cls.get_available_features_menu(db, ""),
                         ConversationState.INITIAL,
                     )

@@ -25,14 +25,17 @@ def migrate():
         # Create the template
         template = BotMessageTemplate(
             template_name="available_features",
-            template_content="""📚 **AVAILABLE FEATURES** 📚
+            template_content="""� Hey {full_name}!
 
-🏠 **Home** - Return to home menu
+🎁 **AVAILABLE FEATURES** 🎁
+
+👤 **Home** - Return to home menu
 ❓ **FAQ** - Get answers to common questions
-📝 **Homework** - Submit your homework
+📚 **Homework** - Submit your homework
 💬 **Support** - Chat with our team
 💳 **Subscribe** - View subscription plans
 📊 **Status** - Check your account details
+ℹ️ **Help** - Get help with the bot
 
 Just type a command above to get started!""",
             variables=["full_name", "bot_name"],
