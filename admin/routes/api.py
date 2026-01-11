@@ -8,7 +8,7 @@ from datetime import datetime, timedelta
 from pydantic import BaseModel
 import secrets
 
-from config.database import get_db, engine
+from config.database import get_db, get_db_sync, engine, ASYNC_MODE
 from config.settings import settings
 from admin.auth import AdminAuth, admin_session_required
 from models.student import Student, UserStatus
@@ -29,6 +29,10 @@ from utils.security import (
 logger = get_logger("admin_api")
 
 router = APIRouter(prefix="/api/admin", tags=["admin_api"])
+
+# Use sync database dependency for admin routes (they use .query() pattern)
+# In async mode, we created a sync SessionLocal for backward compatibility
+db_dependency = get_db_sync if ASYNC_MODE else get_db
 
 
 # ==================== AUTH MODELS ====================
@@ -254,7 +258,7 @@ async def whatsapp_status():
 
 
 @router.post("/whatsapp/test")
-async def send_whatsapp_test_message(request: Request, request_body: dict = Body(...), db: Session = Depends(get_db)):
+async def send_whatsapp_test_message(request: Request, request_body: dict = Body(...), db: Session = Depends(db_dependency)):
     """
     Send a test WhatsApp message to verify credentials.
     
@@ -403,7 +407,7 @@ async def send_whatsapp_test_message(request: Request, request_body: dict = Body
 async def list_students(
     skip: int = Query(0, ge=0),
     limit: int = Query(50, ge=1, le=100),
-    db: Session = Depends(get_db)
+    db: Session = Depends(db_dependency)
 ):
     """List all registered students with pagination.
     
@@ -444,7 +448,7 @@ async def list_students(
 
 
 @router.get("/students/{student_id}")
-async def get_student(student_id: int, db: Session = Depends(get_db)):
+async def get_student(student_id: int, db: Session = Depends(db_dependency)):
     """Get a specific student by ID."""
     student = db.query(Student).filter_by(id=student_id).first()
     if not student:
@@ -465,7 +469,7 @@ async def get_student(student_id: int, db: Session = Depends(get_db)):
 
 
 @router.delete("/students/{student_id}")
-async def delete_student(student_id: int, db: Session = Depends(get_db)):
+async def delete_student(student_id: int, db: Session = Depends(db_dependency)):
     """Hard delete a student from the database (cascades to related records)."""
     student = db.query(Student).filter_by(id=student_id).first()
     if not student:
@@ -508,7 +512,7 @@ async def delete_student(student_id: int, db: Session = Depends(get_db)):
 async def list_payments(
     skip: int = Query(0, ge=0),
     limit: int = Query(50, ge=1, le=100),
-    db: Session = Depends(get_db)
+    db: Session = Depends(db_dependency)
 ):
     """List all payments with pagination."""
     payments = db.query(Payment).offset(skip).limit(limit).all()
@@ -535,7 +539,7 @@ async def list_payments(
 async def list_subscriptions(
     skip: int = Query(0, ge=0),
     limit: int = Query(50, ge=1, le=100),
-    db: Session = Depends(get_db)
+    db: Session = Depends(db_dependency)
 ):
     """List all subscriptions with pagination."""
     subscriptions = db.query(Subscription).offset(skip).limit(limit).all()
@@ -566,7 +570,7 @@ async def list_homework(
     submission_type: str = Query(None),
     subject: str = Query(None),
     student_id: int = Query(None),
-    db: Session = Depends(get_db)
+    db: Session = Depends(db_dependency)
 ):
     """List homework submissions with pagination and filtering.
     
@@ -624,7 +628,7 @@ async def list_homework(
 async def search_students(
     query: str = Query(""),
     status: str = Query(None),
-    db: Session = Depends(get_db)
+    db: Session = Depends(db_dependency)
 ):
     """Search students by name, phone, or email."""
     students_query = db.query(Student)
@@ -659,7 +663,7 @@ async def search_students(
 
 
 @router.get("/students/{student_id}/stats")
-async def get_student_stats(student_id: int, db: Session = Depends(get_db)):
+async def get_student_stats(student_id: int, db: Session = Depends(db_dependency)):
     """Get detailed statistics for a student."""
     student = db.query(Student).filter_by(id=student_id).first()
     if not student:
@@ -700,7 +704,7 @@ async def get_student_stats(student_id: int, db: Session = Depends(get_db)):
 async def update_student_status(
     student_id: int,
     new_status: str,
-    db: Session = Depends(get_db)
+    db: Session = Depends(db_dependency)
 ):
     """Update student status."""
     student = db.query(Student).filter_by(id=student_id).first()
@@ -726,7 +730,7 @@ async def update_student_status(
 # ==================== PAYMENTS API ====================
 
 @router.get("/payments/stats")
-async def get_payment_stats(db: Session = Depends(get_db)):
+async def get_payment_stats(db: Session = Depends(db_dependency)):
     """Get payment statistics."""
     total_payments = db.query(Payment).count()
     successful = db.query(Payment).filter_by(status=PaymentStatus.SUCCESS).count()
@@ -760,7 +764,7 @@ async def get_payment_stats(db: Session = Depends(get_db)):
 
 
 @router.get("/payments/{payment_id}")
-async def get_payment_detail(payment_id: int, db: Session = Depends(get_db)):
+async def get_payment_detail(payment_id: int, db: Session = Depends(db_dependency)):
     """Get payment details."""
     payment = db.query(Payment).filter_by(id=payment_id).first()
     if not payment:
@@ -787,7 +791,7 @@ async def get_payment_detail(payment_id: int, db: Session = Depends(get_db)):
 async def update_payment_status(
     payment_id: int,
     status: str,
-    db: Session = Depends(get_db)
+    db: Session = Depends(db_dependency)
 ):
     """Update payment status (manual correction)."""
     payment = db.query(Payment).filter_by(id=payment_id).first()
@@ -811,7 +815,7 @@ async def update_payment_status(
 # ==================== SUBSCRIPTIONS API ====================
 
 @router.get("/subscriptions/stats")
-async def get_subscription_stats(db: Session = Depends(get_db)):
+async def get_subscription_stats(db: Session = Depends(db_dependency)):
     """Get subscription statistics."""
     total_subs = db.query(Subscription).count()
     active_subs = db.query(Subscription).filter_by(is_active=True).count()
@@ -836,7 +840,7 @@ async def get_subscription_stats(db: Session = Depends(get_db)):
 async def extend_subscription(
     subscription_id: int,
     days: int = 30,
-    db: Session = Depends(get_db)
+    db: Session = Depends(db_dependency)
 ):
     """Extend a subscription."""
     subscription = db.query(Subscription).filter_by(id=subscription_id).first()
@@ -859,7 +863,7 @@ async def extend_subscription(
 
 
 @router.delete("/subscriptions/{subscription_id}")
-async def cancel_subscription(subscription_id: int, db: Session = Depends(get_db)):
+async def cancel_subscription(subscription_id: int, db: Session = Depends(db_dependency)):
     """Cancel a subscription."""
     subscription = db.query(Subscription).filter_by(id=subscription_id).first()
     if not subscription:
@@ -879,7 +883,7 @@ async def cancel_subscription(subscription_id: int, db: Session = Depends(get_db
 # ==================== HOMEWORK API ====================
 
 @router.get("/homework/stats")
-async def get_homework_stats(db: Session = Depends(get_db)):
+async def get_homework_stats(db: Session = Depends(db_dependency)):
     """Get homework statistics."""
     from models.homework import HomeworkStatus
     
@@ -919,7 +923,7 @@ async def get_homework_stats(db: Session = Depends(get_db)):
 
 
 @router.get("/homework/{homework_id}")
-async def get_homework_detail(homework_id: int, db: Session = Depends(get_db)):
+async def get_homework_detail(homework_id: int, db: Session = Depends(db_dependency)):
     """Get homework details."""
     homework = db.query(Homework).filter_by(id=homework_id).first()
     if not homework:
@@ -946,7 +950,7 @@ async def get_homework_detail(homework_id: int, db: Session = Depends(get_db)):
 async def provide_solution(
     homework_id: int,
     request_body: dict = Body(...),
-    db: Session = Depends(get_db)
+    db: Session = Depends(db_dependency)
 ):
     """Provide solution to homework and send to student via WhatsApp."""
     solution_text = request_body.get("solution_text", "").strip()
@@ -1029,7 +1033,7 @@ Please review the solution and let us know if you have any questions.
 async def mark_homework_solved(
     homework_id: int,
     request_body: dict = Body(...),
-    db: Session = Depends(get_db)
+    db: Session = Depends(db_dependency)
 ):
     """Mark homework as solved and notify student."""
     delivery_message = request_body.get("delivery_message", "Homework solution delivered successfully!")
@@ -1086,7 +1090,7 @@ Thank you for using our homework help service!
 
 
 @router.delete("/homework/{homework_id}")
-async def delete_homework(homework_id: int, db: Session = Depends(get_db)):
+async def delete_homework(homework_id: int, db: Session = Depends(db_dependency)):
     """Delete a homework submission."""
     homework = db.query(Homework).filter_by(id=homework_id).first()
     if not homework:
@@ -1123,7 +1127,7 @@ async def delete_homework(homework_id: int, db: Session = Depends(get_db)):
 # ==================== SYSTEM STATS ====================
 
 @router.get("/stats/overview")
-async def get_overview_stats(db: Session = Depends(get_db)):
+async def get_overview_stats(db: Session = Depends(db_dependency)):
     """Get overall system statistics."""
     from sqlalchemy import func
     
@@ -1155,7 +1159,7 @@ async def get_overview_stats(db: Session = Depends(get_db)):
 
 
 @router.get("/dashboard/stats")
-async def get_dashboard_stats(db: Session = Depends(get_db)):
+async def get_dashboard_stats(db: Session = Depends(db_dependency)):
     """Get dashboard statistics (alias for /stats/overview).
     
     Only counts registered students (those with name, phone, and class_grade).
@@ -1206,7 +1210,7 @@ async def get_dashboard_stats(db: Session = Depends(get_db)):
 
 @router.get("/settings")
 @admin_session_required
-async def get_settings(request: Request, db: Session = Depends(get_db)):
+async def get_settings(request: Request, db: Session = Depends(db_dependency)):
     """Get admin settings from database."""
     try:
         # Get all settings from database
@@ -1286,7 +1290,7 @@ async def get_settings(request: Request, db: Session = Depends(get_db)):
 
 
 @router.get("/settings/debug")
-async def debug_settings(db: Session = Depends(get_db)):
+async def debug_settings(db: Session = Depends(db_dependency)):
     """Debug endpoint to verify token storage (admin only)."""
     try:
         db_settings = db.query(AdminSetting).all()
@@ -1316,7 +1320,7 @@ async def debug_settings(db: Session = Depends(get_db)):
 
 @router.post("/settings/update")
 @admin_session_required
-async def update_settings(request: Request, data: dict, db: Session = Depends(get_db)):
+async def update_settings(request: Request, data: dict, db: Session = Depends(db_dependency)):
     """Update admin settings in database."""
     logger.info(f"=== SETTINGS UPDATE: Received {len(data)} keys ===")
     
@@ -1369,7 +1373,7 @@ async def update_settings(request: Request, data: dict, db: Session = Depends(ge
 
 @router.post("/settings/validate-whatsapp")
 @admin_session_required
-async def validate_whatsapp(request: Request, db: Session = Depends(get_db)):
+async def validate_whatsapp(request: Request, db: Session = Depends(db_dependency)):
     """Validate WhatsApp configuration."""
     try:
         # Get current settings
@@ -1418,7 +1422,7 @@ async def validate_whatsapp(request: Request, db: Session = Depends(get_db)):
 
 @router.post("/settings/validate-paystack")
 @admin_session_required
-async def validate_paystack(request: Request, db: Session = Depends(get_db)):
+async def validate_paystack(request: Request, db: Session = Depends(db_dependency)):
     """Validate Paystack configuration."""
     try:
         # Get current settings
@@ -1467,7 +1471,7 @@ async def validate_paystack(request: Request, db: Session = Depends(get_db)):
 # ==================== REPORTS ENDPOINTS ====================
 
 @router.get("/reports")
-async def get_reports(db: Session = Depends(get_db)):
+async def get_reports(db: Session = Depends(db_dependency)):
     """Get system reports and analytics."""
     from sqlalchemy import func
     
@@ -1552,7 +1556,7 @@ async def list_leads(
     skip: int = Query(0, ge=0),
     limit: int = Query(50, ge=1, le=100),
     converted: bool = Query(None),
-    db: Session = Depends(get_db)
+    db: Session = Depends(db_dependency)
 ):
     """
     Get list of leads (unregistered users who have messaged the bot).
@@ -1602,7 +1606,7 @@ async def list_leads(
 
 
 @router.get("/leads/stats")
-async def get_leads_stats(db: Session = Depends(get_db)):
+async def get_leads_stats(db: Session = Depends(db_dependency)):
     """Get leads statistics."""
     try:
         total_leads = db.query(Lead).count()
@@ -1630,7 +1634,7 @@ async def get_leads_stats(db: Session = Depends(get_db)):
 
 
 @router.get("/leads/{lead_id}")
-async def get_lead_detail(lead_id: int, db: Session = Depends(get_db)):
+async def get_lead_detail(lead_id: int, db: Session = Depends(db_dependency)):
     """Get detailed information about a specific lead."""
     try:
         lead = db.query(Lead).filter(Lead.id == lead_id).first()
@@ -1675,7 +1679,7 @@ async def get_lead_detail(lead_id: int, db: Session = Depends(get_db)):
 async def convert_lead_to_student(
     lead_id: int,
     student_id: int = Body(...),
-    db: Session = Depends(get_db)
+    db: Session = Depends(db_dependency)
 ):
     """Convert a lead to a student."""
     try:
@@ -1713,7 +1717,7 @@ async def convert_lead_to_student(
 
 
 @router.delete("/leads/{lead_id}")
-async def delete_lead(lead_id: int, db: Session = Depends(get_db)):
+async def delete_lead(lead_id: int, db: Session = Depends(db_dependency)):
     """Hard delete a lead from the database."""
     try:
         lead = db.query(Lead).filter(Lead.id == lead_id).first()
@@ -1746,7 +1750,7 @@ async def delete_lead(lead_id: int, db: Session = Depends(get_db)):
 # ==================== CONVERSATIONS ENDPOINTS ====================
 
 @router.get("/conversations")
-async def get_conversations(limit: int = Query(20, ge=1, le=100), db: Session = Depends(get_db)):
+async def get_conversations(limit: int = Query(20, ge=1, le=100), db: Session = Depends(db_dependency)):
     """
     Get list of recent conversations with WhatsApp users.
     Includes both registered students AND unregistered leads.
@@ -1875,7 +1879,7 @@ async def get_conversations(limit: int = Query(20, ge=1, le=100), db: Session = 
 
 
 @router.get("/conversations/{phone_number}/messages")
-async def get_conversation_messages(phone_number: str, db: Session = Depends(get_db)):
+async def get_conversation_messages(phone_number: str, db: Session = Depends(db_dependency)):
     """
     Get message history for a specific phone number.
     Returns conversation thread with user and bot messages.
@@ -1958,7 +1962,7 @@ async def get_conversation_messages(phone_number: str, db: Session = Depends(get
 async def start_chat_support(
     phone_number: str,
     request_body: dict = Body(...),
-    db: Session = Depends(get_db)
+    db: Session = Depends(db_dependency)
 ):
     """
     Admin initiates a chat support session with a user.
@@ -2025,7 +2029,7 @@ async def start_chat_support(
 async def send_chat_support_message(
     phone_number: str,
     request_body: dict = Body(...),
-    db: Session = Depends(get_db)
+    db: Session = Depends(db_dependency)
 ):
     """
     Admin sends a message to a user in active chat support.
@@ -2120,7 +2124,7 @@ async def send_chat_support_message(
 async def end_chat_support(
     phone_number: str,
     request_body: dict = Body(...) ,
-    db: Session = Depends(get_db)
+    db: Session = Depends(db_dependency)
 ):
     """
     Admin ends a chat support session with a user.

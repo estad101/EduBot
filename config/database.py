@@ -128,8 +128,8 @@ if ASYNC_MODE:
             logger.info("[OK] Imported TutorAssignment model")
             from models.settings import AdminSetting
             logger.info("[OK] Imported AdminSetting model")
-            from models.bot_message_template import BotMessageTemplate
-            logger.info("[OK] Imported BotMessageTemplate model")
+            from models.bot_message import BotMessage
+            logger.info("[OK] Imported BotMessage model")
             
             logger.info(f"\nStep 2: Creating tables (async)...")
             logger.info(f"Tables to create: {list(Base.metadata.tables.keys())}")
@@ -190,6 +190,18 @@ if ASYNC_MODE:
         },
     )
     SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=sync_engine)
+
+    def get_db_sync():
+        """Synchronous database session for routes that need sync ORM queries."""
+        db = SessionLocal()
+        try:
+            yield db
+        except Exception as e:
+            logger.error(f"Database session error: {e}")
+            db.rollback()
+            raise
+        finally:
+            db.close()
 
 else:
     # SYNC FALLBACK MODE - Blocking database operations (compatibility mode)
@@ -258,8 +270,8 @@ else:
             logger.info("[OK] Imported TutorAssignment model")
             from models.settings import AdminSetting
             logger.info("[OK] Imported AdminSetting model")
-            from models.bot_message_template import BotMessageTemplate
-            logger.info("[OK] Imported BotMessageTemplate model")
+            from models.bot_message import BotMessage
+            logger.info("[OK] Imported BotMessage model")
             
             logger.info(f"\nStep 2: Creating tables (sync fallback)...")
             logger.info(f"Tables to create: {list(Base.metadata.tables.keys())}")
@@ -300,3 +312,15 @@ else:
             logger.error(f"Failed to drop database tables: {e}")
             raise
 
+
+# Export the right get_db depending on mode
+# This ensures admin routes always get sync sessions
+__all__ = ['Base', 'engine', 'get_db', 'SessionLocal', 'ASYNC_MODE', 'init_db', 'drop_db', 'get_db_sync', 'async_session_maker']
+
+# Provide get_db_sync for consistency across modes
+if not ASYNC_MODE and 'get_db_sync' not in locals():
+    get_db_sync = get_db
+
+# In sync mode, provide a dummy async_session_maker for code that expects it
+if not ASYNC_MODE:
+    async_session_maker = None
