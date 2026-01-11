@@ -124,7 +124,12 @@ cors_allowed_origins = [
     "https://nurturing-exploration-production.up.railway.app",  # Current Railway frontend
     "https://proactive-insight-production-6462.up.railway.app",  # Old Railway frontend (legacy)
     "https://edubot-production-cf26.up.railway.app",  # Backend service (for admin status checks)
+    "https://edubot-production-0701.up.railway.app",  # Current backend service
 ]
+
+# Add all Railway.app domains in production (for dynamic subdomains)
+if settings.environment == "production":
+    cors_allowed_origins.append("https://*.up.railway.app")
 
 # Add environment-configured origins
 if settings.allow_origins:
@@ -136,13 +141,23 @@ cors_allowed_origins = list(set(o for o in cors_allowed_origins if o))
 
 logger.info(f"CORS allowed origins: {cors_allowed_origins}")
 
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=cors_allowed_origins,
-    allow_credentials=True,
-    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-    allow_headers=["Content-Type", "Authorization", "X-CSRF-Token"],
-)
+# For production Railway apps, use regex to allow all Railway subdomains
+if settings.environment == "production":
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origin_regex=r"https://.*\.up\.railway\.app|http://localhost.*|http://127\.0\.0\.1.*",
+        allow_credentials=True,
+        allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+        allow_headers=["Content-Type", "Authorization", "X-CSRF-Token"],
+    )
+else:
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=cors_allowed_origins,
+        allow_credentials=True,
+        allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+        allow_headers=["Content-Type", "Authorization", "X-CSRF-Token"],
+    )
 
 # Session middleware for admin panel
 from starlette.middleware.sessions import SessionMiddleware
