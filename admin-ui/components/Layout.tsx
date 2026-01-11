@@ -16,11 +16,13 @@ export default function Layout({ children }: LayoutProps) {
       try {
         const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
         const settingsUrl = `${apiUrl}/api/admin/settings`;
+        const token = typeof window !== 'undefined' ? localStorage.getItem('admin_token') : null;
         
         const response = await fetch(settingsUrl, {
           method: 'GET',
           headers: {
             'Content-Type': 'application/json',
+            ...(token && { 'Authorization': `Bearer ${token}` }),
           },
         });
 
