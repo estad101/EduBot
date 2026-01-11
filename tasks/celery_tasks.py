@@ -414,7 +414,8 @@ def send_homework_submission_confirmation(self, student_phone: str, subject: str
             logger.info(f"Sending message to {student_phone}...")
             result = await WhatsAppService.send_message(
                 phone_number=student_phone,
-                message=confirmation_message
+                message_type="text",
+                text=confirmation_message
             )
             
             return result
