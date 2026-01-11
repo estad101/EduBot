@@ -1755,14 +1755,20 @@ async def get_conversations(limit: int = Query(20, ge=1, le=100), db: Session = 
     Get list of recent conversations with WhatsApp users.
     Includes both registered students AND unregistered leads.
     Returns phone numbers, last message, timestamp, and activity status.
+    
+    Activity Status:
+    - is_active: True if user has messaged in the last 3 minutes
+    - is_active: False if no message for 3+ minutes (inactive)
     """
     try:
         from models.student import Student
         from models.lead import Lead
         from services.conversation_service import ConversationService
+        from datetime import datetime, timedelta
         
         conversations = []
         conversation_phones = set()
+        INACTIVITY_TIMEOUT_MINUTES = 3
         
         # Get ALL students, not just fully registered ones, to show activity
         all_students = (
@@ -1795,11 +1801,23 @@ async def get_conversations(limit: int = Query(20, ge=1, le=100), db: Session = 
                         last_message = "No messages yet" if not is_fully_registered else f"{student.full_name} is registered"
                 
                 last_message_time = student.updated_at.isoformat() if student.updated_at else student.created_at.isoformat()
+                last_message_datetime = student.updated_at if student.updated_at else student.created_at
                 
                 if messages and len(messages) > 0:
                     last_msg = messages[-1]
                     if last_msg.get("timestamp"):
                         last_message_time = last_msg["timestamp"]
+                        try:
+                            # Parse timestamp to datetime for inactivity check
+                            if isinstance(last_msg["timestamp"], str):
+                                last_message_datetime = datetime.fromisoformat(last_msg["timestamp"].replace('Z', '+00:00'))
+                        except Exception as e:
+                            logger.warning(f"Error parsing message timestamp: {e}")
+                
+                # Check if user is inactive (no message in last 3 minutes)
+                now = datetime.now(last_message_datetime.tzinfo) if last_message_datetime.tzinfo else datetime.utcnow()
+                time_since_last_message = now - last_message_datetime
+                is_active = time_since_last_message < timedelta(minutes=INACTIVITY_TIMEOUT_MINUTES)
                 
                 conversations.append({
                     "phone_number": student.phone_number,
@@ -1807,9 +1825,10 @@ async def get_conversations(limit: int = Query(20, ge=1, le=100), db: Session = 
                     "last_message": last_message,
                     "last_message_time": last_message_time,
                     "message_count": len(messages),
-                    "is_active": True,
+                    "is_active": is_active,
                     "type": "student" if is_fully_registered else "lead",
-                    "is_chat_support": is_chat_support
+                    "is_chat_support": is_chat_support,
+                    "inactivity_minutes": int(time_since_last_message.total_seconds() / 60)
                 })
                 
                 conversation_phones.add(student.phone_number)
@@ -1833,15 +1852,23 @@ async def get_conversations(limit: int = Query(20, ge=1, le=100), db: Session = 
                     messages = conv_state.get("data", {}).get("messages", [])
                     is_chat_support = conv_state.get("data", {}).get("chat_support_active", False)
                     
+                    last_message_datetime = lead.last_message_time if lead.last_message_time else datetime.utcnow()
+                    
+                    # Check if user is inactive (no message in last 3 minutes)
+                    now = datetime.now(last_message_datetime.tzinfo) if last_message_datetime.tzinfo else datetime.utcnow()
+                    time_since_last_message = now - last_message_datetime
+                    is_active = time_since_last_message < timedelta(minutes=INACTIVITY_TIMEOUT_MINUTES)
+                    
                     conversations.append({
                         "phone_number": lead.phone_number,
                         "student_name": lead.sender_name or lead.phone_number,
                         "last_message": lead.last_message or "Awaiting registration",
                         "last_message_time": lead.last_message_time.isoformat(),
                         "message_count": lead.message_count,
-                        "is_active": True,
+                        "is_active": is_active,
                         "type": "lead",
-                        "is_chat_support": is_chat_support
+                        "is_chat_support": is_chat_support,
+                        "inactivity_minutes": int(time_since_last_message.total_seconds() / 60)
                     })
                     
                     conversation_phones.add(lead.phone_number)
@@ -1876,8 +1903,6 @@ async def get_conversations(limit: int = Query(20, ge=1, le=100), db: Session = 
             "message": str(e),
             "data": []
         }
-
-
 @router.get("/conversations/{phone_number}/messages")
 async def get_conversation_messages(phone_number: str, db: Session = Depends(db_dependency)):
     """
